@@ -23,12 +23,12 @@ linters: # @HELP examines Go source code and reports coding problems
 
 license_check: # @HELP examine and ensure license headers exist
 	@if [ ! -d "../build-tools" ]; then cd .. && git clone https://github.com/onosproject/build-tools.git; fi
-	./../build-tools/licensing/boilerplate.py -v --rootdir=${CURDIR}
+	./../build-tools/licensing/boilerplate.py -v --rootdir=${CURDIR} LicenseRef-ONF-Member-1.0
 
 
-# @HELP build the go binary in the cmd/gnmi_target package
+# @HELP build the go binary in the cmd/sdcore-adapter package
 build:
-	go build -o build/_output/sdcore_adapter ./cmd/sdcore_adapter
+	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter
 
 test: build deps license_check linters
 	go test github.com/onosproject/sdcore-adapter/pkg/...
@@ -53,7 +53,7 @@ publish: # @HELP publish version on github and dockerhub
 clean: # @HELP remove all the build artifacts
 	rm -rf ./build/_output
 	rm -rf ./vendor
-	rm -rf ./cmd/gnmi_target/gnmi_target
+	rm -rf ./cmd/sdcore-adapter/sdcore-adapter
 
 help:
 	@grep -E '^.*: *# *@HELP' $(MAKEFILE_LIST) \

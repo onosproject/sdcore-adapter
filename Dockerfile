@@ -14,10 +14,6 @@ RUN mkdir -p $ADAPTER_ROOT/
 
 COPY . $ADAPTER_ROOT/
 
-# We can't "go get" a package that doesn't contain go code, and the certs directory
-# does not, so clone the repo.
-RUN git clone https://github.com/onosproject/gnxi-simulators.git
-
 RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sdcore-adapter ./cmd/sdcore-adapter
 
 FROM alpine:3.11
@@ -32,7 +28,6 @@ RUN mkdir $HOME
 WORKDIR $HOME
 
 COPY --from=build /go/bin/sdcore-adapter /usr/local/bin/
-COPY --from=build /go/src/github.com/gnxi-simulators/pkg/certs certs
 
 COPY configs/target_configs target_configs
 COPY tools/scripts scripts

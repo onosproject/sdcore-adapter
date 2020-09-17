@@ -18,7 +18,7 @@ then
     sed -i -e "s/replace-device-name/"$hostname"/g" $CONFIG && \
     sed -i -e "s/replace-motd-banner/Welcome to gNMI service on "$hostname":"$GNMI_PORT"/g" $CONFIG
 
-    sdcore_adapter \
+    sdcore-adapter \
        -bind_address :$GNMI_INSECURE_PORT \
        -alsologtostderr \
        -notls \
@@ -26,7 +26,7 @@ then
        -config $CONFIG \
        -output $OUTPUT &
 
-    sdcore_adapter \
+    sdcore-adapter \
        -bind_address :$GNMI_PORT \
        -key $HOME/certs/$hostname.key \
        -cert $HOME/certs/$hostname.crt \
@@ -60,7 +60,7 @@ then
     fi
     sed -i -e "s/replace-device-name/"$hostname"/g" $CONFIG && \
     sed -i -e "s/replace-motd-banner/Welcome to gNMI service on "$hostname":"$GNMI_PORT"/g" $CONFIG
-    sdcore_adapter \
+    sdcore-adapter \
        -bind_address :$GNMI_PORT \
        -key $HOME/certs/$hostname.key \
        -cert $HOME/certs/$hostname.crt \
@@ -69,7 +69,7 @@ then
        -config $CONFIG \
        -output $OUTPUT &
 
-    sdcore_adapter \
+    sdcore-adapter \
        -bind_address :$GNMI_INSECURE_PORT \
        -alsologtostderr \
        -notls \

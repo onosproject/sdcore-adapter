@@ -29,7 +29,6 @@ WORKDIR $HOME
 
 COPY --from=build /go/bin/sdcore-adapter /usr/local/bin/
 
-COPY configs/target_configs target_configs
 COPY tools/scripts scripts
 
 RUN chmod +x ./scripts/run_targets.sh

@@ -25,4 +25,3 @@ RUN mkdir $HOME
 WORKDIR $HOME
 
 COPY --from=build /go/bin/sdcore-adapter /usr/local/bin/
-

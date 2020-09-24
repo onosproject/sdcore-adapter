@@ -46,6 +46,15 @@ func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 	s.postTimeout = postTimeout
 }
 
+func (s *Synchronizer) Start() {
+	log.Infof("Synchronizer starting (outputFileName=%s, spgwEndpont=%s, postTimeout=%d)",
+		s.outputFileName,
+		s.spgwEndpoint,
+		s.postTimeout)
+
+	// TODO: Eventually we'll create a thread here that waits for config changes
+}
+
 func NewSynchronizer(outputFileName string, spgwEndpoint string, postTimeout time.Duration) *Synchronizer {
 	s := &Synchronizer{
 		outputFileName: outputFileName,

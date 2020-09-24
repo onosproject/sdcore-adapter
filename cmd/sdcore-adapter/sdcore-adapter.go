@@ -57,6 +57,8 @@ func main() {
 	sync.SetOutputFileName(*outputFileName)
 	sync.SetSpgwEndpoint(*spgwEndpoint)
 
+	sync.Start()
+
 	var configData []byte
 	if *configFile != "" {
 		var err error

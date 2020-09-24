@@ -12,10 +12,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"net/http"
 	"os"
-<<<<<<< HEAD
 	"strconv"
-=======
->>>>>>> add http post support
 	"strings"
 	"time"
 
@@ -126,6 +123,7 @@ func ConvertImsiRange(s string) (SubscriberImsiRange, error) {
 		}
 	}
 	return imsiRange, nil
+<<<<<<< HEAD
 }
 
 func (s *Synchronizer) Post(endpoint string, data []byte) error {
@@ -149,6 +147,8 @@ func (s *Synchronizer) Post(endpoint string, data []byte) error {
 	}
 
 	return nil
+=======
+>>>>>>> support nil keys;
 }
 
 func (s *Synchronizer) Post(endpoint string, data []byte) error {
@@ -164,6 +164,12 @@ func (s *Synchronizer) Post(endpoint string, data []byte) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	log.Infof("Post returned status %s", resp.Status)
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Post returned error %s", resp.Status)
+	}
 
 	return nil
 }

@@ -12,7 +12,10 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"net/http"
 	"os"
+<<<<<<< HEAD
 	"strconv"
+=======
+>>>>>>> add http post support
 	"strings"
 	"time"
 
@@ -144,6 +147,23 @@ func (s *Synchronizer) Post(endpoint string, data []byte) error {
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Post returned error %s", resp.Status)
 	}
+
+	return nil
+}
+
+func (s *Synchronizer) Post(endpoint string, data []byte) error {
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	resp, err := client.Post(
+		endpoint,
+		"application/json",
+		bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
 	return nil
 }

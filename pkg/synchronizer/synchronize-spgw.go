@@ -6,9 +6,13 @@
 package synchronizer
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/openconfig/ygot/ygot"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
 )
@@ -82,11 +86,42 @@ type SpgwConfig struct {
 }
 
 func ConvertImsiRange(s string) SubscriberImsiRange {
-	imsiRange := SubscriberImsiRange{
-		From: s,
-		To:   s,
+	// TODO: Bug in onos-config causes strings that are all digits to be
+	// converted into integers. I've been using the workaround of substituting
+	// an "e" for the first "3" in the IMSI.
+	s = strings.Replace(s, "e", "3", -1)
+
+	var imsiRange SubscriberImsiRange
+	if strings.Contains(s, "-") {
+		parts := strings.SplitN(s, "-", 2)
+		imsiRange = SubscriberImsiRange{
+			From: parts[0],
+			To:   parts[1],
+		}
+	} else {
+		imsiRange = SubscriberImsiRange{
+			From: s,
+			To:   s,
+		}
 	}
 	return imsiRange
+}
+
+func (s *Synchronizer) Post(endpoint string, data []byte) error {
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	resp, err := client.Post(
+		endpoint,
+		"application/json",
+		bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }
 
 func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
@@ -186,8 +221,8 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 
 	log.Infof("Emit: %v", string(data))
 
-	log.Infof("Outputfilename: %v", s.outputFileName)
 	if s.outputFileName != "" {
+		log.Infof("Writing %s", s.outputFileName)
 		file, err := os.OpenFile(
 			s.outputFileName,
 			os.O_WRONLY|os.O_TRUNC|os.O_CREATE,
@@ -202,8 +237,12 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 		if err != nil {
 			return err
 		}
+	}
 
-		log.Infof("Wrote %s", s.outputFileName)
+	if s.spgwEndpoint != "" {
+		log.Infof("Posting to %s", s.spgwEndpoint)
+		s.Post(s.spgwEndpoint, data)
+
 	}
 
 	return nil

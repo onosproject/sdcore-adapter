@@ -12,6 +12,7 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer/modeldata"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
+	"time"
 )
 
 var log = logging.GetLogger("synchronizer")
@@ -37,7 +38,28 @@ func (s *Synchronizer) SetOutputFileName(fileName string) {
 	s.outputFileName = fileName
 }
 
-func NewSynchronizer(outputFileName string) *Synchronizer {
-	s := &Synchronizer{outputFileName: outputFileName}
+func (s *Synchronizer) SetSpgwEndpoint(endpoint string) {
+	s.spgwEndpoint = endpoint
+}
+
+func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
+	s.postTimeout = postTimeout
+}
+
+func (s *Synchronizer) Start() {
+	log.Infof("Synchronizer starting (outputFileName=%s, spgwEndpont=%s, postTimeout=%d)",
+		s.outputFileName,
+		s.spgwEndpoint,
+		s.postTimeout)
+
+	// TODO: Eventually we'll create a thread here that waits for config changes
+}
+
+func NewSynchronizer(outputFileName string, spgwEndpoint string, postTimeout time.Duration) *Synchronizer {
+	s := &Synchronizer{
+		outputFileName: outputFileName,
+		spgwEndpoint:   spgwEndpoint,
+		postTimeout:    postTimeout,
+	}
 	return s
 }

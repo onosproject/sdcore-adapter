@@ -6,9 +6,15 @@
 package synchronizer
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/openconfig/ygot/ygot"
+	"net/http"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
 )
@@ -24,8 +30,8 @@ import (
  */
 
 type SubscriberImsiRange struct {
-	From string `json:"from"`
-	To   string `json:"to"`
+	From uint64 `json:"from"`
+	To   uint64 `json:"to"`
 }
 
 type SubscriberServingPlmn struct {
@@ -81,12 +87,65 @@ type SpgwConfig struct {
 	UpProfiles               map[string]UpProfile      `json:"user-plane-profiles,omitempty"`
 }
 
-func ConvertImsiRange(s string) SubscriberImsiRange {
-	imsiRange := SubscriberImsiRange{
-		From: s,
-		To:   s,
+func ConvertImsiRange(s string) (SubscriberImsiRange, error) {
+	// TODO: Bug in onos-config causes strings that are all digits to be
+	// converted into integers. I've been using the workaround of substituting
+	// an "e" for the first "3" in the IMSI.
+	s = strings.Replace(s, "e", "3", -1)
+
+	var imsiRange SubscriberImsiRange
+	if strings.Contains(s, "-") {
+		parts := strings.SplitN(s, "-", 2)
+
+		from, err := strconv.ParseUint(parts[0], 0, 64)
+		if err != nil {
+			return SubscriberImsiRange{}, err
+		}
+
+		to, err := strconv.ParseUint(parts[1], 0, 64)
+		if err != nil {
+			return SubscriberImsiRange{}, err
+		}
+
+		imsiRange = SubscriberImsiRange{
+			From: from,
+			To:   to,
+		}
+	} else {
+		imsi, err := strconv.ParseUint(s, 0, 64)
+		if err != nil {
+			return SubscriberImsiRange{}, err
+		}
+
+		imsiRange = SubscriberImsiRange{
+			From: imsi,
+			To:   imsi,
+		}
 	}
-	return imsiRange
+	return imsiRange, nil
+}
+
+func (s *Synchronizer) Post(endpoint string, data []byte) error {
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	resp, err := client.Post(
+		endpoint,
+		"application/json",
+		bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	log.Infof("Post returned status %s", resp.Status)
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Post returned error %s", resp.Status)
+	}
+
+	return nil
 }
 
 func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
@@ -96,22 +155,32 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 
 	if device.Subscriber != nil {
 		for _, ue := range device.Subscriber.Ue {
-			var servingPlmn *SubscriberServingPlmn
+			var err error
+
+			keys := SubscriberKeys{}
+
 			if ue.ServingPlmn != nil {
-				servingPlmn = &SubscriberServingPlmn{
+				keys.ServingPlmn = &SubscriberServingPlmn{
 					Mcc: *ue.ServingPlmn.Mcc,
 					Mnc: *ue.ServingPlmn.Mnc,
 					Tac: *ue.ServingPlmn.Tac,
 				}
 			}
 
+			if ue.Ueid != nil {
+				keys.ImsiRange, err = ConvertImsiRange(*ue.Ueid)
+				if err != nil {
+					return err
+				}
+			}
+
+			if ue.RequestedApn != nil {
+				keys.RequestedApn = *ue.RequestedApn
+			}
+
 			rule := SubscriberSelectionRule{
-				Priority: ue.Priority,
-				Keys: SubscriberKeys{
-					ImsiRange:    ConvertImsiRange(*ue.Ueid),
-					ServingPlmn:  servingPlmn,
-					RequestedApn: *ue.RequestedApn,
-				},
+				Priority:   ue.Priority,
+				Keys:       keys,
 				ApnProfile: ue.Profiles.ApnProfile,
 				QosProfile: ue.Profiles.QosProfile,
 				UpProfile:  ue.Profiles.UpProfile,
@@ -186,8 +255,8 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 
 	log.Infof("Emit: %v", string(data))
 
-	log.Infof("Outputfilename: %v", s.outputFileName)
 	if s.outputFileName != "" {
+		log.Infof("Writing %s", s.outputFileName)
 		file, err := os.OpenFile(
 			s.outputFileName,
 			os.O_WRONLY|os.O_TRUNC|os.O_CREATE,
@@ -202,8 +271,14 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 		if err != nil {
 			return err
 		}
+	}
 
-		log.Infof("Wrote %s", s.outputFileName)
+	if s.spgwEndpoint != "" {
+		log.Infof("Posting to %s", s.spgwEndpoint)
+		err := s.Post(s.spgwEndpoint, data)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

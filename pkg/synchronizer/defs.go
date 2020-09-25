@@ -5,8 +5,12 @@
 // Package gnmi implements a gnmi server to mock a device with YANG models.
 package synchronizer
 
-import ()
+import (
+	"time"
+)
 
 type Synchronizer struct {
 	outputFileName string
+	spgwEndpoint   string
+	postTimeout    time.Duration
 }

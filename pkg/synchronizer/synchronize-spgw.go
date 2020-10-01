@@ -189,6 +189,10 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 
 			keys := SubscriberKeys{}
 
+			if (ue.Enabled == nil) || (!*ue.Enabled) {
+				continue
+			}
+
 			if ue.ServingPlmn != nil {
 				keys.ServingPlmn = &SubscriberServingPlmn{
 					Mcc: *ue.ServingPlmn.Mcc,
@@ -272,8 +276,8 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 			profile := UpProfile{
 				UserPlane:     up.UserPlane,
 				AccessControl: up.AccessControl,
-				AccessTags:    map[string]string{"tag1": "ACC"},
-				QosTags:       map[string]string{"tag1": "BW"},
+				AccessTags:    map[string]string{"tag1": "ACC"}, // TODO: smbaker / fixme
+				QosTags:       map[string]string{"tag1": "BW"},  // TODO: smbaker / fixme
 			}
 
 			spgwConfig.UpProfiles[*up.Id] = profile

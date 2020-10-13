@@ -127,32 +127,6 @@ func ConvertImsiRange(s string) (SubscriberImsiRange, error) {
 		}
 	}
 	return imsiRange, nil
-<<<<<<< HEAD
-}
-
-func (s *Synchronizer) Post(endpoint string, data []byte) error {
-	client := &http.Client{
-		Timeout: time.Second * 10,
-	}
-
-	resp, err := client.Post(
-		endpoint,
-		"application/json",
-		bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	log.Infof("Post returned status %s", resp.Status)
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("Post returned error %s", resp.Status)
-	}
-
-	return nil
-=======
->>>>>>> support nil keys;
 }
 
 func (s *Synchronizer) Post(endpoint string, data []byte) error {

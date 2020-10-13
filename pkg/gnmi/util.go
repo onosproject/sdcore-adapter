@@ -74,6 +74,7 @@ func getChildNode(node map[string]interface{}, schema *yang.Entry, elem *pb.Path
 				nextNode = node[elem.Name]
 			}
 		}
+		log.Infof("Returning %v, %v", nextNode, nextSchema)
 		return nextNode, nextSchema
 	}
 
@@ -131,6 +132,7 @@ func getKeyedListEntry(node map[string]interface{}, elem *pb.PathElem, createIfN
 		}
 	}
 	if !createIfNotExist {
+		log.Warnf("Key %v not found in keyedfList %v", elem, keyedList)
 		return nil
 	}
 

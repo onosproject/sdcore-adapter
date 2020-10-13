@@ -74,7 +74,6 @@ func getChildNode(node map[string]interface{}, schema *yang.Entry, elem *pb.Path
 				nextNode = node[elem.Name]
 			}
 		}
-		log.Infof("Returning %v, %v", nextNode, nextSchema)
 		return nextNode, nextSchema
 	}
 

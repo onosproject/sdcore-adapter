@@ -44,7 +44,7 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 			}
 			pathDeleted = deleteKeyedListEntry(node, elem)
 			if pathDeleted {
-				log.Warnf("deleteKeyedListEntry returned false on node %v, elem%v", node, elem)
+				log.Warnf("deleteKeyedListEntry returned false on node=%v, elem=%v", node, elem)
 			}
 			break
 		}

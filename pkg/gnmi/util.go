@@ -131,6 +131,7 @@ func getKeyedListEntry(node map[string]interface{}, elem *pb.PathElem, createIfN
 		}
 	}
 	if !createIfNotExist {
+		log.Warnf("Key %v not found in keyedList %v", elem, keyedList)
 		return nil
 	}
 

@@ -31,6 +31,7 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 	for i, elem := range fullPath.Elem { // Delete sub-tree or leaf node.
 		node, ok := curNode.(map[string]interface{})
 		if !ok {
+			log.Warnf("Failed to map node %v", curNode)
 			break
 		}
 
@@ -42,10 +43,14 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 				break
 			}
 			pathDeleted = deleteKeyedListEntry(node, elem)
+			if pathDeleted {
+				log.Warnf("deleteKeyedListEntry returned false on node=%v, elem=%v", node, elem)
+			}
 			break
 		}
 
 		if curNode, schema = getChildNode(node, schema, elem, false); curNode == nil {
+			log.Warnf("Delete stopping due to no child, node=%v, elem=%v", node, elem)
 			break
 		}
 	}
@@ -188,6 +193,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 	var results []*pb.UpdateResult
 
 	for _, path := range req.GetDelete() {
+		log.Info("Handling delete %v", path)
 		res, grpcStatusError := s.doDelete(jsonTree, prefix, path)
 		if grpcStatusError != nil {
 			return nil, grpcStatusError
@@ -195,6 +201,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		results = append(results, res)
 	}
 	for _, upd := range req.GetReplace() {
+		log.Info("Handling replace %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_REPLACE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			return nil, grpcStatusError
@@ -202,6 +209,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		results = append(results, res)
 	}
 	for _, upd := range req.GetUpdate() {
+		log.Info("Handling update %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_UPDATE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			return nil, grpcStatusError
@@ -215,6 +223,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		log.Error(msg)
 		return nil, status.Error(codes.Internal, msg)
 	}
+
 	rootStruct, err := s.model.NewConfigStruct(jsonDump)
 	if err != nil {
 		msg := fmt.Sprintf("error in creating config struct from IETF JSON data: %v", err)

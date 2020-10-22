@@ -61,11 +61,15 @@ type ApnProfile struct {
 	DnsSecondary *string `json:"dns-secondary"`
 	Mtu          *uint32 `json:"mtu"`
 	GxEnabled    *bool   `json:"gx-enabled"`
+	Network      string  `json:"network"`
+	Usage        uint32  `json:"usage"`
 }
 
 type UpProfile struct {
-	UserPlane     *string `json:"user-plane"`
-	AccessControl *string `json:"access-control"`
+	UserPlane     *string           `json:"user-plane"`
+	AccessControl *string           `json:"access-control,omitempty"`
+	AccessTags    map[string]string `json:"access-tags"`
+	QosTags       map[string]string `json:"qos-tags"`
 }
 
 type QosProfile struct {
@@ -74,7 +78,7 @@ type QosProfile struct {
 
 type AccessProfile struct {
 	Type   *string `json:"type"`
-	Filter *string `json:"filter"`
+	Filter *string `json:"filter,omitempty"`
 }
 
 // On all of these, consider whether it is preferred to leave the item out if empty, or
@@ -159,6 +163,10 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 
 			keys := SubscriberKeys{}
 
+			if (ue.Enabled == nil) || (!*ue.Enabled) {
+				continue
+			}
+
 			if ue.ServingPlmn != nil {
 				keys.ServingPlmn = &SubscriberServingPlmn{
 					Mcc: *ue.ServingPlmn.Mcc,
@@ -205,6 +213,8 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 				DnsSecondary: apn.DnsSecondary,
 				Mtu:          apn.Mtu,
 				GxEnabled:    apn.GxEnabled,
+				Network:      "lbo", // TODO: update modeling and revise
+				Usage:        1,     // TODO: update modeling and revise
 			}
 
 			spgwConfig.ApnProfiles[*apn.Id] = profile
@@ -240,6 +250,8 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 			profile := UpProfile{
 				UserPlane:     up.UserPlane,
 				AccessControl: up.AccessControl,
+				AccessTags:    map[string]string{"tag1": "ACC"}, // TODO: update modeling and revise
+				QosTags:       map[string]string{"tag1": "BW"},  // TODO: update modeling and revise
 			}
 
 			spgwConfig.UpProfiles[*up.Id] = profile

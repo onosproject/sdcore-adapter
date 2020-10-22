@@ -8,15 +8,14 @@ package synchronizer
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/openconfig/ygot/ygot"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
-	models "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 /*
@@ -91,44 +90,6 @@ type SpgwConfig struct {
 	UpProfiles               map[string]UpProfile      `json:"user-plane-profiles,omitempty"`
 }
 
-func ConvertImsiRange(s string) (SubscriberImsiRange, error) {
-	// TODO: Bug in onos-config causes strings that are all digits to be
-	// converted into integers. I've been using the workaround of substituting
-	// an "e" for the first "3" in the IMSI.
-	s = strings.Replace(s, "e", "3", -1)
-
-	var imsiRange SubscriberImsiRange
-	if strings.Contains(s, "-") {
-		parts := strings.SplitN(s, "-", 2)
-
-		from, err := strconv.ParseUint(parts[0], 0, 64)
-		if err != nil {
-			return SubscriberImsiRange{}, err
-		}
-
-		to, err := strconv.ParseUint(parts[1], 0, 64)
-		if err != nil {
-			return SubscriberImsiRange{}, err
-		}
-
-		imsiRange = SubscriberImsiRange{
-			From: from,
-			To:   to,
-		}
-	} else {
-		imsi, err := strconv.ParseUint(s, 0, 64)
-		if err != nil {
-			return SubscriberImsiRange{}, err
-		}
-
-		imsiRange = SubscriberImsiRange{
-			From: imsi,
-			To:   imsi,
-		}
-	}
-	return imsiRange, nil
-}
-
 func (s *Synchronizer) Post(endpoint string, data []byte) error {
 	client := &http.Client{
 		Timeout: time.Second * 10,
@@ -159,8 +120,6 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 
 	if device.Subscriber != nil {
 		for _, ue := range device.Subscriber.Ue {
-			var err error
-
 			keys := SubscriberKeys{}
 
 			if (ue.Enabled == nil) || (!*ue.Enabled) {
@@ -175,10 +134,17 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 				}
 			}
 
-			if ue.Ueid != nil {
-				keys.ImsiRange, err = ConvertImsiRange(*ue.Ueid)
-				if err != nil {
-					return err
+			if ue.ImsiRangeFrom != nil || ue.ImsiRangeTo != nil {
+				// If we have one, then we require the other.
+				if ue.ImsiRangeFrom == nil {
+					return errors.New("ImsiRangeFrom is nil, but ImsiRangeTo is not")
+				}
+				if ue.ImsiRangeTo == nil {
+					return errors.New("ImsiRangeTo is nil, but ImsiRangeFrom is not")
+				}
+				keys.ImsiRange = SubscriberImsiRange{
+					From: *ue.ImsiRangeFrom,
+					To:   *ue.ImsiRangeTo,
 				}
 			}
 

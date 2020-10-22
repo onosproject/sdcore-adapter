@@ -7,12 +7,19 @@ KIND_CLUSTER_NAME           ?= kind
 DOCKER_REPOSITORY           ?= onosproject/
 ONOS_SDCORE_ADAPTER_VERSION ?= latest
 ONOS_BUILD_VERSION          ?= v0.6.0
+LOCAL_AETHER_MODELS         ?=
 
 all: build images
 
 images: # @HELP build simulators image
 images: sdcore-adapter-docker
 
+.PHONY: local-aether-models
+local-aether-models:
+ifdef LOCAL_AETHER_MODELS
+	rm -rf ./local-aether-models
+	cp -a ${LOCAL_AETHER_MODELS} ./local-aether-models
+endif
 
 deps: # @HELP ensure that the required dependencies are in place
 	go build -v ./...
@@ -28,14 +35,14 @@ license_check: # @HELP examine and ensure license headers exist
 
 
 # @HELP build the go binary in the cmd/sdcore-adapter package
-build:
+build: local-aether-models
 	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter
 
 test: build deps license_check linters
 	go test github.com/onosproject/sdcore-adapter/pkg/...
 	go test github.com/onosproject/sdcore-adapter/cmd/...
 
-sdcore-adapter-docker:
+sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \
 	--build-arg ONOS_BUILD_VERSION=${ONOS_BUILD_VERSION} \
 	-t ${DOCKER_REPOSITORY}sdcore-adapter:${ONOS_SDCORE_ADAPTER_VERSION}

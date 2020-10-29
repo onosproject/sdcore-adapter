@@ -135,6 +135,8 @@ github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRW
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/onosproject/config-models v0.6.9 h1:ebL09o5xkG4pTV2dNDrcYSldt747nGhMSBa/DYNEMpA=
 github.com/onosproject/config-models v0.6.9/go.mod h1:cw1HoviQUVAjX1MOHVqHo1oL6rpM52d6ckidRyL1z/I=
+github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201026220921-9e32f6f5b503 h1:be52MYmL43bgukdi9ez/b+BBXnpDqGWkPEejKxz7TgU=
+github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201026220921-9e32f6f5b503/go.mod h1:v9jZrEC7RgzkC6DlEBFUx8q/i8tXHgp76Ci9j06mE+s=
 github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20201026220921-9e32f6f5b503 h1:h+KmuCBQiabTcQXlPa1eGzE5XB328Wlmnt1bNLvl5Ck=
 github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20201026220921-9e32f6f5b503/go.mod h1:lEgZ9GrwrKWvuEX0WOXa1nQBMAAFeMhkXVnPmsehuyM=
 github.com/onosproject/onos-lib-go v0.6.19 h1:9hV67s/4Qnx1DUtbr6glcOzC2XdxgeoiqZ8B4FIhHAQ=

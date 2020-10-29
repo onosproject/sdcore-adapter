@@ -11,7 +11,7 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 )
 
-var log = logging.GetLogger("migrator")
+var log = logging.GetLogger("migration")
 
 func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, toVersion string, toModels *gnmi.Model) {
 	step := MigrationStep{

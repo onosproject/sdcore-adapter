@@ -17,5 +17,6 @@ type MigrationStep struct {
 }
 
 type Migrator struct {
-	steps []MigrationStep
+	steps            []MigrationStep
+	aetherConfigAddr string
 }

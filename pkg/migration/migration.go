@@ -6,6 +6,7 @@
 package migration
 
 import (
+	"context"
 	"fmt"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
@@ -53,16 +54,34 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]Migra
 	return &steps, nil
 }
 
-func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget string, toVersion string) error {
-	_, err := m.BuildStepList(fromVersion, toVersion)
+func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget string) error {
+	err := GetPath("", fromTarget, m.aetherConfigAddr, context.Background())
 	if err != nil {
 		return err
+	}
+	_ = toTarget
+	return nil
+}
+
+func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget string, toVersion string) error {
+	steps, err := m.BuildStepList(fromVersion, toVersion)
+	if err != nil {
+		return err
+	}
+
+	for _, step := range *steps {
+		err := m.RunStep(step, fromTarget, toTarget)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func NewMigrator() *Migrator {
-	m := &Migrator{}
+func NewMigrator(aetherConfigAddr string) *Migrator {
+	m := &Migrator{
+		aetherConfigAddr: aetherConfigAddr,
+	}
 	return m
 }

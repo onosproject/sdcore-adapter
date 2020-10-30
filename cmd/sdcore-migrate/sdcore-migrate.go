@@ -4,6 +4,7 @@
 
 package main
 
+// /usr/local/bin/sdcore-migrate --from-target connectivity-service-v1 --to-target connectivity-service-v2 --from-version 1.0.0 --to-version 2.0.0 --aether-config onos-config:5150 -client_key=/etc/sdcore-adapter/certs/tls.key -client_crt=/etc/sdcore-adapter/certs/tls.crt -ca_crt=/etc/sdcore-adapter/certs/tls.cacert
 import (
 	"flag"
 
@@ -18,10 +19,11 @@ import (
 )
 
 var (
-	fromTarget  = flag.String("from-target", "", "target device to migrate from")
-	toTarget    = flag.String("to-target", "", "target device to migrate to")
-	fromVersion = flag.String("from-version", "", "modeling version to migrate from")
-	toVersion   = flag.String("to-version", "", "modeling version to migrate to")
+	fromTarget       = flag.String("from-target", "", "target device to migrate from")
+	toTarget         = flag.String("to-target", "", "target device to migrate to")
+	fromVersion      = flag.String("from-version", "", "modeling version to migrate from")
+	toVersion        = flag.String("to-version", "", "modeling version to migrate to")
+	aetherConfigAddr = flag.String("aether-config", "", "address of aether-config")
 )
 
 var log = logging.GetLogger("sdcore-migrate")
@@ -64,7 +66,10 @@ func main() {
 	)
 
 	// Initialize the synchronizer's service-specific code.
-	mig := migration.NewMigrator()
+	mig := migration.NewMigrator(*aetherConfigAddr)
 	mig.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models)
-	mig.Migrate(*fromTarget, *toTarget, *fromVersion, *toVersion)
+	err := mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion)
+	if err != nil {
+		log.Errorf("%v", err)
+	}
 }

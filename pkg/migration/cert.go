@@ -16,16 +16,21 @@ import (
 
 var (
 	// Certificate files.
-	caCert      = flag.String("ca_crt", "", "CA certificate file. Used to verify server TLS certificate.")
-	clientCert  = flag.String("client_crt", "", "Client certificate file. Used for client certificate-based authentication.")
-	clientKey   = flag.String("client_key", "", "Client private key file. Used for client certificate-based authentication.")
-	tlsDisabled = flag.Bool("tlsDisabled", false, "When set, caCert, clientCert & clientKey will be ignored")
+	caCert            = flag.String("ca_crt", "", "CA certificate file. Used to verify server TLS certificate.")
+	clientCert        = flag.String("client_crt", "", "Client certificate file. Used for client certificate-based authentication.")
+	clientKey         = flag.String("client_key", "", "Client private key file. Used for client certificate-based authentication.")
+	tlsDisabled       = flag.Bool("tlsDisabled", false, "When set, caCert, clientCert & clientKey will be ignored")
+	hostCheckDisabled = flag.Bool("hostCheckDisabled", false, "When set, host name in server cert will not be verified")
 )
 
 func readCerts(q client.Query) error {
 	if *tlsDisabled {
 		q.TLS = nil
 		return nil
+	}
+
+	if *hostCheckDisabled {
+		q.TLS.InsecureSkipVerify = true
 	}
 
 	if *caCert != "" {
@@ -38,6 +43,8 @@ func readCerts(q client.Query) error {
 			return fmt.Errorf("failed to append CA certificates")
 		}
 
+		log.Infof("Successfully read and configured caCert %s", *caCert)
+
 		q.TLS.RootCAs = certPool
 	}
 
@@ -49,6 +56,8 @@ func readCerts(q client.Query) error {
 		if err != nil {
 			return fmt.Errorf("could not load client key pair: %s", err)
 		}
+
+		log.Infof("Successfully read and configured clientCert %s and clientKey %s", *clientCert, *clientKey)
 
 		q.TLS.Certificates = []tls.Certificate{certificate}
 	}

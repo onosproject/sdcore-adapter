@@ -60,19 +60,28 @@ func StringToPath(s string, target string) *gpb.Path {
 	}
 
 	return &gpb.Path{
-		Elem: elems,
+		Target: target,
+		Elem:   elems,
 	}
 }
 
-func GetPath(path string, target string, addr string, ctx context.Context) error {
+func GetPath(path string, target string, addr string, ctx context.Context) (*gpb.TypedValue, error) {
 	req := &gpb.GetRequest{
 		Path:     []*gpb.Path{StringToPath(path, target)},
-		Encoding: gpb.Encoding_PROTO,
+		Encoding: gpb.Encoding_JSON,
 	}
 
 	resp, err := ExecuteGet(req, addr, ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	log.Info("GET %v", resp.Notification[0].Update[0].Val)
+	log.Infof("GET numNot=%d", len(resp.Notification))
+	log.Infof("GET numUpdate=%d", len(resp.Notification[0].Update))
 
-	return err
+	//log.Infof("GET %v", resp.Notification[0].Update[0].Val.GetJsonVal())
+
+	//json := resp.Notification[0].Update[0].Val.GetJsonVal()
+
+	return resp.Notification[0].Update[0].Val, nil
 }

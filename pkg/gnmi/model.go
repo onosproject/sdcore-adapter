@@ -77,3 +77,8 @@ func (m *Model) SupportedModels() []string {
 	sort.Strings(mDesc)
 	return mDesc
 }
+
+// TODO: If we aren't providing value, then promote the field to public and do away with this stub
+func (m *Model) Unmarshal(jsonBytes []byte, proto ygot.GoStruct, opts ...ytypes.UnmarshalOpt) error {
+	return m.jsonUnmarshaler(jsonBytes, proto, opts...)
+}

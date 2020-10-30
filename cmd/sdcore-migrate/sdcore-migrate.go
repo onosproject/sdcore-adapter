@@ -4,7 +4,7 @@
 
 package main
 
-// /usr/local/bin/sdcore-migrate --from-target connectivity-service-v1 --to-target connectivity-service-v2 --from-version 1.0.0 --to-version 2.0.0 --aether-config onos-config:5150 -client_key=/etc/sdcore-adapter/certs/tls.key -client_crt=/etc/sdcore-adapter/certs/tls.crt -ca_crt=/etc/sdcore-adapter/certs/tls.cacert
+// /usr/local/bin/sdcore-migrate --from-target connectivity-service-v1 --to-target connectivity-service-v2 --from-version 1.0.0 --to-version 2.0.0 --aether-config onos-config:5150 -client_key=/etc/sdcore-adapter/certs/tls.key -client_crt=/etc/sdcore-adapter/certs/tls.crt -ca_crt=/etc/sdcore-adapter/certs/tls.cacert -hostCheckDisabled
 import (
 	"flag"
 
@@ -13,6 +13,7 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
+	"github.com/onosproject/sdcore-adapter/pkg/migration/steps"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
@@ -67,7 +68,7 @@ func main() {
 
 	// Initialize the synchronizer's service-specific code.
 	mig := migration.NewMigrator(*aetherConfigAddr)
-	mig.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models)
+	mig.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models, steps.MigrateV1V2)
 	err := mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion)
 	if err != nil {
 		log.Errorf("%v", err)

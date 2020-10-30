@@ -7,13 +7,17 @@ package migration
 
 import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+type MigrationFunction func(MigrationStep, string, *gpb.TypedValue, *gpb.TypedValue) error
+
 type MigrationStep struct {
-	fromVersion string
-	fromModels  *gnmi.Model
-	toVersion   string
-	toModels    *gnmi.Model
+	FromVersion   string            // verion of source models
+	FromModels    *gnmi.Model       // source models
+	ToVersion     string            // version of destination models
+	ToModels      *gnmi.Model       // destination models
+	MigrationFunc MigrationFunction // function that executes the migration
 }
 
 type Migrator struct {

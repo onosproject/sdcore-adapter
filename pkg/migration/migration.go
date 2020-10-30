@@ -14,15 +14,24 @@ import (
 
 var log = logging.GetLogger("migration")
 
-func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, toVersion string, toModels *gnmi.Model) {
+func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, toVersion string, toModels *gnmi.Model, migrationFunc MigrationFunction) {
 	step := MigrationStep{
-		fromVersion: fromVersion,
-		fromModels:  fromModels,
-		toVersion:   toVersion,
-		toModels:    toModels,
+		FromVersion:   fromVersion,
+		FromModels:    fromModels,
+		ToVersion:     toVersion,
+		ToModels:      toModels,
+		MigrationFunc: migrationFunc,
 	}
 	m.steps = append(m.steps, step)
 }
+
+/*
+ * BuildStepList
+ *
+ * Build a list of migration steps that starts with "fromVersion" and ends with "toVersion". Steps
+ * must form a contiguous list of migrations -- each step must yield the migration that is used
+ * by the following migration.
+ */
 
 func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]MigrationStep, error) {
 	steps := []MigrationStep{}
@@ -34,12 +43,12 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]Migra
 	}
 
 	for _, step := range m.steps {
-		if currentVersion == step.toVersion {
+		if currentVersion == step.ToVersion {
 			break
 		}
-		if step.fromVersion == currentVersion {
+		if step.FromVersion == currentVersion {
 			steps = append(steps, step)
-			currentVersion = step.toVersion
+			currentVersion = step.ToVersion
 		}
 	}
 
@@ -55,11 +64,21 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]Migra
 }
 
 func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget string) error {
-	err := GetPath("", fromTarget, m.aetherConfigAddr, context.Background())
+	srcVal, err := GetPath("", fromTarget, m.aetherConfigAddr, context.Background())
 	if err != nil {
 		return err
 	}
-	_ = toTarget
+
+	destVal, err := GetPath("", toTarget, m.aetherConfigAddr, context.Background())
+	if err != nil {
+		return err
+	}
+
+	err = step.MigrationFunc(step, toTarget, srcVal, destVal)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

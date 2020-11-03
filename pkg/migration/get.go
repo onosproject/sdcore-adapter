@@ -23,8 +23,6 @@ func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetRe
 		return nil, err
 	}
 
-	log.Info("Creating gNMI client")
-
 	c, err := gclient.New(ctx, client.Destination{
 		Addrs:       []string{addr},
 		Timeout:     q.Timeout,
@@ -36,16 +34,11 @@ func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetRe
 		return nil, fmt.Errorf("could not create a gNMI client: %v", err)
 	}
 
-	log.Info("gNMI client created")
-
 	response, err := c.(*gclient.Client).Get(ctx, r)
 	if err != nil {
 		return nil, fmt.Errorf("target returned RPC error for Get(%q): %v", r.String(), err)
 	}
 
-	log.Info("gNMI get request completed")
-
-	//cfg.Display([]byte(proto.MarshalTextString(response)))
 	return response, nil
 }
 

@@ -75,7 +75,7 @@ func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget strin
 		return err
 	}
 
-	err = step.MigrationFunc(step, toTarget, srcVal, destVal)
+	err = step.MigrationFunc(step, fromTarget, toTarget, srcVal, destVal)
 	if err != nil {
 		return err
 	}

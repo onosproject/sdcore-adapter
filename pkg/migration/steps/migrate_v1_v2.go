@@ -28,6 +28,28 @@ func PathUpdateString(path string, target string, val *string) *gpb.Update {
 	}
 }
 
+func PathUpdateUInt32(path string, target string, val *uint32) *gpb.Update {
+	if val == nil {
+		return nil
+	}
+
+	return &gpb.Update{
+		Path: migration.StringToPath(path, target),
+		Val:  &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: uint64(*val)}},
+	}
+}
+
+func PathUpdateBool(path string, target string, val *bool) *gpb.Update {
+	if val == nil {
+		return nil
+	}
+
+	return &gpb.Update{
+		Path: migration.StringToPath(path, target),
+		Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: *val}},
+	}
+}
+
 func AddUpdate(updates []*gpb.Update, update *gpb.Update) []*gpb.Update {
 	if update != nil {
 		updates = append(updates, update)
@@ -35,9 +57,13 @@ func AddUpdate(updates []*gpb.Update, update *gpb.Update) []*gpb.Update {
 	return updates
 }
 
-func MigrateV1V2APNProfile(step migration.MigrationStep, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) error {
+func MigrateV1V2APNProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) error {
 	updates := []*gpb.Update{}
 	updates = AddUpdate(updates, PathUpdateString("apn-name", toTarget, profile.ApnName))
+	updates = AddUpdate(updates, PathUpdateString("dns-primary", toTarget, profile.DnsPrimary))
+	updates = AddUpdate(updates, PathUpdateString("dns-secondary", toTarget, profile.DnsSecondary))
+	updates = AddUpdate(updates, PathUpdateUInt32("mtu", toTarget, profile.Mtu))
+	updates = AddUpdate(updates, PathUpdateBool("gx-enabled", toTarget, profile.GxEnabled))
 
 	prefix := migration.StringToPathWithKeys(fmt.Sprintf("apn-profile/apn-profile[id=%s]", *profile.Id), toTarget)
 
@@ -47,22 +73,12 @@ func MigrateV1V2APNProfile(step migration.MigrationStep, toTarget string, profil
 		return err
 	}
 
-	//deletes := []*gdb.Path{StringToPath("app-name")}
-
-	err = migration.Delete(nil, toTarget, step.Migrator.AetherConfigAddr, []*gpb.Path{prefix} /*deletes,*/, context.Background())
+	err = migration.Delete(nil, fromTarget, step.Migrator.AetherConfigAddr, []*gpb.Path{prefix} /*deletes,*/, context.Background())
 
 	return nil
-
-	/*
-		ApnName:      apn.ApnName,
-		DnsPrimary:   apn.DnsPrimary,
-		DnsSecondary: apn.DnsSecondary,
-		Mtu:          apn.Mtu,
-		GxEnabled:    apn.GxEnabled,
-	*/
 }
 
-func MigrateV1V2(step migration.MigrationStep, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) error {
+func MigrateV1V2(step migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) error {
 	srcJsonBytes := srcVal.GetJsonVal()
 	srcDevice := &models_v1.Device{}
 	if len(srcJsonBytes) > 0 {
@@ -84,7 +100,7 @@ func MigrateV1V2(step migration.MigrationStep, toTarget string, srcVal *gpb.Type
 
 	if srcDevice.ApnProfile != nil {
 		for _, apn := range srcDevice.ApnProfile.ApnProfile {
-			err := MigrateV1V2APNProfile(step, toTarget, apn)
+			err := MigrateV1V2APNProfile(step, fromTarget, toTarget, apn)
 			if err != nil {
 				return err
 			}

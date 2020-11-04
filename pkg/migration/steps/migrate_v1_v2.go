@@ -6,6 +6,8 @@
 package steps
 
 import (
+	"context"
+	"fmt"
 	models_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
 	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -14,6 +16,51 @@ import (
 )
 
 var log = logging.GetLogger("migration.steps")
+
+func PathUpdateString(path string, target string, val *string) *gpb.Update {
+	if val == nil {
+		return nil
+	}
+
+	return &gpb.Update{
+		Path: migration.StringToPath(path, target),
+		Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: *val}},
+	}
+}
+
+func AddUpdate(updates []*gpb.Update, update *gpb.Update) []*gpb.Update {
+	if update != nil {
+		updates = append(updates, update)
+	}
+	return updates
+}
+
+func MigrateV1V2APNProfile(step migration.MigrationStep, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) error {
+	updates := []*gpb.Update{}
+	updates = AddUpdate(updates, PathUpdateString("apn-name", toTarget, profile.ApnName))
+
+	prefix := migration.StringToPathWithKeys(fmt.Sprintf("apn-profile/apn-profile[id=%s]", *profile.Id), toTarget)
+
+	err := migration.Update(prefix, toTarget, step.Migrator.AetherConfigAddr, updates, context.Background())
+
+	if err != nil {
+		return err
+	}
+
+	//deletes := []*gdb.Path{StringToPath("app-name")}
+
+	err = migration.Delete(nil, toTarget, step.Migrator.AetherConfigAddr, []*gpb.Path{prefix} /*deletes,*/, context.Background())
+
+	return nil
+
+	/*
+		ApnName:      apn.ApnName,
+		DnsPrimary:   apn.DnsPrimary,
+		DnsSecondary: apn.DnsSecondary,
+		Mtu:          apn.Mtu,
+		GxEnabled:    apn.GxEnabled,
+	*/
+}
 
 func MigrateV1V2(step migration.MigrationStep, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) error {
 	srcJsonBytes := srcVal.GetJsonVal()
@@ -34,6 +81,15 @@ func MigrateV1V2(step migration.MigrationStep, toTarget string, srcVal *gpb.Type
 	}
 
 	log.Infof("Migrate src=%v, dest=%v", srcDevice, destDevice)
+
+	if srcDevice.ApnProfile != nil {
+		for _, apn := range srcDevice.ApnProfile.ApnProfile {
+			err := MigrateV1V2APNProfile(step, toTarget, apn)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }

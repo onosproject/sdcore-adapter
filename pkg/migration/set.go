@@ -41,10 +41,26 @@ func ExecuteSet(r *gpb.SetRequest, addr string, ctx context.Context) (*gpb.SetRe
 	return response, nil
 }
 
-func Update(prefix string, key string, target string, addr string, updates []*gpb.Update, ctx context.Context) error {
+func Update(prefix *gpb.Path, target string, addr string, updates []*gpb.Update, ctx context.Context) error {
 	req := &gpb.SetRequest{
-		Prefix: StringToPath(prefix, target),
+		Prefix: prefix,
 		Update: updates,
+	}
+
+	resp, err := ExecuteSet(req, addr, ctx)
+	if err != nil {
+		return err
+	}
+
+	_ = resp
+
+	return nil
+}
+
+func Delete(prefix *gpb.Path, target string, addr string, deletes []*gpb.Path, ctx context.Context) error {
+	req := &gpb.SetRequest{
+		Prefix: prefix,
+		Delete: deletes,
 	}
 
 	resp, err := ExecuteSet(req, addr, ctx)

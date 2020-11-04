@@ -18,9 +18,10 @@ type MigrationStep struct {
 	ToVersion     string            // version of destination models
 	ToModels      *gnmi.Model       // destination models
 	MigrationFunc MigrationFunction // function that executes the migration
+	Migrator      *Migrator         // link to Migrator
 }
 
 type Migrator struct {
 	steps            []MigrationStep
-	aetherConfigAddr string
+	AetherConfigAddr string
 }

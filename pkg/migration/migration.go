@@ -21,6 +21,7 @@ func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, 
 		ToVersion:     toVersion,
 		ToModels:      toModels,
 		MigrationFunc: migrationFunc,
+		Migrator:      m,
 	}
 	m.steps = append(m.steps, step)
 }
@@ -64,12 +65,12 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]Migra
 }
 
 func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget string) error {
-	srcVal, err := GetPath("", fromTarget, m.aetherConfigAddr, context.Background())
+	srcVal, err := GetPath("", fromTarget, m.AetherConfigAddr, context.Background())
 	if err != nil {
 		return err
 	}
 
-	destVal, err := GetPath("", toTarget, m.aetherConfigAddr, context.Background())
+	destVal, err := GetPath("", toTarget, m.AetherConfigAddr, context.Background())
 	if err != nil {
 		return err
 	}
@@ -100,7 +101,7 @@ func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget strin
 
 func NewMigrator(aetherConfigAddr string) *Migrator {
 	m := &Migrator{
-		aetherConfigAddr: aetherConfigAddr,
+		AetherConfigAddr: aetherConfigAddr,
 	}
 	return m
 }

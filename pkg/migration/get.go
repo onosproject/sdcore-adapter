@@ -58,6 +58,41 @@ func StringToPath(s string, target string) *gpb.Path {
 	}
 }
 
+func SplitKey(name string) (string, string, string) {
+	parts := strings.Split(name, "[")
+	name = parts[0]
+	keyValue := strings.TrimRight(parts[1], "]")
+	parts = strings.Split(keyValue, "=")
+	key := parts[0]
+	value := parts[1]
+	return name, key, value
+}
+
+func StringToPathWithKeys(s string, target string) *gpb.Path {
+	elems := []*gpb.PathElem{}
+
+	parts := strings.Split(s, "/")
+
+	for _, name := range parts {
+		if len(name) > 0 {
+			var keys map[string]string
+			if strings.Contains(name, "[") {
+				splitName, key, value := SplitKey(name)
+				name = splitName
+				keys = map[string]string{key: value}
+			}
+			elem := &gpb.PathElem{Name: name,
+				Key: keys}
+			elems = append(elems, elem)
+		}
+	}
+
+	return &gpb.Path{
+		Target: target,
+		Elem:   elems,
+	}
+}
+
 func GetPath(path string, target string, addr string, ctx context.Context) (*gpb.TypedValue, error) {
 	req := &gpb.GetRequest{
 		Path:     []*gpb.Path{StringToPath(path, target)},

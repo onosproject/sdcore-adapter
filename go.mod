@@ -6,6 +6,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/google/gnxi v0.0.0-20190228205329-8521faedac37
 	github.com/google/go-cmp v0.5.1 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201026220921-9e32f6f5b503
 	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20201026220921-9e32f6f5b503
 	github.com/onosproject/onos-lib-go v0.6.19

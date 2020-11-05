@@ -75,6 +75,18 @@ func UpdateUInt32(path string, target string, val *uint32) *gpb.Update {
 	}
 }
 
+// Create a gpb.Update for a uint64 value
+func UpdateUInt64(path string, target string, val *uint64) *gpb.Update {
+	if val == nil {
+		return nil
+	}
+
+	return &gpb.Update{
+		Path: StringToPath(path, target),
+		Val:  &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: *val}},
+	}
+}
+
 // Create a gpb.Update for a bool value
 func UpdateBool(path string, target string, val *bool) *gpb.Update {
 	if val == nil {

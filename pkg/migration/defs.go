@@ -10,7 +10,7 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-type MigrationFunction func(MigrationStep, string, string, *gpb.TypedValue, *gpb.TypedValue) error
+type MigrationFunction func(MigrationStep, string, string, *gpb.TypedValue, *gpb.TypedValue) ([]*MigrationActions, error)
 
 type MigrationStep struct {
 	FromVersion   string            // verion of source models
@@ -19,6 +19,12 @@ type MigrationStep struct {
 	ToModels      *gnmi.Model       // destination models
 	MigrationFunc MigrationFunction // function that executes the migration
 	Migrator      *Migrator         // link to Migrator
+}
+
+type MigrationActions struct {
+	UpdatePrefix *gpb.Path
+	Updates      []*gpb.Update
+	Deletes      []*gpb.Path
 }
 
 type Migrator struct {

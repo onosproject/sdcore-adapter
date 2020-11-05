@@ -6,7 +6,6 @@
 package steps
 
 import (
-	"context"
 	"fmt"
 	models_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
 	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
@@ -17,7 +16,7 @@ import (
 
 var log = logging.GetLogger("migration.steps")
 
-func MigrateV1V2ApnProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) error {
+func MigrateV1V2ApnProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateString("apn-name", toTarget, profile.ApnName))
@@ -28,18 +27,10 @@ func MigrateV1V2ApnProfile(step migration.MigrationStep, fromTarget string, toTa
 
 	prefix := migration.StringToPath(fmt.Sprintf("apn-profile/apn-profile[id=%s]", *profile.Id), toTarget)
 
-	err := migration.Update(prefix, toTarget, step.Migrator.AetherConfigAddr, updates, context.Background())
-
-	if err != nil {
-		return err
-	}
-
-	err = migration.Delete(nil, fromTarget, step.Migrator.AetherConfigAddr, []*gpb.Path{prefix}, context.Background())
-
-	return nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{prefix}}, nil
 }
 
-func MigrateV1V2QosProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) error {
+func MigrateV1V2QosProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	if profile.ApnAmbr != nil {
@@ -49,18 +40,10 @@ func MigrateV1V2QosProfile(step migration.MigrationStep, fromTarget string, toTa
 
 	prefix := migration.StringToPath(fmt.Sprintf("qos-profile/qos-profile[id=%s]", *profile.Id), toTarget)
 
-	err := migration.Update(prefix, toTarget, step.Migrator.AetherConfigAddr, updates, context.Background())
-
-	if err != nil {
-		return err
-	}
-
-	err = migration.Delete(nil, fromTarget, step.Migrator.AetherConfigAddr, []*gpb.Path{prefix}, context.Background())
-
-	return nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{prefix}}, nil
 }
 
-func MigrateV1V2UpProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) error {
+func MigrateV1V2UpProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateString("user-plane", toTarget, profile.UserPlane))
@@ -68,18 +51,10 @@ func MigrateV1V2UpProfile(step migration.MigrationStep, fromTarget string, toTar
 
 	prefix := migration.StringToPath(fmt.Sprintf("up-profile/up-profile[id=%s]", *profile.Id), toTarget)
 
-	err := migration.Update(prefix, toTarget, step.Migrator.AetherConfigAddr, updates, context.Background())
-
-	if err != nil {
-		return err
-	}
-
-	err = migration.Delete(nil, fromTarget, step.Migrator.AetherConfigAddr, []*gpb.Path{prefix}, context.Background())
-
-	return nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{prefix}}, nil
 }
 
-func MigrateV1V2AccessProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) error {
+func MigrateV1V2AccessProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateString("type", toTarget, profile.Type))
@@ -87,23 +62,15 @@ func MigrateV1V2AccessProfile(step migration.MigrationStep, fromTarget string, t
 
 	prefix := migration.StringToPath(fmt.Sprintf("access-profile/access-profile[id=%s]", *profile.Id), toTarget)
 
-	err := migration.Update(prefix, toTarget, step.Migrator.AetherConfigAddr, updates, context.Background())
-
-	if err != nil {
-		return err
-	}
-
-	err = migration.Delete(nil, fromTarget, step.Migrator.AetherConfigAddr, []*gpb.Path{prefix}, context.Background())
-
-	return nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{prefix}}, nil
 }
 
-func MigrateV1V2(step migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) error {
+func MigrateV1V2(step migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
 	srcJsonBytes := srcVal.GetJsonVal()
 	srcDevice := &models_v1.Device{}
 	if len(srcJsonBytes) > 0 {
 		if err := step.FromModels.Unmarshal(srcJsonBytes, srcDevice); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -112,47 +79,53 @@ func MigrateV1V2(step migration.MigrationStep, fromTarget string, toTarget strin
 	log.Infof("%v", destJsonBytes)
 	if len(destJsonBytes) > 0 {
 		if err := step.ToModels.Unmarshal(destJsonBytes, destDevice); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	log.Infof("Migrate src=%v, dest=%v", srcDevice, destDevice)
 
+	allActions := []*migration.MigrationActions{}
+
 	if srcDevice.ApnProfile != nil {
 		for _, profile := range srcDevice.ApnProfile.ApnProfile {
-			err := MigrateV1V2ApnProfile(step, fromTarget, toTarget, profile)
+			actions, err := MigrateV1V2ApnProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
-				return err
+				return nil, err
 			}
+			allActions = append(allActions, actions)
 		}
 	}
 
 	if srcDevice.QosProfile != nil {
 		for _, profile := range srcDevice.QosProfile.QosProfile {
-			err := MigrateV1V2QosProfile(step, fromTarget, toTarget, profile)
+			actions, err := MigrateV1V2QosProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
-				return err
+				return nil, err
 			}
+			allActions = append(allActions, actions)
 		}
 	}
 
 	if srcDevice.UpProfile != nil {
 		for _, profile := range srcDevice.UpProfile.UpProfile {
-			err := MigrateV1V2UpProfile(step, fromTarget, toTarget, profile)
+			actions, err := MigrateV1V2UpProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
-				return err
+				return nil, err
 			}
+			allActions = append(allActions, actions)
 		}
 	}
 
 	if srcDevice.AccessProfile != nil {
 		for _, profile := range srcDevice.AccessProfile.AccessProfile {
-			err := MigrateV1V2AccessProfile(step, fromTarget, toTarget, profile)
+			actions, err := MigrateV1V2AccessProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
-				return err
+				return nil, err
 			}
+			allActions = append(allActions, actions)
 		}
 	}
 
-	return nil
+	return allActions, nil
 }

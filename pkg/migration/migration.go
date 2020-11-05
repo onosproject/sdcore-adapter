@@ -64,22 +64,41 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]Migra
 	return &steps, nil
 }
 
-func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget string) error {
+func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
 	srcVal, err := GetPath("", fromTarget, m.AetherConfigAddr, context.Background())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	destVal, err := GetPath("", toTarget, m.AetherConfigAddr, context.Background())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = step.MigrationFunc(step, fromTarget, toTarget, srcVal, destVal)
+	actions, err := step.MigrationFunc(step, fromTarget, toTarget, srcVal, destVal)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	return actions, nil
+}
+
+func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string, toTarget string) error {
+	for _, action := range actions {
+		err := Update(action.UpdatePrefix, toTarget, m.AetherConfigAddr, action.Updates, context.Background())
+		if err != nil {
+			return err
+		}
+	}
+
+	// now do the deletes in reverse order
+	for i := len(actions) - 1; i >= 0; i-- {
+		action := actions[i]
+		err := Delete(nil, fromTarget, m.AetherConfigAddr, action.Deletes, context.Background())
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -90,7 +109,12 @@ func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget strin
 	}
 
 	for _, step := range *steps {
-		err := m.RunStep(step, fromTarget, toTarget)
+		actions, err := m.RunStep(step, fromTarget, toTarget)
+		if err != nil {
+			return err
+		}
+
+		err = m.ExecuteActions(actions, fromTarget, toTarget)
 		if err != nil {
 			return err
 		}

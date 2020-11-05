@@ -94,7 +94,7 @@ func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string
 	// now do the deletes in reverse order
 	for i := len(actions) - 1; i >= 0; i-- {
 		action := actions[i]
-		err := Delete(nil, fromTarget, m.AetherConfigAddr, action.Deletes, context.Background())
+		err := Delete(action.DeletePrefix, fromTarget, m.AetherConfigAddr, action.Deletes, context.Background())
 		if err != nil {
 			return err
 		}

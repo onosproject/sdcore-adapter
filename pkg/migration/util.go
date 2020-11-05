@@ -107,3 +107,15 @@ func AddUpdate(updates []*gpb.Update, update *gpb.Update) []*gpb.Update {
 	}
 	return updates
 }
+
+// Given a list of Updates, create a corresponding list of deletes
+func DeleteFromUpdates(updates []*gpb.Update, target string) []*gpb.Path {
+	deletePaths := []*gpb.Path{}
+	for _, update := range updates {
+		deletePaths = append(deletePaths, &gpb.Path{
+			Target: target,
+			Elem:   update.Path.Elem,
+		})
+	}
+	return deletePaths
+}

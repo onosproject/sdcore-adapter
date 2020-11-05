@@ -24,6 +24,7 @@ type MigrationStep struct {
 type MigrationActions struct {
 	UpdatePrefix *gpb.Path
 	Updates      []*gpb.Update
+	DeletePrefix *gpb.Path
 	Deletes      []*gpb.Path
 }
 

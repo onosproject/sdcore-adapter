@@ -70,7 +70,7 @@ func MigrateV1V2AccessProfile(step migration.MigrationStep, fromTarget string, t
 	prefix := migration.StringToPath(fmt.Sprintf("access-profile/access-profile[id=%s]", *profile.Id), toTarget)
 	deletePath := migration.StringToPath(fmt.Sprintf("access-profile/access-profile[id=%s]", *profile.Id), fromTarget)
 
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}, nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
 // Parse a V1 UEID and return the first and last IMSIs in the range
@@ -179,9 +179,12 @@ func MigrateV1V2Subscriber(step migration.MigrationStep, fromTarget string, toTa
 
 	prefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[id=%s]", ueUuid), toTarget)
 
-	deletePath := migration.StringToPath(fmt.Sprintf("subscriber/ue[id=%s]", *ue.Ueid), fromTarget)
+	deletePrefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[ueid=%s]", *ue.Ueid), fromTarget)
+	//deletePaths := migration.DeleteFromUpdates(updates, fromTarget)
 
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+	//return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, DeletePrefix: deletePrefix, Deletes: deletePaths}, nil
+
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePrefix}}, nil
 }
 
 func MigrateV1V2(step migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
@@ -195,7 +198,6 @@ func MigrateV1V2(step migration.MigrationStep, fromTarget string, toTarget strin
 
 	destJsonBytes := destVal.GetJsonVal()
 	destDevice := &models_v2.Device{}
-	log.Infof("%v", destJsonBytes)
 	if len(destJsonBytes) > 0 {
 		if err := step.ToModels.Unmarshal(destJsonBytes, destDevice); err != nil {
 			return nil, err

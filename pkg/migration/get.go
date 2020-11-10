@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+/*
+ * Library functions to facilitate gNMI get operations.
+ */
+
 package migration
 
 import (
@@ -54,10 +57,6 @@ func GetPath(path string, target string, addr string, ctx context.Context) (*gpb
 
 	log.Infof("GET numNot=%d", len(resp.Notification))
 	log.Infof("GET numUpdate=%d", len(resp.Notification[0].Update))
-
-	//log.Infof("GET %v", resp.Notification[0].Update[0].Val.GetJsonVal())
-
-	//json := resp.Notification[0].Update[0].Val.GetJsonVal()
 
 	return resp.Notification[0].Update[0].Val, nil
 }

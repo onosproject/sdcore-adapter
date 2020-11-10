@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+/*
+ * Library functions to facilitate gNMI set operations.
+ */
+
 package migration
 
 import (

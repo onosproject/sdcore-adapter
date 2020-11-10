@@ -2,7 +2,11 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Implements a migration step from v1 aether models to v2 aether models
+/*
+ * Implements the migration function from v1 aether models to v2 aether models. This
+ * involves migrating each of the profiles (APNProfile, AccessProfile, etc) and then
+ * the UE.
+ */
 
 package steps
 
@@ -140,7 +144,6 @@ func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber
 
 func MigrateV1V2Subscriber(step migration.MigrationStep, fromTarget string, toTarget string, ue *models_v1.AetherSubscriber_Subscriber_Ue, destDevice *models_v2.Device) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
-	//updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, ue.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateUInt32("priority", toTarget, ue.Priority))
 	updates = migration.AddUpdate(updates, migration.UpdateBool("enabled", toTarget, ue.Enabled))
 	updates = migration.AddUpdate(updates, migration.UpdateString("profiles/apn-profile", toTarget, ue.Profiles.ApnProfile))
@@ -159,15 +162,19 @@ func MigrateV1V2Subscriber(step migration.MigrationStep, fromTarget string, toTa
 			return nil, err
 		}
 
-		//updates = migration.AddUpdate(updates, migration.UpdateUInt64("imsi-range-from", toTarget, &first))
-		//updates = migration.AddUpdate(updates, migration.UpdateUInt64("imsi-range-to", toTarget, &last))
-
 		// TODO: Compensates for a bug in aether-config, by exploiting a different bug in aether-config
 		firstStr := strconv.FormatUint(first, 10)
 		lastStr := strconv.FormatUint(last, 10)
 		updates = migration.AddUpdate(updates, migration.UpdateString("imsi-range-from", toTarget, &firstStr))
 		updates = migration.AddUpdate(updates, migration.UpdateString("imsi-range-to", toTarget, &lastStr))
 	}
+
+	/*
+	 * V1 Aether models had a different key (imsi range) than V2 aether models (uuid). So what we do is
+	 * to use the v1 imsi to see if the object already exists in the v2 device. If it does, then we know
+	 * a migration has been previously partially completed. If no such imsi exists, then we know the
+	 * object has not been previously migrated, and we generate a new uuid for the new v2 object.
+	 */
 
 	ueUuid, err := FindExistingUE(destDevice, ue)
 	if err != nil {
@@ -180,9 +187,6 @@ func MigrateV1V2Subscriber(step migration.MigrationStep, fromTarget string, toTa
 	prefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[id=%s]", ueUuid), toTarget)
 
 	deletePrefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[ueid=%s]", *ue.Ueid), fromTarget)
-	//deletePaths := migration.DeleteFromUpdates(updates, fromTarget)
-
-	//return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, DeletePrefix: deletePrefix, Deletes: deletePaths}, nil
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePrefix}}, nil
 }

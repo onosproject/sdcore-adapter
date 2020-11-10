@@ -2,7 +2,11 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+/*
+ * The main entry point for the migration engine. Provides functions to create new migrators
+ * and steps, and to execute migration.
+ */
+
 package migration
 
 import (
@@ -65,16 +69,19 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]Migra
 }
 
 func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
+	// fetch the old models
 	srcVal, err := GetPath("", fromTarget, m.AetherConfigAddr, context.Background())
 	if err != nil {
 		return nil, err
 	}
 
+	// fetch the new models
 	destVal, err := GetPath("", toTarget, m.AetherConfigAddr, context.Background())
 	if err != nil {
 		return nil, err
 	}
 
+	// execute the function to migrate items from old to new
 	actions, err := step.MigrationFunc(step, fromTarget, toTarget, srcVal, destVal)
 	if err != nil {
 		return nil, err
@@ -84,6 +91,7 @@ func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget strin
 }
 
 func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string, toTarget string) error {
+	// do the updates in forward order
 	for _, action := range actions {
 		err := Update(action.UpdatePrefix, toTarget, m.AetherConfigAddr, action.Updates, context.Background())
 		if err != nil {

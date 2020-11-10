@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+/*
+ * Various utility functions for migration.
+ */
+
 package migration
 
 import (
@@ -10,6 +13,7 @@ import (
 	"strings"
 )
 
+// given a string foo[k=v], return (foo, k, v)
 func SplitKey(name string) (string, string, string) {
 	parts := strings.Split(name, "[")
 	name = parts[0]

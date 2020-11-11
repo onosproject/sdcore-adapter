@@ -16,6 +16,8 @@ COPY . $ADAPTER_ROOT/
 
 RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sdcore-adapter ./cmd/sdcore-adapter
 
+RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sdcore-migrate ./cmd/sdcore-migrate
+
 FROM alpine:3.11
 RUN apk add bash openssl curl libc6-compat
 
@@ -25,3 +27,4 @@ RUN mkdir $HOME
 WORKDIR $HOME
 
 COPY --from=build /go/bin/sdcore-adapter /usr/local/bin/
+COPY --from=build /go/bin/sdcore-migrate /usr/local/bin/

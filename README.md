@@ -26,6 +26,24 @@ It is assumed that the configuration schema at the adapter's northbound API may 
 
 When writing a new adapter, replace the `pkg/synchronizer` directory with your own. Also, rename the `cmd/sdcore-adapter` command.
 
+# Data model migration
+
+Migration is a series of steps that migrate from one version of the model to another. For example,
+for migration from V1 to V4, the following steps would be executed in order:
+* step_V1_0_0_V2_0_0
+* step_V2_0_0_V3_0_0
+* step_V3_0_0_V4_0_0
+
+Each step has a model version and modelplugin associated with it. Migrations are performed by reading the source models, translating them to destination models, writing the destination models, and then deleting the original source models.
+
+Migrations are executed between specific versions and targets. For example,
+
+```bash
+sdcore-migrate -from-target connectivity-v1 -from-version 1.0.0 -to-target connectivity-v2 -to-version 2.0.0 
+```
+
+For now, from_target and to_target must be different in order to compensate for an issue in aether-config, but eventually the expectation is that from_target and to_target can be the same.
+
 # Additional Documentation
 
 [How to run](docs/README.md) SD-Core Adapter and related commands.

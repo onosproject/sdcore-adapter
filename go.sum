@@ -15,7 +15,9 @@ github.com/atomix/go-framework v0.2.0/go.mod h1:fRMu6i8RQUR2XGHnC4csasmAsDd3CPv3
 github.com/atomix/go-local v0.2.0/go.mod h1:nbbobMfxgeseJcxihY9yfN+6F2LIRYAGvOBb7jrrb80=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
+github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
+github.com/cenkalti/backoff/v4 v4.0.0 h1:6VeaLF9aI+MAUQ95106HwWzYZgJJpZ4stumjj6RFYAU=
 github.com/cenkalti/backoff/v4 v4.0.0/go.mod h1:eEew/i+1Q6OrCDZh3WiXYv3+nJwBASZ8Bog/87DQnVg=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
@@ -92,6 +94,7 @@ github.com/google/go-cmp v0.5.1 h1:JFrFEBb2xKufg6XkJsJr+WbKb4FQlURi5RUcBveYu9k=
 github.com/google/go-cmp v0.5.1/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/protobuf v3.11.4+incompatible/go.mod h1:lUQ9D1ePzbH2PrIS7ob/bjm9HXyH5WHB0Akwh7URreM=
 github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
+github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.0/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
@@ -135,6 +138,8 @@ github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRW
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/onosproject/config-models v0.6.9 h1:ebL09o5xkG4pTV2dNDrcYSldt747nGhMSBa/DYNEMpA=
 github.com/onosproject/config-models v0.6.9/go.mod h1:cw1HoviQUVAjX1MOHVqHo1oL6rpM52d6ckidRyL1z/I=
+github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201026220921-9e32f6f5b503 h1:be52MYmL43bgukdi9ez/b+BBXnpDqGWkPEejKxz7TgU=
+github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201026220921-9e32f6f5b503/go.mod h1:v9jZrEC7RgzkC6DlEBFUx8q/i8tXHgp76Ci9j06mE+s=
 github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20201026220921-9e32f6f5b503 h1:h+KmuCBQiabTcQXlPa1eGzE5XB328Wlmnt1bNLvl5Ck=
 github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20201026220921-9e32f6f5b503/go.mod h1:lEgZ9GrwrKWvuEX0WOXa1nQBMAAFeMhkXVnPmsehuyM=
 github.com/onosproject/onos-lib-go v0.6.19 h1:9hV67s/4Qnx1DUtbr6glcOzC2XdxgeoiqZ8B4FIhHAQ=

@@ -38,22 +38,22 @@ func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, 
  * by the following migration.
  */
 
-func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]MigrationStep, error) {
+func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]MigrationStep, error) {
 	steps := []MigrationStep{}
 	currentVersion := fromVersion
 
 	if currentVersion == toVersion {
 		//  there's nothing to do!
-		return &steps, nil
+		return steps, nil
 	}
 
 	for _, step := range m.steps {
-		if currentVersion == step.ToVersion {
-			break
-		}
 		if step.FromVersion == currentVersion {
 			steps = append(steps, step)
 			currentVersion = step.ToVersion
+		}
+		if currentVersion == toVersion {
+			break
 		}
 	}
 
@@ -65,7 +65,7 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) (*[]Migra
 		return nil, fmt.Errorf("Unable to find a step that ended with version %s", toVersion)
 	}
 
-	return &steps, nil
+	return steps, nil
 }
 
 func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
@@ -74,12 +74,14 @@ func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget strin
 	if err != nil {
 		return nil, err
 	}
+	// TODO: handle srcVal == nil
 
 	// fetch the new models
 	destVal, err := GetPath("", toTarget, m.AetherConfigAddr, context.Background())
 	if err != nil {
 		return nil, err
 	}
+	// TODO: handle destVal == nil
 
 	// execute the function to migrate items from old to new
 	actions, err := step.MigrationFunc(step, fromTarget, toTarget, srcVal, destVal)
@@ -116,7 +118,7 @@ func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget strin
 		return err
 	}
 
-	for _, step := range *steps {
+	for _, step := range steps {
 		actions, err := m.RunStep(step, fromTarget, toTarget)
 		if err != nil {
 			return err

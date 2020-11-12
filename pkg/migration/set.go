@@ -17,7 +17,16 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+type MockSetFunction func(*gpb.SetRequest) (*gpb.SetResponse, error)
+
+var MockSet MockSetFunction
+
 func ExecuteSet(r *gpb.SetRequest, addr string, ctx context.Context) (*gpb.SetResponse, error) {
+	// for ease of unit testing
+	if MockSet != nil {
+		return MockSet(r)
+	}
+
 	q := client.Query{TLS: &tls.Config{}}
 
 	err := readCerts(q)

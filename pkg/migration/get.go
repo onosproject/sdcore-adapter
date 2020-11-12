@@ -17,7 +17,16 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+type MockGetFunction func(*gpb.GetRequest) (*gpb.GetResponse, error)
+
+var MockGet MockGetFunction
+
 func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetResponse, error) {
+	// for ease of unit testing
+	if MockGet != nil {
+		return MockGet(r)
+	}
+
 	q := client.Query{TLS: &tls.Config{}}
 
 	err := readCerts(q)
@@ -55,8 +64,13 @@ func GetPath(path string, target string, addr string, ctx context.Context) (*gpb
 		return nil, err
 	}
 
-	log.Infof("GET numNot=%d", len(resp.Notification))
-	log.Infof("GET numUpdate=%d", len(resp.Notification[0].Update))
+	if len(resp.Notification) == 0 {
+		return nil, nil
+	}
+
+	if len(resp.Notification[0].Update) == 0 {
+		return nil, nil
+	}
 
 	return resp.Notification[0].Update[0].Val, nil
 }

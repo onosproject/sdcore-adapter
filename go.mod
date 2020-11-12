@@ -13,7 +13,7 @@ require (
 	github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802
 	github.com/openconfig/goyang v0.0.0-20200803193518-78bac27bdff1
 	github.com/openconfig/ygot v0.8.3
-	github.com/stretchr/testify v1.5.1 // indirect
+	github.com/stretchr/testify v1.6.1
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sys v0.0.0-20200803210538-64077c9b5642 // indirect
 	golang.org/x/text v0.3.3 // indirect

@@ -1,3 +1,10 @@
+# SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+
+# If any command in a pipe has nonzero status, return that status
+SHELL = bash -o pipefail
+
 export CGO_ENABLED=0
 export GO111MODULE=on
 
@@ -45,7 +52,7 @@ go-junit-report:
 
 unit-tests: go-junit-report
 	@mkdir -p ./tests/results
-	go test -v -coverprofile ./tests/results/go-test-coverage.out -covermode count ./... 2>&1 | tee ./tests/results/go-test-results.out ;\
+	@go test -v -coverprofile ./tests/results/go-test-coverage.out -covermode count ./... 2>&1 | tee ./tests/results/go-test-results.out ;\
 	RETURN=$$? ;\
 	go-junit-report < ./tests/results/go-test-results.out > ./tests/results/go-test-results.xml ;\
 	exit $$RETURN

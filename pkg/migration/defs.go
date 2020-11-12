@@ -20,7 +20,7 @@ import (
  *   actions to be executed in order.
  */
 
-type MigrationFunction func(MigrationStep, string, string, *gpb.TypedValue, *gpb.TypedValue) ([]*MigrationActions, error)
+type MigrationFunction func(*MigrationStep, string, string, *gpb.TypedValue, *gpb.TypedValue) ([]*MigrationActions, error)
 
 /*
  * MigrationStep is the definition of a migration step. It defines which models are the "input"
@@ -55,6 +55,6 @@ type MigrationActions struct {
  */
 
 type Migrator struct {
-	steps            []MigrationStep
+	steps            []*MigrationStep
 	AetherConfigAddr string
 }

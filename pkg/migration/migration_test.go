@@ -68,24 +68,24 @@ func MakeMockAction(fromTarget string, toTarget string, updatePrefixStr string, 
 }
 
 // Mock migration step from V1 to V2 model.
-func MigrateV1V2(step MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
+func MigrateV1V2(step *MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
 	fmt.Printf("step ran %v\n", srcVal)
 	action := MakeMockAction(fromTarget, toTarget, "/prefix", "/path/to/name", "value")
 	return []*MigrationActions{action}, nil
 }
 
 // Mock migration step from V2 to V3 model.
-func MigrateV2V3(step MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
+func MigrateV2V3(step *MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
 	return []*MigrationActions{}, nil
 }
 
 // Mock migration step from V3 to V4 model.
-func MigrateV3V4(step MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
+func MigrateV3V4(step *MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
 	return []*MigrationActions{}, nil
 }
 
 // Mock migration step from V5 to V6 model.
-func MigrateV5V6(step MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
+func MigrateV5V6(step *MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
 	return []*MigrationActions{}, nil
 }
 

@@ -24,7 +24,7 @@ import (
 
 var log = logging.GetLogger("migration.steps")
 
-func MigrateV1V2ApnProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) (*migration.MigrationActions, error) {
+func MigrateV1V2ApnProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateString("apn-name", toTarget, profile.ApnName))
@@ -39,7 +39,7 @@ func MigrateV1V2ApnProfile(step migration.MigrationStep, fromTarget string, toTa
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-func MigrateV1V2QosProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) (*migration.MigrationActions, error) {
+func MigrateV1V2QosProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	if profile.ApnAmbr != nil {
@@ -53,7 +53,7 @@ func MigrateV1V2QosProfile(step migration.MigrationStep, fromTarget string, toTa
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-func MigrateV1V2UpProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) (*migration.MigrationActions, error) {
+func MigrateV1V2UpProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateString("user-plane", toTarget, profile.UserPlane))
@@ -65,7 +65,7 @@ func MigrateV1V2UpProfile(step migration.MigrationStep, fromTarget string, toTar
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-func MigrateV1V2AccessProfile(step migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) (*migration.MigrationActions, error) {
+func MigrateV1V2AccessProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateString("type", toTarget, profile.Type))
@@ -142,7 +142,7 @@ func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber
 	return "", nil
 }
 
-func MigrateV1V2Subscriber(step migration.MigrationStep, fromTarget string, toTarget string, ue *models_v1.AetherSubscriber_Subscriber_Ue, destDevice *models_v2.Device) (*migration.MigrationActions, error) {
+func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toTarget string, ue *models_v1.AetherSubscriber_Subscriber_Ue, destDevice *models_v2.Device) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateUInt32("priority", toTarget, ue.Priority))
 	updates = migration.AddUpdate(updates, migration.UpdateBool("enabled", toTarget, ue.Enabled))
@@ -191,7 +191,7 @@ func MigrateV1V2Subscriber(step migration.MigrationStep, fromTarget string, toTa
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePrefix}}, nil
 }
 
-func MigrateV1V2(step migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
+func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
 	srcJsonBytes := srcVal.GetJsonVal()
 	srcDevice := &models_v1.Device{}
 	if len(srcJsonBytes) > 0 {

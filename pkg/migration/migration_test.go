@@ -6,7 +6,6 @@ package migration
 
 import (
 	"errors"
-	"fmt"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/stretchr/testify/assert"
@@ -69,7 +68,6 @@ func MakeMockAction(fromTarget string, toTarget string, updatePrefixStr string, 
 
 // Mock migration step from V1 to V2 model.
 func MigrateV1V2(step *MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*MigrationActions, error) {
-	fmt.Printf("step ran %v\n", srcVal)
 	action := MakeMockAction(fromTarget, toTarget, "/prefix", "/path/to/name", "value")
 	return []*MigrationActions{action}, nil
 }

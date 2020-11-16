@@ -60,6 +60,7 @@ unit-tests: go-junit-report
 sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \
 	--build-arg ONOS_BUILD_VERSION=${ONOS_BUILD_VERSION} \
+	--build-arg LOCAL_AETHER_MODELS=${LOCAL_AETHER_MODELS} \
 	-t ${DOCKER_REPOSITORY}sdcore-adapter:${ONOS_SDCORE_ADAPTER_VERSION}
 
 kind: # @HELP build Docker images and add them to the currently configured kind cluster

@@ -7,9 +7,9 @@ package synchronizer
 
 import (
 	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
+	modelplugin_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer/modeldata"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
 	"time"
@@ -23,7 +23,7 @@ func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct) error {
 }
 
 func (s *Synchronizer) GetModels() *gnmi.Model {
-	model := gnmi.NewModel(modeldata.ModelData,
+	model := gnmi.NewModel(modelplugin_v2.ModelData,
 		reflect.TypeOf((*models.Device)(nil)),
 		models.SchemaTree["Device"],
 		models.Unmarshal,

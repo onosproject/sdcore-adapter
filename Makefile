@@ -1,3 +1,10 @@
+# SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+
+# If any command in a pipe has nonzero status, return that status
+SHELL = bash -o pipefail
+
 export CGO_ENABLED=0
 export GO111MODULE=on
 
@@ -38,9 +45,17 @@ license_check: # @HELP examine and ensure license headers exist
 build: local-aether-models
 	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter
 
-test: build deps license_check linters
-	go test github.com/onosproject/sdcore-adapter/pkg/...
-	go test github.com/onosproject/sdcore-adapter/cmd/...
+test: build deps license_check linters unit-tests
+
+go-junit-report:
+	which go-junit-report || go get -u github.com/jstemmer/go-junit-report
+
+unit-tests: go-junit-report
+	@mkdir -p ./tests/results
+	@go test -v -coverprofile ./tests/results/go-test-coverage.out -covermode count ./... 2>&1 | tee ./tests/results/go-test-results.out ;\
+	RETURN=$$? ;\
+	go-junit-report < ./tests/results/go-test-results.out > ./tests/results/go-test-results.xml ;\
+	exit $$RETURN
 
 sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \

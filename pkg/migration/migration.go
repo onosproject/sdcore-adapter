@@ -27,7 +27,7 @@ func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, 
 		MigrationFunc: migrationFunc,
 		Migrator:      m,
 	}
-	m.steps = append(m.steps, step)
+	m.steps = append(m.steps, &step)
 }
 
 /*
@@ -38,8 +38,8 @@ func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, 
  * by the following migration.
  */
 
-func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]MigrationStep, error) {
-	steps := []MigrationStep{}
+func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]*MigrationStep, error) {
+	steps := []*MigrationStep{}
 	currentVersion := fromVersion
 
 	if currentVersion == toVersion {
@@ -68,7 +68,7 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]Migrat
 	return steps, nil
 }
 
-func (m *Migrator) RunStep(step MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
+func (m *Migrator) RunStep(step *MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
 	// fetch the old models
 	srcVal, err := GetPath("", fromTarget, m.AetherConfigAddr, context.Background())
 	if err != nil {

@@ -16,12 +16,13 @@ import (
 	"flag"
 
 	models_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
+	modelplugin_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/modelplugin"
 	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
+	modelplugin_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	"github.com/onosproject/sdcore-adapter/pkg/migration/steps"
-	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
 )
@@ -36,28 +37,10 @@ var (
 
 var log = logging.GetLogger("sdcore-migrate")
 
-// TODO: Cleanup to use modeldata from the modelplugin repo
-var modelDataV1 = []*pb.ModelData{
-	{Name: "aether-subscriber", Organization: "Open Networking Foundation", Version: "2020-08-18"},
-	{Name: "apn-profile", Organization: "Open Networking Foundation", Version: "2020-08-18"},
-	{Name: "up-profile", Organization: "Open Networking Foundation", Version: "2020-08-18"},
-	{Name: "qos-profile", Organization: "Open Networking Foundation", Version: "2020-08-18"},
-	{Name: "access-profile", Organization: "Open Networking Foundation", Version: "2020-08-18"},
-}
-
-// TODO: Cleanup to use modeldata from the modelplugin repo
-var modelDataV2 = []*pb.ModelData{
-	{Name: "aether-subscriber", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-	{Name: "apn-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-	{Name: "up-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-	{Name: "qos-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-	{Name: "access-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-}
-
 func main() {
 	flag.Parse()
 
-	v1Models := gnmi.NewModel(modelDataV1,
+	v1Models := gnmi.NewModel(modelplugin_v1.ModelData,
 		reflect.TypeOf((*models_v1.Device)(nil)),
 		models_v1.SchemaTree["Device"],
 		models_v1.Unmarshal,
@@ -65,7 +48,7 @@ func main() {
 		map[string]map[int64]ygot.EnumDefinition{},
 	)
 
-	v2Models := gnmi.NewModel(modelDataV2,
+	v2Models := gnmi.NewModel(modelplugin_v2.ModelData,
 		reflect.TypeOf((*models_v2.Device)(nil)),
 		models_v2.SchemaTree["Device"],
 		models_v2.Unmarshal,

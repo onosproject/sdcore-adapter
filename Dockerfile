@@ -2,6 +2,8 @@ ARG ONOS_BUILD_VERSION=undefined
 
 FROM onosproject/golang-build:$ONOS_BUILD_VERSION as build
 
+ARG LOCAL_AETHER_MODELS
+
 RUN cd $GOPATH \
     && GO111MODULE=on go get -u \
       github.com/google/gnxi/gnoi_target@6697a080bc2d3287d9614501a3298b3dcfea06df \
@@ -13,6 +15,15 @@ ENV CGO_ENABLED=0
 RUN mkdir -p $ADAPTER_ROOT/
 
 COPY . $ADAPTER_ROOT/
+
+# If LOCAL_AETHER_MODELS was used, then patch the go.mod file to load
+# the models from the local source.
+RUN if [ -n "$LOCAL_AETHER_MODELS" ] ; then \
+    echo "replace github.com/onosproject/config-models/modelplugin/aether-1.0.0 => ./local-aether-models/aether-1.0.0" >> $ADAPTER_ROOT/go.mod; \
+    echo "replace github.com/onosproject/config-models/modelplugin/aether-2.0.0 => ./local-aether-models/aether-2.0.0" >> $ADAPTER_ROOT/go.mod; \
+    fi
+
+RUN cat $ADAPTER_ROOT/go.mod
 
 RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sdcore-adapter ./cmd/sdcore-adapter
 

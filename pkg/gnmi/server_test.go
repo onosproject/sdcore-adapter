@@ -23,13 +23,13 @@ import (
 	// set of test models, so that this test code can remain independent of
 	// any particular service.
 	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer/modeldata"
+	modelplugin_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
 )
 
 var (
 	// model is the model for test config server.
 	model = &Model{
-		modelData:       modeldata.ModelData,
+		modelData:       modelplugin_v2.ModelData,
 		structRootType:  reflect.TypeOf((*models.Device)(nil)),
 		schemaTreeRoot:  models.SchemaTree["Device"],
 		jsonUnmarshaler: models.Unmarshal,

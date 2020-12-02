@@ -54,7 +54,7 @@ coverage:
 	go test -covermode=count -coverprofile=onos.coverprofile github.com/onosproject/sdcore-adapter/pkg/...
 	cd .. && go get github.com/mattn/goveralls && cd sdcore-adapter
 	grep -v .pb.go onos.coverprofile >onos-nogrpc.coverprofile
-	goveralls -coverprofile=onos-nogrpc.coverprofile -service travis-pro -repotoken xZuVup4oLZFkqxtkFW2qEkFTf9NDZhN2g
+	goveralls -coverprofile=onos-nogrpc.coverprofile -service travis-pro -repotoken McoQ4G2hx3rgBaA45sm2aVO25hconX70N
 
 sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \

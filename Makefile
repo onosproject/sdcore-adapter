@@ -49,7 +49,8 @@ test: build deps license_check linters
 	go test -race github.com/onosproject/sdcore-adapter/pkg/...
 	go test -race github.com/onosproject/sdcore-adapter/cmd/...
 
-coverage:
+coverage: # @HELP generate unit test coverage data
+coverage: build deps linters license_check
 	export GOPRIVATE="github.com/onosproject/*"
 	go test -covermode=count -coverprofile=onos.coverprofile github.com/onosproject/sdcore-adapter/pkg/...
 	cd .. && go get github.com/mattn/goveralls && cd sdcore-adapter

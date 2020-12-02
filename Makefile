@@ -5,7 +5,7 @@
 # If any command in a pipe has nonzero status, return that status
 SHELL = bash -o pipefail
 
-export CGO_ENABLED=0
+export CGO_ENABLED=1
 export GO111MODULE=on
 
 .PHONY: build
@@ -45,17 +45,16 @@ license_check: # @HELP examine and ensure license headers exist
 build: local-aether-models
 	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter
 
-test: build deps license_check linters unit-tests
+test: build deps license_check linters
+	go test -race github.com/onosproject/sdcore-adapter/pkg/...
+	go test -race github.com/onosproject/sdcore-adapter/cmd/...
 
-go-junit-report:
-	which go-junit-report || go get -u github.com/jstemmer/go-junit-report
-
-unit-tests: go-junit-report
-	@mkdir -p ./tests/results
-	@go test -v -coverprofile ./tests/results/go-test-coverage.out -covermode count ./... 2>&1 | tee ./tests/results/go-test-results.out ;\
-	RETURN=$$? ;\
-	go-junit-report < ./tests/results/go-test-results.out > ./tests/results/go-test-results.xml ;\
-	exit $$RETURN
+coverage:
+	export GOPRIVATE="github.com/onosproject/*"
+	go test -covermode=count -coverprofile=onos.coverprofile github.com/onosproject/sdcore-adapter/pkg/...
+	cd .. && go get github.com/mattn/goveralls && cd sdcore-adapter
+	grep -v .pb.go onos.coverprofile >onos-nogrpc.coverprofile
+	goveralls -coverprofile=onos-nogrpc.coverprofile -service travis-pro -repotoken xZuVup4oLZFkqxtkFW2qEkFTf9NDZhN2g
 
 sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \

@@ -113,8 +113,45 @@ func (s *Synchronizer) Post(endpoint string, data []byte) error {
 	return nil
 }
 
-func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
+func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	device := config.(*models.Device)
+
+	if device.Enterprise == nil {
+		log.Info("No enteprises")
+		return nil
+	}
+
+	if device.ConnectivityService == nil {
+		log.Info("No connectivity services")
+		return nil
+	}
+
+	for entId, ent := range device.Enterprise.Enterprise {
+		if len(ent.ConnectivityService) == 0 {
+			log.Info("Enterprise %s has no Connectivity Services", entId)
+			// nothing to see here, move along.
+			continue
+		}
+		for csId := range ent.ConnectivityService {
+			cs, ok := device.ConnectivityService.ConnectivityService[csId]
+			if !ok {
+				return fmt.Errorf("Failed to find connectivity service %s", csId)
+			}
+
+			err := s.SynchronizeConnectivityService(device, ent, cs)
+			if err != nil {
+				// TODO: Think about this more -- if one fails then we end up aborting them all...
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent *models.Enterprise_Enterprise_Enterprise, cs *models.ConnectivityService_ConnectivityService_ConnectivityService) error {
+	_ = ent
+	_ = cs
 
 	spgwConfig := SpgwConfig{}
 
@@ -223,8 +260,6 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 			spgwConfig.UpProfiles[*up.Id] = profile
 		}
 	}
-
-	//log.Infof("spgwConfig %v", spgwConfig)
 
 	data, err := json.MarshalIndent(spgwConfig, "", "  ")
 	if err != nil {

@@ -18,7 +18,7 @@ import (
 var log = logging.GetLogger("synchronizer")
 
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct) error {
-	err := s.SynchronizeSpgw(config)
+	err := s.SynchronizeDevice(config)
 	return err
 }
 

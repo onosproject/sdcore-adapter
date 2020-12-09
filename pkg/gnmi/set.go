@@ -12,10 +12,9 @@ import (
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/gnmi/value"
-	"github.com/openconfig/ygot/experimental/ygotutils"
 	"github.com/openconfig/ygot/ygot"
+	"github.com/openconfig/ygot/ytypes"
 	"golang.org/x/net/context"
-	cpb "google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -87,9 +86,9 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.UpdateResult_Operation, prefix, path *pb.Path, val *pb.TypedValue) (*pb.UpdateResult, error) {
 	// Validate the operation.
 	fullPath := gnmiFullPath(prefix, path)
-	emptyNode, stat := ygotutils.NewNode(s.model.structRootType, fullPath)
-	if stat.GetCode() != int32(cpb.Code_OK) {
-		return nil, status.Errorf(codes.NotFound, "path %v is not found in the config structure: %v", fullPath, stat.String())
+	emptyNode, _, err := ytypes.GetOrCreateNode(s.model.schemaTreeRoot, s.model.newRootValue(), fullPath)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "path %v is not found in the config structure: %v", fullPath, err)
 	}
 	var nodeVal interface{}
 	nodeStruct, ok := emptyNode.(ygot.ValidatedGoStruct)

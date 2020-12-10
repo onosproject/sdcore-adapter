@@ -46,12 +46,13 @@ type SubscriberKeys struct {
 }
 
 type SubscriberSelectionRule struct {
-	Priority      *uint32        `json:"priority,omitempty"`
-	Keys          SubscriberKeys `json:"keys"`
-	ApnProfile    *string        `json:"selected-apn-profile,omitempty"`
-	AccessProfile []string       `json:"selected-access-profile,omitempty"`
-	QosProfile    *string        `json:"selected-qos-profile,omitempty"`
-	UpProfile     *string        `json:"selected-user-plane-profile,omitempty"`
+	Priority        *uint32        `json:"priority,omitempty"`
+	Keys            SubscriberKeys `json:"keys"`
+	ApnProfile      *string        `json:"selected-apn-profile,omitempty"`
+	AccessProfile   []string       `json:"selected-access-profile,omitempty"`
+	QosProfile      *string        `json:"selected-qos-profile,omitempty"`
+	UpProfile       *string        `json:"selected-user-plane-profile,omitempty"`
+	SecurityProfile *string        `json:"selected-security-profile,omitempty"`
 }
 
 type ApnProfile struct {
@@ -80,14 +81,21 @@ type AccessProfile struct {
 	Filter *string `json:"filter,omitempty"`
 }
 
+type SecurityProfile struct {
+	Key *string `json:"key"`
+	Opc *string `json:"opc"`
+	Sqn *uint32 `json:"sqn"`
+}
+
 // On all of these, consider whether it is preferred to leave the item out if empty, or
 // to emit an empty list.
-type SpgwConfig struct {
-	SubscriberSelectionRules []SubscriberSelectionRule `json:"subscriber-selection-rules,omitempty"`
-	AccessProfiles           map[string]AccessProfile  `json:"access-profiles,omitempty"`
-	ApnProfiles              map[string]ApnProfile     `json:"apn-profiles,omitempty"`
-	QosProfiles              map[string]QosProfile     `json:"qos-profiles,omitempty"`
-	UpProfiles               map[string]UpProfile      `json:"user-plane-profiles,omitempty"`
+type JsonConfig struct {
+	SubscriberSelectionRules []SubscriberSelectionRule  `json:"subscriber-selection-rules,omitempty"`
+	AccessProfiles           map[string]AccessProfile   `json:"access-profiles,omitempty"`
+	ApnProfiles              map[string]ApnProfile      `json:"apn-profiles,omitempty"`
+	QosProfiles              map[string]QosProfile      `json:"qos-profiles,omitempty"`
+	UpProfiles               map[string]UpProfile       `json:"user-plane-profiles,omitempty"`
+	SecurityProfiles         map[string]SecurityProfile `json:"security-profiles,omitempty"`
 }
 
 func (s *Synchronizer) Post(endpoint string, data []byte) error {
@@ -153,7 +161,7 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 	_ = ent
 	_ = cs
 
-	spgwConfig := SpgwConfig{}
+	jsonConfig := JsonConfig{}
 
 	if device.Subscriber != nil {
 		for _, ue := range device.Subscriber.Ue {
@@ -190,11 +198,12 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 			}
 
 			rule := SubscriberSelectionRule{
-				Priority:   ue.Priority,
-				Keys:       keys,
-				ApnProfile: ue.Profiles.ApnProfile,
-				QosProfile: ue.Profiles.QosProfile,
-				UpProfile:  ue.Profiles.UpProfile,
+				Priority:        ue.Priority,
+				Keys:            keys,
+				ApnProfile:      ue.Profiles.ApnProfile,
+				QosProfile:      ue.Profiles.QosProfile,
+				UpProfile:       ue.Profiles.UpProfile,
+				SecurityProfile: ue.Profiles.SecurityProfile,
 			}
 
 			for _, ap := range ue.Profiles.AccessProfile {
@@ -203,12 +212,12 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 				}
 			}
 
-			spgwConfig.SubscriberSelectionRules = append(spgwConfig.SubscriberSelectionRules, rule)
+			jsonConfig.SubscriberSelectionRules = append(jsonConfig.SubscriberSelectionRules, rule)
 		}
 	}
 
 	if device.ApnProfile != nil {
-		spgwConfig.ApnProfiles = make(map[string]ApnProfile)
+		jsonConfig.ApnProfiles = make(map[string]ApnProfile)
 		for _, apn := range device.ApnProfile.ApnProfile {
 			profile := ApnProfile{
 				ApnName:      apn.ApnName,
@@ -220,35 +229,35 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 				Usage:        1,     // TODO: update modeling and revise
 			}
 
-			spgwConfig.ApnProfiles[*apn.Id] = profile
+			jsonConfig.ApnProfiles[*apn.Id] = profile
 		}
 	}
 
 	if device.AccessProfile != nil {
-		spgwConfig.AccessProfiles = make(map[string]AccessProfile)
+		jsonConfig.AccessProfiles = make(map[string]AccessProfile)
 		for _, access := range device.AccessProfile.AccessProfile {
 			profile := AccessProfile{
 				Type:   access.Type,
 				Filter: access.Filter,
 			}
 
-			spgwConfig.AccessProfiles[*access.Id] = profile
+			jsonConfig.AccessProfiles[*access.Id] = profile
 		}
 	}
 
 	if device.QosProfile != nil {
-		spgwConfig.QosProfiles = make(map[string]QosProfile)
+		jsonConfig.QosProfiles = make(map[string]QosProfile)
 		for _, qos := range device.QosProfile.QosProfile {
 			profile := QosProfile{
 				ApnAmbr: []uint32{*qos.ApnAmbr.Downlink, *qos.ApnAmbr.Uplink},
 			}
 
-			spgwConfig.QosProfiles[*qos.Id] = profile
+			jsonConfig.QosProfiles[*qos.Id] = profile
 		}
 	}
 
 	if device.UpProfile != nil {
-		spgwConfig.UpProfiles = make(map[string]UpProfile)
+		jsonConfig.UpProfiles = make(map[string]UpProfile)
 		for _, up := range device.UpProfile.UpProfile {
 			profile := UpProfile{
 				UserPlane:     up.UserPlane,
@@ -257,11 +266,24 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 				QosTags:       map[string]string{"tag1": "BW"},  // TODO: update modeling and revise
 			}
 
-			spgwConfig.UpProfiles[*up.Id] = profile
+			jsonConfig.UpProfiles[*up.Id] = profile
 		}
 	}
 
-	data, err := json.MarshalIndent(spgwConfig, "", "  ")
+	if device.SecurityProfile != nil {
+		jsonConfig.SecurityProfiles = make(map[string]SecurityProfile)
+		for _, sp := range device.SecurityProfile.SecurityProfile {
+			profile := SecurityProfile{
+				Key: sp.Key,
+				Opc: sp.Opc,
+				Sqn: sp.Sqn,
+			}
+
+			jsonConfig.SecurityProfiles[*sp.Id] = profile
+		}
+	}
+
+	data, err := json.MarshalIndent(jsonConfig, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -286,11 +308,21 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 		}
 	}
 
-	if s.spgwEndpoint != "" {
-		log.Infof("Posting to %s", s.spgwEndpoint)
-		err := s.Post(s.spgwEndpoint, data)
-		if err != nil {
-			return err
+	if s.postEnable {
+		if cs.SpgwcEndpoint != nil {
+			log.Infof("Posting to %s", *cs.SpgwcEndpoint)
+			err := s.Post(*cs.SpgwcEndpoint, data)
+			if err != nil {
+				return err
+			}
+		}
+
+		if cs.HssEndpoint != nil {
+			log.Infof("Posting to %s", *cs.HssEndpoint)
+			err := s.Post(*cs.HssEndpoint, data)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

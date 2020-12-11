@@ -189,6 +189,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 		ImsiRangeFrom: aUint64(123456),
 		ImsiRangeTo:   aUint64(1234567),
 		Priority:      aUint32(1),
+		Enterprise:    aStr("sample-ent"),
 		Profiles: &models_v2.AetherSubscriber_Subscriber_Ue_Profiles{
 			ApnProfile: aStr("sample-app"),
 			QosProfile: aStr("sample-qp"),
@@ -200,6 +201,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 				},
 			},
 		},
+
 		RequestedApn: aStr("sample-ue-req-apn"),
 		ServingPlmn: &models_v2.AetherSubscriber_Subscriber_Ue_ServingPlmn{
 			Mcc: aUint32(123),
@@ -284,6 +286,49 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
     }
   }
 }`
+
+	content, err := ioutil.ReadFile(tempFileName)
+	assert.Nil(t, err)
+	assert.Equal(t, expected_result, string(content))
+}
+
+// If the subscriber is not attached to the enterprise, then we should not output it
+func TestSynchronizeDeviceUeNotInEnterprise(t *testing.T) {
+	// Get a temporary file name and defer deletion of the file
+	f, err := ioutil.TempFile("", "synchronizer-json")
+	assert.Nil(t, err)
+	tempFileName := f.Name()
+	defer func() {
+		os.Remove(tempFileName)
+	}()
+
+	s := Synchronizer{}
+	s.SetOutputFileName(tempFileName)
+
+	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
+	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
+
+	ue := models_v2.AetherSubscriber_Subscriber_Ue{
+		DisplayName:   aStr("sample-ue-displayname"),
+		Enabled:       aBool(true),
+		Id:            aStr("68a3b12e-253e-11eb-adc1-0242ac120002"),
+		ImsiRangeFrom: aUint64(123456),
+		ImsiRangeTo:   aUint64(1234567),
+		Priority:      aUint32(1),
+		Enterprise:    aStr("wrong-ent"),
+	}
+
+	device := models_v2.Device{
+		Enterprise:          &models_v2.Enterprise_Enterprise{Enterprise: map[string]*models_v2.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models_v2.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models_v2.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Subscriber:          &models_v2.AetherSubscriber_Subscriber{Ue: map[string]*models_v2.AetherSubscriber_Subscriber_Ue{"68a3b12e-253e-11eb-adc1-0242ac120002": &ue}},
+	}
+
+	err = s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	// define the expected json here
+	expected_result := `{}`
 
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)

@@ -167,6 +167,16 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 		for _, ue := range device.Subscriber.Ue {
 			keys := SubscriberKeys{}
 
+			if (ue.Enterprise == nil) || (ent.Id == nil) {
+				// The UE has no enterprise, or the enterprise has no Id
+				continue
+			}
+
+			if *ue.Enterprise != *ent.Id {
+				// The UE is for some other Enterprise than the one we're working on
+				continue
+			}
+
 			if (ue.Enabled == nil) || (!*ue.Enabled) {
 				continue
 			}

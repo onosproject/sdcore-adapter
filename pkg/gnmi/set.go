@@ -80,35 +80,64 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 	}, nil
 }
 
+func hasLeafrefListKey(path *pb.Path) bool {
+	// for now, hardcoded the ones that cause problems.
+
+	// /enterprise/enterprise[id]/connectivity-service[id]
+	if len(path.Elem) >= 4 && (path.Elem[0].Name == "enterprise") && (path.Elem[1].Name == "enterprise") && (path.Elem[2].Name == "connectivity-service") {
+		return true
+	}
+
+	// /subscriber/ue[id]/profiles/access-profile[id]
+	if len(path.Elem) >= 4 && (path.Elem[0].Name == "subscriber") && (path.Elem[1].Name == "ue") && (path.Elem[2].Name == "profiles") && (path.Elem[3].Name == "access-profile") {
+		return true
+	}
+
+	return false
+}
+
 // doReplaceOrUpdate validates the replace or update operation to be applied to
 // the device, modifies the json tree of the config struct, then calls the
 // callback function to apply the operation to the device hardware.
 func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.UpdateResult_Operation, prefix, path *pb.Path, val *pb.TypedValue) (*pb.UpdateResult, error) {
-	// Validate the operation.
 	fullPath := gnmiFullPath(prefix, path)
-	emptyNode, _, err := ytypes.GetOrCreateNode(s.model.schemaTreeRoot, s.model.newRootValue(), fullPath)
-	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "path %v is not found in the config structure: %v", fullPath, err)
-	}
+
 	var nodeVal interface{}
-	nodeStruct, ok := emptyNode.(ygot.ValidatedGoStruct)
-	if ok {
-		if err := s.model.jsonUnmarshaler(val.GetJsonIetfVal(), nodeStruct); err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "unmarshaling json data to config struct fails: %v", err)
-		}
-		if err := nodeStruct.Validate(); err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "config data validation fails: %v", err)
-		}
+
+	if hasLeafrefListKey(fullPath) {
+		// See https://github.com/openconfig/ygot/issues/489
+		// A list that has a key that is a leafref causes validation to segfault when trying to look up the schema of the leafref.
+		log.Infof("Path %+v has a key that would cause validation to crash. Skipping validation and converting directly to scalar", fullPath)
 		var err error
-		if nodeVal, err = ygot.ConstructIETFJSON(nodeStruct, &ygot.RFC7951JSONConfig{}); err != nil {
-			msg := fmt.Sprintf("error in constructing IETF JSON tree from config struct: %v", err)
-			log.Error(msg)
-			return nil, status.Error(codes.Internal, msg)
+		nodeVal, err = value.ToScalar(val)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "cannot convert leaf node on path %+v to scalar type: %v", fullPath, err)
 		}
 	} else {
-		var err error
-		if nodeVal, err = value.ToScalar(val); err != nil {
-			return nil, status.Errorf(codes.Internal, "cannot convert leaf node to scalar type: %v", err)
+		// Validate the operation.
+		emptyNode, _, err := ytypes.GetOrCreateNode(s.model.schemaTreeRoot, s.model.newRootValue(), fullPath)
+		if err != nil {
+			return nil, status.Errorf(codes.NotFound, "path %v is not found in the config structure: %v", fullPath, err)
+		}
+		nodeStruct, ok := emptyNode.(ygot.ValidatedGoStruct)
+		if ok {
+			if err := s.model.jsonUnmarshaler(val.GetJsonIetfVal(), nodeStruct); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "unmarshaling json data to config struct fails: %v", err)
+			}
+			if err := nodeStruct.Validate(); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "config data validation fails: %v", err)
+			}
+			var err error
+			if nodeVal, err = ygot.ConstructIETFJSON(nodeStruct, &ygot.RFC7951JSONConfig{}); err != nil {
+				msg := fmt.Sprintf("error in constructing IETF JSON tree from config struct: %v", err)
+				log.Error(msg)
+				return nil, status.Error(codes.Internal, msg)
+			}
+		} else {
+			var err error
+			if nodeVal, err = value.ToScalar(val); err != nil {
+				return nil, status.Errorf(codes.Internal, "cannot convert leaf node to scalar type: %v", err)
+			}
 		}
 	}
 

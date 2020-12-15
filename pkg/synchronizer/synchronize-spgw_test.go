@@ -182,6 +182,15 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 		UserPlane:     aStr("sample-up-up"),
 	}
 
+	sp := models_v2.SecurityProfile_SecurityProfile_SecurityProfile{
+		Description: aStr("sample-sp-desc"),
+		DisplayName: aStr("sample-sp-displayname"),
+		Id:          aStr("sample-sp"),
+		Key:         aStr("sample-sp-key"),
+		Opc:         aStr("sample-sp-opc"),
+		Sqn:         aUint32(96),
+	}
+
 	ue := models_v2.AetherSubscriber_Subscriber_Ue{
 		DisplayName:   aStr("sample-ue-displayname"),
 		Enabled:       aBool(true),
@@ -200,6 +209,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 					Allowed:       aBool(true),
 				},
 			},
+			SecurityProfile: aStr("sample-sp"),
 		},
 
 		RequestedApn: aStr("sample-ue-req-apn"),
@@ -218,6 +228,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 		QosProfile:          &models_v2.QosProfile_QosProfile{QosProfile: map[string]*models_v2.QosProfile_QosProfile_QosProfile{"sample-qp": &qp}},
 		Subscriber:          &models_v2.AetherSubscriber_Subscriber{Ue: map[string]*models_v2.AetherSubscriber_Subscriber_Ue{"68a3b12e-253e-11eb-adc1-0242ac120002": &ue}},
 		UpProfile:           &models_v2.UpProfile_UpProfile{UpProfile: map[string]*models_v2.UpProfile_UpProfile_UpProfile{"sample-up": &up}},
+		SecurityProfile:     &models_v2.SecurityProfile_SecurityProfile{SecurityProfile: map[string]*models_v2.SecurityProfile_SecurityProfile_SecurityProfile{"sample-sp": &up}},
 	}
 
 	err = s.SynchronizeDevice(&device)

@@ -26,7 +26,7 @@ var (
 	configFile     = flag.String("config", "", "IETF JSON file for target startup config")
 	outputFileName = flag.String("output", "", "JSON file to save output to")
 	_              = flag.String("spgw_endpoint", "", "Endpoint to post SPGW-C JSON to - DEPRECATED") // TODO: remove me
-	postEnable     = flag.Bool("post_enable", false, "Enable posting to connectivity service endpoints")
+	postDisable    = flag.Bool("post_disable", false, "Disable posting to connectivity service endpoints")
 	postTimeout    = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
 )
 
@@ -34,7 +34,7 @@ var log = logging.GetLogger("sdcore-adapter")
 
 func main() {
 	// Initialize the synchronizer's service-specific code.
-	sync := synchronizer.NewSynchronizer(*outputFileName, *postEnable, *postTimeout)
+	sync := synchronizer.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
 
 	// The synchronizer will convey its list of models.
 	model := sync.GetModels()
@@ -56,7 +56,7 @@ func main() {
 
 	// outputFileName may have changed after processing arguments
 	sync.SetOutputFileName(*outputFileName)
-	sync.SetPostEnable(*postEnable)
+	sync.SetPostEnable(!*postDisable)
 	sync.SetPostTimeout(*postTimeout)
 
 	sync.Start()

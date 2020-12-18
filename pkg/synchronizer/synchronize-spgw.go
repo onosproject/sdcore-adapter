@@ -72,8 +72,16 @@ type UpProfile struct {
 	QosTags       map[string]string `json:"qos-tags"`
 }
 
+type QosArp struct {
+	Priority                uint32 `json:"priority"`
+	PreemptionCapability    uint32 `json:"pre-emption-capability"`
+	PreemptionVulnerability uint32 `json:"pre-emption-vulnerability"`
+}
+
 type QosProfile struct {
 	ApnAmbr []uint32 `json:"apn-ambr"`
+	Qci     uint32   `json:"qci"`
+	Arp     *QosArp  `json:"arp"`
 }
 
 type AccessProfile struct {
@@ -258,8 +266,14 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 	if device.QosProfile != nil {
 		jsonConfig.QosProfiles = make(map[string]QosProfile)
 		for _, qos := range device.QosProfile.QosProfile {
+			arp := QosArp{ // TODO: hardcoded - fixme
+				PreemptionCapability:    1,
+				PreemptionVulnerability: 1,
+			}
 			profile := QosProfile{
 				ApnAmbr: []uint32{*qos.ApnAmbr.Downlink, *qos.ApnAmbr.Uplink},
+				Qci:     9, // TODO: hardcoded - fixme
+				Arp:     &arp,
 			}
 
 			jsonConfig.QosProfiles[*qos.Id] = profile

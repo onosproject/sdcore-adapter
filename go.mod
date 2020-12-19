@@ -11,8 +11,8 @@ require (
 	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20201206002829-0f3b7ebb025b
 	github.com/onosproject/onos-lib-go v0.6.19
 	github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802
-	github.com/openconfig/goyang v0.2.1
-	github.com/openconfig/ygot v0.8.12
+	github.com/openconfig/goyang v0.2.2
+	github.com/openconfig/ygot v0.9.1-0.20201217195010-7872e9d3d591
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sys v0.0.0-20200803210538-64077c9b5642 // indirect

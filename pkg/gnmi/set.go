@@ -80,22 +80,6 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 	}, nil
 }
 
-func hasLeafrefListKey(path *pb.Path) bool {
-	// for now, hardcoded the ones that cause problems.
-
-	// /enterprise/enterprise[id]/connectivity-service[id]
-	if len(path.Elem) >= 4 && (path.Elem[0].Name == "enterprise") && (path.Elem[1].Name == "enterprise") && (path.Elem[2].Name == "connectivity-service") {
-		return true
-	}
-
-	// /subscriber/ue[id]/profiles/access-profile[id]
-	if len(path.Elem) >= 4 && (path.Elem[0].Name == "subscriber") && (path.Elem[1].Name == "ue") && (path.Elem[2].Name == "profiles") && (path.Elem[3].Name == "access-profile") {
-		return true
-	}
-
-	return false
-}
-
 // doReplaceOrUpdate validates the replace or update operation to be applied to
 // the device, modifies the json tree of the config struct, then calls the
 // callback function to apply the operation to the device hardware.

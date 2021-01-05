@@ -228,7 +228,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 		QosProfile:          &models_v2.QosProfile_QosProfile{QosProfile: map[string]*models_v2.QosProfile_QosProfile_QosProfile{"sample-qp": &qp}},
 		Subscriber:          &models_v2.AetherSubscriber_Subscriber{Ue: map[string]*models_v2.AetherSubscriber_Subscriber_Ue{"68a3b12e-253e-11eb-adc1-0242ac120002": &ue}},
 		UpProfile:           &models_v2.UpProfile_UpProfile{UpProfile: map[string]*models_v2.UpProfile_UpProfile_UpProfile{"sample-up": &up}},
-		SecurityProfile:     &models_v2.SecurityProfile_SecurityProfile{SecurityProfile: map[string]*models_v2.SecurityProfile_SecurityProfile_SecurityProfile{"sample-sp": &up}},
+		SecurityProfile:     &models_v2.SecurityProfile_SecurityProfile{SecurityProfile: map[string]*models_v2.SecurityProfile_SecurityProfile_SecurityProfile{"sample-sp": &sp}},
 	}
 
 	err = s.SynchronizeDevice(&device)
@@ -256,7 +256,8 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
         "sample-acp"
       ],
       "selected-qos-profile": "sample-qp",
-      "selected-user-plane-profile": "sample-up"
+      "selected-user-plane-profile": "sample-up",
+      "selected-security-profile": "sample-sp"
     }
   ],
   "access-profiles": {
@@ -281,7 +282,13 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
       "apn-ambr": [
         123,
         456
-      ]
+      ],
+      "qci": 9,
+      "arp": {
+        "priority": 0,
+        "pre-emption-capability": 1,
+        "pre-emption-vulnerability": 1
+      }
     }
   },
   "user-plane-profiles": {
@@ -294,6 +301,13 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
       "qos-tags": {
         "tag1": "BW"
       }
+    }
+  },
+  "security-profiles": {
+    "sample-sp": {
+      "key": "sample-sp-key",
+      "opc": "sample-sp-opc",
+      "sqn": 96
     }
   }
 }`

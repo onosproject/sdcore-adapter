@@ -46,12 +46,13 @@ type SubscriberKeys struct {
 }
 
 type SubscriberSelectionRule struct {
-	Priority      *uint32        `json:"priority,omitempty"`
-	Keys          SubscriberKeys `json:"keys"`
-	ApnProfile    *string        `json:"selected-apn-profile,omitempty"`
-	AccessProfile []string       `json:"selected-access-profile,omitempty"`
-	QosProfile    *string        `json:"selected-qos-profile,omitempty"`
-	UpProfile     *string        `json:"selected-user-plane-profile,omitempty"`
+	Priority        *uint32        `json:"priority,omitempty"`
+	Keys            SubscriberKeys `json:"keys"`
+	ApnProfile      *string        `json:"selected-apn-profile,omitempty"`
+	AccessProfile   []string       `json:"selected-access-profile,omitempty"`
+	QosProfile      *string        `json:"selected-qos-profile,omitempty"`
+	UpProfile       *string        `json:"selected-user-plane-profile,omitempty"`
+	SecurityProfile *string        `json:"selected-security-profile,omitempty"`
 }
 
 type ApnProfile struct {
@@ -71,8 +72,16 @@ type UpProfile struct {
 	QosTags       map[string]string `json:"qos-tags"`
 }
 
+type QosArp struct {
+	Priority                uint32 `json:"priority"`
+	PreemptionCapability    uint32 `json:"pre-emption-capability"`
+	PreemptionVulnerability uint32 `json:"pre-emption-vulnerability"`
+}
+
 type QosProfile struct {
 	ApnAmbr []uint32 `json:"apn-ambr"`
+	Qci     uint32   `json:"qci"`
+	Arp     *QosArp  `json:"arp"`
 }
 
 type AccessProfile struct {
@@ -80,14 +89,21 @@ type AccessProfile struct {
 	Filter *string `json:"filter,omitempty"`
 }
 
+type SecurityProfile struct {
+	Key *string `json:"key"`
+	Opc *string `json:"opc"`
+	Sqn *uint32 `json:"sqn"`
+}
+
 // On all of these, consider whether it is preferred to leave the item out if empty, or
 // to emit an empty list.
-type SpgwConfig struct {
-	SubscriberSelectionRules []SubscriberSelectionRule `json:"subscriber-selection-rules,omitempty"`
-	AccessProfiles           map[string]AccessProfile  `json:"access-profiles,omitempty"`
-	ApnProfiles              map[string]ApnProfile     `json:"apn-profiles,omitempty"`
-	QosProfiles              map[string]QosProfile     `json:"qos-profiles,omitempty"`
-	UpProfiles               map[string]UpProfile      `json:"user-plane-profiles,omitempty"`
+type JsonConfig struct {
+	SubscriberSelectionRules []SubscriberSelectionRule  `json:"subscriber-selection-rules,omitempty"`
+	AccessProfiles           map[string]AccessProfile   `json:"access-profiles,omitempty"`
+	ApnProfiles              map[string]ApnProfile      `json:"apn-profiles,omitempty"`
+	QosProfiles              map[string]QosProfile      `json:"qos-profiles,omitempty"`
+	UpProfiles               map[string]UpProfile       `json:"user-plane-profiles,omitempty"`
+	SecurityProfiles         map[string]SecurityProfile `json:"security-profiles,omitempty"`
 }
 
 func (s *Synchronizer) Post(endpoint string, data []byte) error {
@@ -113,14 +129,61 @@ func (s *Synchronizer) Post(endpoint string, data []byte) error {
 	return nil
 }
 
-func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
+func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	device := config.(*models.Device)
 
-	spgwConfig := SpgwConfig{}
+	if device.Enterprise == nil {
+		log.Info("No enteprises")
+		return nil
+	}
+
+	if device.ConnectivityService == nil {
+		log.Info("No connectivity services")
+		return nil
+	}
+
+	for entId, ent := range device.Enterprise.Enterprise {
+		if len(ent.ConnectivityService) == 0 {
+			log.Info("Enterprise %s has no Connectivity Services", entId)
+			// nothing to see here, move along.
+			continue
+		}
+		for csId := range ent.ConnectivityService {
+			cs, ok := device.ConnectivityService.ConnectivityService[csId]
+			if !ok {
+				return fmt.Errorf("Failed to find connectivity service %s", csId)
+			}
+
+			err := s.SynchronizeConnectivityService(device, ent, cs)
+			if err != nil {
+				// TODO: Think about this more -- if one fails then we end up aborting them all...
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent *models.Enterprise_Enterprise_Enterprise, cs *models.ConnectivityService_ConnectivityService_ConnectivityService) error {
+	_ = ent
+	_ = cs
+
+	jsonConfig := JsonConfig{}
 
 	if device.Subscriber != nil {
 		for _, ue := range device.Subscriber.Ue {
 			keys := SubscriberKeys{}
+
+			if (ue.Enterprise == nil) || (ent.Id == nil) {
+				// The UE has no enterprise, or the enterprise has no Id
+				continue
+			}
+
+			if *ue.Enterprise != *ent.Id {
+				// The UE is for some other Enterprise than the one we're working on
+				continue
+			}
 
 			if (ue.Enabled == nil) || (!*ue.Enabled) {
 				continue
@@ -153,11 +216,12 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 			}
 
 			rule := SubscriberSelectionRule{
-				Priority:   ue.Priority,
-				Keys:       keys,
-				ApnProfile: ue.Profiles.ApnProfile,
-				QosProfile: ue.Profiles.QosProfile,
-				UpProfile:  ue.Profiles.UpProfile,
+				Priority:        ue.Priority,
+				Keys:            keys,
+				ApnProfile:      ue.Profiles.ApnProfile,
+				QosProfile:      ue.Profiles.QosProfile,
+				UpProfile:       ue.Profiles.UpProfile,
+				SecurityProfile: ue.Profiles.SecurityProfile,
 			}
 
 			for _, ap := range ue.Profiles.AccessProfile {
@@ -166,12 +230,12 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 				}
 			}
 
-			spgwConfig.SubscriberSelectionRules = append(spgwConfig.SubscriberSelectionRules, rule)
+			jsonConfig.SubscriberSelectionRules = append(jsonConfig.SubscriberSelectionRules, rule)
 		}
 	}
 
 	if device.ApnProfile != nil {
-		spgwConfig.ApnProfiles = make(map[string]ApnProfile)
+		jsonConfig.ApnProfiles = make(map[string]ApnProfile)
 		for _, apn := range device.ApnProfile.ApnProfile {
 			profile := ApnProfile{
 				ApnName:      apn.ApnName,
@@ -183,35 +247,41 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 				Usage:        1,     // TODO: update modeling and revise
 			}
 
-			spgwConfig.ApnProfiles[*apn.Id] = profile
+			jsonConfig.ApnProfiles[*apn.Id] = profile
 		}
 	}
 
 	if device.AccessProfile != nil {
-		spgwConfig.AccessProfiles = make(map[string]AccessProfile)
+		jsonConfig.AccessProfiles = make(map[string]AccessProfile)
 		for _, access := range device.AccessProfile.AccessProfile {
 			profile := AccessProfile{
 				Type:   access.Type,
 				Filter: access.Filter,
 			}
 
-			spgwConfig.AccessProfiles[*access.Id] = profile
+			jsonConfig.AccessProfiles[*access.Id] = profile
 		}
 	}
 
 	if device.QosProfile != nil {
-		spgwConfig.QosProfiles = make(map[string]QosProfile)
+		jsonConfig.QosProfiles = make(map[string]QosProfile)
 		for _, qos := range device.QosProfile.QosProfile {
+			arp := QosArp{ // TODO: hardcoded - fixme
+				PreemptionCapability:    1,
+				PreemptionVulnerability: 1,
+			}
 			profile := QosProfile{
 				ApnAmbr: []uint32{*qos.ApnAmbr.Downlink, *qos.ApnAmbr.Uplink},
+				Qci:     9, // TODO: hardcoded - fixme
+				Arp:     &arp,
 			}
 
-			spgwConfig.QosProfiles[*qos.Id] = profile
+			jsonConfig.QosProfiles[*qos.Id] = profile
 		}
 	}
 
 	if device.UpProfile != nil {
-		spgwConfig.UpProfiles = make(map[string]UpProfile)
+		jsonConfig.UpProfiles = make(map[string]UpProfile)
 		for _, up := range device.UpProfile.UpProfile {
 			profile := UpProfile{
 				UserPlane:     up.UserPlane,
@@ -220,13 +290,24 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 				QosTags:       map[string]string{"tag1": "BW"},  // TODO: update modeling and revise
 			}
 
-			spgwConfig.UpProfiles[*up.Id] = profile
+			jsonConfig.UpProfiles[*up.Id] = profile
 		}
 	}
 
-	//log.Infof("spgwConfig %v", spgwConfig)
+	if device.SecurityProfile != nil {
+		jsonConfig.SecurityProfiles = make(map[string]SecurityProfile)
+		for _, sp := range device.SecurityProfile.SecurityProfile {
+			profile := SecurityProfile{
+				Key: sp.Key,
+				Opc: sp.Opc,
+				Sqn: sp.Sqn,
+			}
 
-	data, err := json.MarshalIndent(spgwConfig, "", "  ")
+			jsonConfig.SecurityProfiles[*sp.Id] = profile
+		}
+	}
+
+	data, err := json.MarshalIndent(jsonConfig, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -251,11 +332,21 @@ func (s *Synchronizer) SynchronizeSpgw(config ygot.ValidatedGoStruct) error {
 		}
 	}
 
-	if s.spgwEndpoint != "" {
-		log.Infof("Posting to %s", s.spgwEndpoint)
-		err := s.Post(s.spgwEndpoint, data)
-		if err != nil {
-			return err
+	if s.postEnable {
+		if cs.SpgwcEndpoint != nil {
+			log.Infof("Posting to %s", *cs.SpgwcEndpoint)
+			err := s.Post(*cs.SpgwcEndpoint, data)
+			if err != nil {
+				return err
+			}
+		}
+
+		if cs.HssEndpoint != nil {
+			log.Infof("Posting to %s", *cs.HssEndpoint)
+			err := s.Post(*cs.HssEndpoint, data)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

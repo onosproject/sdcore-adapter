@@ -11,6 +11,6 @@ import (
 
 type Synchronizer struct {
 	outputFileName string
-	spgwEndpoint   string
+	postEnable     bool
 	postTimeout    time.Duration
 }

@@ -14,10 +14,10 @@ import (
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/gnmi/value"
-	"github.com/openconfig/ygot/experimental/ygotutils"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
+	"github.com/openconfig/ygot/ytypes"
 	"golang.org/x/net/context"
-	cpb "google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -47,12 +47,12 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		notifications := make([]*pb.Notification, 1)
 		path := pb.Path{}
 		// Gets the whole config data tree
-		node, stat := ygotutils.GetNode(s.model.schemaTreeRoot, s.config, &path)
-		if isNil(node) || stat.GetCode() != int32(cpb.Code_OK) {
+		node, err := ytypes.GetNode(s.model.schemaTreeRoot, s.config, &path)
+		if isNil(node) || err != nil {
 			return nil, status.Errorf(codes.NotFound, "path %s not found", path.String())
 		}
 
-		nodeStruct, _ := node.(ygot.GoStruct)
+		nodeStruct, _ := node[0].Data.(ygot.GoStruct)
 		jsonTree, _ := ygot.ConstructIETFJSON(nodeStruct, &ygot.RFC7951JSONConfig{AppendModuleName: true})
 
 		jsonTree = pruneConfigData(jsonTree, strings.ToLower(dataType.String()), &path).(map[string]interface{})
@@ -86,10 +86,11 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 			return nil, status.Error(codes.Unimplemented, "deprecated path element type is unsupported")
 		}
 
-		node, stat := ygotutils.GetNode(s.model.schemaTreeRoot, s.config, fullPath)
-		if isNil(node) || stat.GetCode() != int32(cpb.Code_OK) {
-			return nil, status.Errorf(codes.NotFound, "path %v not found (Test)", fullPath)
+		nodes, err := ytypes.GetNode(s.model.schemaTreeRoot, s.config, fullPath)
+		if len(nodes) == 0 || err != nil || util.IsValueNil(nodes[0].Data) {
+			return nil, status.Errorf(codes.NotFound, "path %v not found: %v", fullPath, err)
 		}
+		node := nodes[0].Data
 
 		ts := time.Now().UnixNano()
 
@@ -133,6 +134,28 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 						StringVal: enumMap[reflect.ValueOf(node).Int()].Name,
 					},
 				}
+			case reflect.Slice:
+				var err error
+				switch kind := reflect.ValueOf(node).Kind(); kind {
+				case reflect.Int64:
+					//fmt.Println(reflect.TypeOf(node[0].Data).Elem())
+					enumMap, ok := s.model.enumData[reflect.TypeOf(node).Name()]
+					if !ok {
+						return nil, status.Error(codes.Internal, "not a GoStruct enumeration type")
+					}
+					val = &pb.TypedValue{
+						Value: &pb.TypedValue_StringVal{
+							StringVal: enumMap[reflect.ValueOf(node).Int()].Name,
+						},
+					}
+				default:
+					val, err = value.FromScalar(reflect.ValueOf(node).Elem().Interface())
+					if err != nil {
+						msg := fmt.Sprintf("leaf node %v does not contain a scalar type value: %v", path, err)
+						log.Error(msg)
+						return nil, status.Error(codes.Internal, msg)
+					}
+				}
 			default:
 				return nil, status.Errorf(codes.Internal, "unexpected kind of leaf node type: %v %v", node, kind)
 			}
@@ -158,7 +181,10 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		}
 
 		var jsonTree map[string]interface{}
-		var err error
+		if reflect.ValueOf(nodeStruct).Pointer() == 0 {
+			return nil, status.Error(codes.NotFound, "value is 0")
+
+		}
 		jsonTree, err = jsonEncoder(jsonType, nodeStruct)
 		jsonTree = pruneConfigData(jsonTree, strings.ToLower(dataTypeString), fullPath).(map[string]interface{})
 		if err != nil {

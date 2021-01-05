@@ -20,9 +20,8 @@ import (
 	"github.com/golang/protobuf/proto" //nolint: staticcheck
 	dpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/experimental/ygotutils"
 	"github.com/openconfig/ygot/ygot"
-	cpb "google.golang.org/genproto/googleapis/rpc/code"
+	"github.com/openconfig/ygot/ytypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -344,13 +343,13 @@ func (s *Server) getUpdate(c *streamClient, subList *pb.SubscriptionList, path *
 	if fullPath.GetElem() == nil && fullPath.GetElement() != nil { // nolint:staticcheck
 		return nil, status.Error(codes.Unimplemented, "deprecated path element type is unsupported")
 	}
-	node, stat := ygotutils.GetNode(s.model.schemaTreeRoot, s.config, fullPath)
-	if isNil(node) || stat.GetCode() != int32(cpb.Code_OK) {
+	node, err := ytypes.GetNode(s.model.schemaTreeRoot, s.config, fullPath)
+	if isNil(node) || err != nil {
 		return nil, status.Errorf(codes.NotFound, "path %v not found", fullPath)
 
 	}
 
-	nodeStruct, ok := node.(ygot.GoStruct)
+	nodeStruct, ok := node[0].Data.(ygot.GoStruct)
 	// Return leaf node.
 	if !ok {
 		var val *pb.TypedValue
@@ -373,6 +372,27 @@ func (s *Server) getUpdate(c *streamClient, subList *pb.SubscriptionList, path *
 				Value: &pb.TypedValue_StringVal{
 					StringVal: enumMap[reflect.ValueOf(node).Int()].Name,
 				},
+			}
+		case reflect.Slice:
+			var err error
+			switch kind := reflect.ValueOf(node[0].Data).Kind(); kind {
+			case reflect.Int64:
+				enumMap, ok := s.model.enumData[reflect.TypeOf(node[0].Data).Name()]
+				if !ok {
+					return nil, status.Error(codes.Internal, "not a GoStruct enumeration type")
+				}
+				val = &pb.TypedValue{
+					Value: &pb.TypedValue_StringVal{
+						StringVal: enumMap[reflect.ValueOf(node[0].Data).Int()].Name,
+					},
+				}
+			default:
+				val, err = value.FromScalar(reflect.ValueOf(node[0].Data).Elem().Interface())
+				if err != nil {
+					msg := fmt.Sprintf("leaf node %v does not contain a scalar type value: %v", fullPath, err)
+					log.Error(msg)
+					return nil, status.Error(codes.Internal, msg)
+				}
 			}
 		default:
 			return nil, status.Errorf(codes.Internal, "unexpected kind of leaf node type: %v %v", node, kind)

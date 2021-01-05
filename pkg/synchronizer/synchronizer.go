@@ -18,7 +18,7 @@ import (
 var log = logging.GetLogger("synchronizer")
 
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct) error {
-	err := s.SynchronizeSpgw(config)
+	err := s.SynchronizeDevice(config)
 	return err
 }
 
@@ -38,8 +38,8 @@ func (s *Synchronizer) SetOutputFileName(fileName string) {
 	s.outputFileName = fileName
 }
 
-func (s *Synchronizer) SetSpgwEndpoint(endpoint string) {
-	s.spgwEndpoint = endpoint
+func (s *Synchronizer) SetPostEnable(postEnable bool) {
+	s.postEnable = postEnable
 }
 
 func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
@@ -47,18 +47,18 @@ func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 }
 
 func (s *Synchronizer) Start() {
-	log.Infof("Synchronizer starting (outputFileName=%s, spgwEndpont=%s, postTimeout=%d)",
+	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%s, postTimeout=%d)",
 		s.outputFileName,
-		s.spgwEndpoint,
+		s.postEnable,
 		s.postTimeout)
 
 	// TODO: Eventually we'll create a thread here that waits for config changes
 }
 
-func NewSynchronizer(outputFileName string, spgwEndpoint string, postTimeout time.Duration) *Synchronizer {
+func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Duration) *Synchronizer {
 	s := &Synchronizer{
 		outputFileName: outputFileName,
-		spgwEndpoint:   spgwEndpoint,
+		postEnable:     postEnable,
 		postTimeout:    postTimeout,
 	}
 	return s

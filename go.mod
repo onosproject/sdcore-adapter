@@ -7,8 +7,8 @@ require (
 	github.com/google/gnxi v0.0.0-20190228205329-8521faedac37
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/google/uuid v1.1.1
-	github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201117075049-9980f463583a
-	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20201206002829-0f3b7ebb025b
+	github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201217104719-f0b4f4c16f49
+	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180505-6d1bbdac02b2
 	github.com/onosproject/onos-lib-go v0.6.19
 	github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802
 	github.com/openconfig/goyang v0.2.2

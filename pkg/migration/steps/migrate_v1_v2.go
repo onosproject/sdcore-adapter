@@ -191,6 +191,15 @@ func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toT
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePrefix}}, nil
 }
 
+// Safely dereference a *string for printing
+func StrDeref(s *string) string {
+	if s == nil {
+		return "nil"
+	} else {
+		return *s
+	}
+}
+
 func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
 	srcJsonBytes := srcVal.GetJsonVal()
 	srcDevice := &models_v1.Device{}
@@ -208,12 +217,11 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 		}
 	}
 
-	log.Infof("Migrate src=%v, dest=%v", srcDevice, destDevice)
-
 	allActions := []*migration.MigrationActions{}
 
 	if srcDevice.ApnProfile != nil {
 		for _, profile := range srcDevice.ApnProfile.ApnProfile {
+			log.Infof("Migrating APN Profile %s", StrDeref(profile.Id))
 			actions, err := MigrateV1V2ApnProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
@@ -224,6 +232,7 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.QosProfile != nil {
 		for _, profile := range srcDevice.QosProfile.QosProfile {
+			log.Infof("Migrating QOS Profile %s", StrDeref(profile.Id))
 			actions, err := MigrateV1V2QosProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
@@ -234,6 +243,7 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.UpProfile != nil {
 		for _, profile := range srcDevice.UpProfile.UpProfile {
+			log.Infof("Migrating UP Profile %s", StrDeref(profile.Id))
 			actions, err := MigrateV1V2UpProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
@@ -244,6 +254,7 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.AccessProfile != nil {
 		for _, profile := range srcDevice.AccessProfile.AccessProfile {
+			log.Infof("Migrating Access Profile %s", StrDeref(profile.Id))
 			actions, err := MigrateV1V2AccessProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
@@ -254,6 +265,7 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.Subscriber != nil {
 		for _, ue := range srcDevice.Subscriber.Ue {
+			log.Infof("Migrating Subscriber UE %s", StrDeref(ue.Ueid))
 			actions, err := MigrateV1V2Subscriber(step, fromTarget, toTarget, ue, destDevice)
 			if err != nil {
 				return nil, err

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
 package synchronizer
 
 import (
@@ -266,14 +266,31 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent
 	if device.QosProfile != nil {
 		jsonConfig.QosProfiles = make(map[string]QosProfile)
 		for _, qos := range device.QosProfile.QosProfile {
-			arp := QosArp{ // TODO: hardcoded - fixme
-				PreemptionCapability:    1,
-				PreemptionVulnerability: 1,
+			arp := QosArp{
+				Priority:                0, // default
+				PreemptionCapability:    1, // default
+				PreemptionVulnerability: 1, // default
 			}
+			if qos.Arp != nil {
+				if qos.Arp.Priority != nil {
+					arp.Priority = *qos.Arp.Priority
+				}
+				if qos.Arp.PreemptionCapability != nil {
+					arp.PreemptionCapability = boolToUint32(*qos.Arp.PreemptionCapability)
+				}
+				if qos.Arp.PreemptionVulnerability != nil {
+					arp.PreemptionVulnerability = boolToUint32(*qos.Arp.PreemptionVulnerability)
+				}
+			}
+
 			profile := QosProfile{
 				ApnAmbr: []uint32{*qos.ApnAmbr.Downlink, *qos.ApnAmbr.Uplink},
-				Qci:     9, // TODO: hardcoded - fixme
+				Qci:     9, // default
 				Arp:     &arp,
+			}
+
+			if qos.Qci != nil {
+				profile.Qci = *qos.Qci
 			}
 
 			jsonConfig.QosProfiles[*qos.Id] = profile

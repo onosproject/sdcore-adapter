@@ -167,11 +167,19 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 		Mtu:          aUint32(123),
 	}
 
+	arp := models_v2.QosProfile_QosProfile_QosProfile_Arp{
+		Priority:                aUint32(3),
+		PreemptionCapability:    aBool(true),
+		PreemptionVulnerability: aBool(false),
+	}
+
 	qp := models_v2.QosProfile_QosProfile_QosProfile{
 		ApnAmbr:     &models_v2.QosProfile_QosProfile_QosProfile_ApnAmbr{Downlink: aUint32(123), Uplink: aUint32(456)},
 		Description: aStr("sample-qp-desc"),
 		DisplayName: aStr("sample-qp-displayname"),
 		Id:          aStr("sample-qp"),
+		Qci:         aUint32(11),
+		Arp:         &arp,
 	}
 
 	up := models_v2.UpProfile_UpProfile_UpProfile{
@@ -283,11 +291,11 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
         123,
         456
       ],
-      "qci": 9,
+      "qci": 11,
       "arp": {
-        "priority": 0,
+        "priority": 3,
         "pre-emption-capability": 1,
-        "pre-emption-vulnerability": 1
+        "pre-emption-vulnerability": 0
       }
     }
   },

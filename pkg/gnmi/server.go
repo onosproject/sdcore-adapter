@@ -6,6 +6,7 @@
 package gnmi
 
 import (
+	"github.com/eapache/channels"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -35,7 +36,19 @@ func NewServer(model *Model, config []byte, callback ConfigCallback, synchronize
 	}
 	s.readOnlyUpdateValue = &pb.Update{Path: nil, Val: val}
 	s.subscribers = make(map[string]*streamClient)
-	s.ConfigUpdate = make(chan *pb.Update, 100)
+
+	/* Create a RingChannel that can hold 100 items, and will discard
+	 * the oldest if it becomes full.
+	 *
+	 * TODO: This needs further testing and design work. It's unclear
+	 *    whether we have any subscribers now, and if so then simply
+	 *    deleting the channel may suffice. If we do have (or expect to
+	 *    have) subscribers then we may need a more robust solution.
+	 *    The RingChannel will prevent blocking, but may lead to loss of
+	 *    notifications.
+	 */
+
+	s.ConfigUpdate = channels.NewRingChannel(100)
 
 	return s, nil
 }

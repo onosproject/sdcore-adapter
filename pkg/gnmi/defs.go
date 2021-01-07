@@ -8,6 +8,7 @@ package gnmi
 import (
 	"sync"
 
+	"github.com/eapache/channels"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
@@ -50,7 +51,7 @@ type Server struct {
 	model               *Model
 	callback            ConfigCallback
 	config              ygot.ValidatedGoStruct
-	ConfigUpdate        chan *pb.Update
+	ConfigUpdate        *channels.RingChannel
 	mu                  sync.RWMutex // mu is the RW lock to protect the access to config
 	readOnlyUpdateValue *pb.Update
 	subscribers         map[string]*streamClient

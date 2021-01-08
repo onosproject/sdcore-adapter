@@ -470,7 +470,8 @@ func (s *Server) listenForUpdates(c *streamClient) {
 
 // configEventProducer produces update events for stream subscribers.
 func (s *Server) listenToConfigEvents(request *pb.SubscriptionList) {
-	for update := range s.ConfigUpdate {
+	for updateInterface := range s.ConfigUpdate.Out() {
+		update := updateInterface.(*pb.Update)
 		for key, c := range s.subscribers {
 			if key == update.GetPath().String() {
 				newUpdateValue, err := s.getUpdate(c, request, update.GetPath())

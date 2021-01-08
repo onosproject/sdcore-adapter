@@ -213,6 +213,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		log.Info("Handling update %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_UPDATE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
+			log.Info("Handle update %v returned error %v", upd, grpcStatusError)
 			return nil, grpcStatusError
 		}
 		results = append(results, res)
@@ -244,7 +245,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		update := &pb.Update{
 			Path: response.GetPath(),
 		}
-		s.ConfigUpdate <- update
+		s.ConfigUpdate.In() <- update
 	}
 
 	return setResponse, nil

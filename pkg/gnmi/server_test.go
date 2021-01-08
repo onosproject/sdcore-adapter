@@ -161,3 +161,81 @@ func runTestGet(t *testing.T, s *Server, textPbPath string, wantRetCode codes.Co
 		t.Errorf("got: %v (%T),\nwant %v (%T)", gotVal, gotVal, wantRespVal, wantRespVal)
 	}
 }
+
+func TestSet(t *testing.T) {
+	jsonConfigRoot := `{}`
+
+	s, err := NewServer(model, []byte(jsonConfigRoot), nil, nil)
+	if err != nil {
+		t.Fatalf("error in creating server: %v", err)
+	}
+
+	tds := []struct {
+		desc         string
+		textPbPrefix string
+		textPbUpdate string
+		modelData    []*pb.ModelData
+		wantRetCode  codes.Code
+		wantRespVal  interface{}
+	}{{
+		desc: "set access-profile",
+		textPbPrefix: `
+		target: 'connectivity-service-v2'
+		elem: <
+			name: 'access-profile'
+		>
+		elem: <
+			name: 'access-profile'
+			key:<
+				key:'id'
+				value:'profile-access-demo-1'
+			>
+		>
+		`,
+		textPbUpdate: `
+		path: <
+			elem: <
+				name: 'type'
+			>
+		>
+		val: <
+			string_val: 'allow-all'
+		>
+		`,
+		wantRetCode: codes.OK,
+	}}
+
+	for _, td := range tds {
+		t.Run(td.desc, func(t *testing.T) {
+			runTestSet(t, s, td.textPbPrefix, td.textPbUpdate, td.wantRetCode, td.modelData)
+		})
+	}
+}
+
+// runTestGet requests a path from the server by Get grpc call, and compares if
+// the return code and response value are expected.
+func runTestSet(t *testing.T, s *Server, textPbPrefix string, textPbUpdate string, wantRetCode codes.Code, useModels []*pb.ModelData) {
+	// Send request
+	var pbPrefix pb.Path
+	var pbUpdate pb.Update
+	if err := proto.UnmarshalText(textPbPrefix, &pbPrefix); err != nil {
+		t.Fatalf("error in unmarshaling path: %v", err)
+	}
+	if err := proto.UnmarshalText(textPbUpdate, &pbUpdate); err != nil {
+		t.Fatalf("error in unmarshaling path: %v", err)
+	}
+	req := &pb.SetRequest{
+		Prefix: &pbPrefix,
+		Update: []*pb.Update{&pbUpdate},
+	}
+	_, err := s.Set(context.TODO(), req)
+
+	// Check return code
+	gotRetStatus, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("got a non-grpc error from grpc call")
+	}
+	if gotRetStatus.Code() != wantRetCode {
+		t.Fatalf("got return code %v, want %v", gotRetStatus.Code(), wantRetCode)
+	}
+}

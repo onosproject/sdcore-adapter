@@ -46,7 +46,7 @@ func readCerts(q client.Query) error {
 			return fmt.Errorf("failed to append CA certificates")
 		}
 
-		log.Infof("Successfully read and configured caCert %s", *caCert)
+		log.Debugf("Successfully read and configured caCert %s", *caCert)
 
 		q.TLS.RootCAs = certPool
 	}
@@ -60,7 +60,7 @@ func readCerts(q client.Query) error {
 			return fmt.Errorf("could not load client key pair: %s", err)
 		}
 
-		log.Infof("Successfully read and configured clientCert %s and clientKey %s", *clientCert, *clientKey)
+		log.Debugf("Successfully read and configured clientCert %s and clientKey %s", *clientCert, *clientKey)
 
 		q.TLS.Certificates = []tls.Certificate{certificate}
 	}

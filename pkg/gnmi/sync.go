@@ -8,6 +8,9 @@ package gnmi
 // doDelete deletes the path from the json tree if the path exists. If success,
 // it calls the callback function to apply the change to the device hardware.
 func (s *Server) Synchronize() {
+	if s.synchronizer == nil {
+		return
+	}
 	err := s.synchronizer.Synchronize(s.config)
 	if err != nil {
 		// Report the error, but do not send the error upstream.

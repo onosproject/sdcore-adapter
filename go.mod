@@ -3,6 +3,7 @@ module github.com/onosproject/sdcore-adapter
 go 1.14
 
 require (
+	github.com/eapache/channels v1.1.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/gnxi v0.0.0-20190228205329-8521faedac37
 	github.com/google/go-cmp v0.5.1 // indirect

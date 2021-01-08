@@ -129,7 +129,10 @@ func TestSynchronizeDeviceConnectivityServiceNotFound(t *testing.T) {
 		ConnectivityService: &models_v2.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models_v2.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
 	}
 	err = s.SynchronizeDevice(&device)
-	assert.EqualError(t, err, "Failed to find connectivity service cs-missing")
+
+	// An enterprise that points to a nonexistent connectivity service is not something we abort synchronization for.
+	// TODO: Think about this...
+	assert.Nil(t, err)
 }
 
 // a fully populated device should yield a decent chunk of json

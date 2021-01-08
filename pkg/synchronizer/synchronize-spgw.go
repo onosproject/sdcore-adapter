@@ -142,50 +142,61 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 		return nil
 	}
 
+	// For a given ConnectivityService, we want to know the list of Enterprises
+	// that use it. Precompute this so we can pass a list of valid Enterprises
+	// along to SynchronizeConnectivityService.
+	csEntMap := map[string]map[string]bool{}
 	for entId, ent := range device.Enterprise.Enterprise {
-		if len(ent.ConnectivityService) == 0 {
-			log.Info("Enterprise %s has no Connectivity Services", entId)
-			// nothing to see here, move along.
-			continue
-		}
 		for csId := range ent.ConnectivityService {
-			cs, ok := device.ConnectivityService.ConnectivityService[csId]
-			if !ok {
-				return fmt.Errorf("Failed to find connectivity service %s", csId)
+			m, okay := csEntMap[csId]
+			if !okay {
+				m = map[string]bool{}
+				csEntMap[csId] = m
 			}
+			m[entId] = true
+		}
+	}
 
-			err := s.SynchronizeConnectivityService(device, ent, cs)
-			if err != nil {
-				// TODO: Think about this more -- if one fails then we end up aborting them all...
-				return err
-			}
+	for csId, cs := range device.ConnectivityService.ConnectivityService {
+		// Get the list of valid Enterprises for this CS.
+		// Note: This could return an empty map if there is a CS that no
+		//   enterprises are linked to . In that case, we can still push models
+		//   that are not directly related to an enterprise, such as profiles.
+		m := csEntMap[csId]
+		err := s.SynchronizeConnectivityService(device, cs, m)
+		if err != nil {
+			// TODO: Think about this more -- if one fails then we end up aborting them all...
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, ent *models.Enterprise_Enterprise_Enterprise, cs *models.ConnectivityService_ConnectivityService_ConnectivityService) error {
-	_ = ent
-	_ = cs
-
+func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	jsonConfig := JsonConfig{}
+
+	log.Infof("Synchronizing Connectivity Service %s", *cs.Id)
 
 	if device.Subscriber != nil {
 		for _, ue := range device.Subscriber.Ue {
 			keys := SubscriberKeys{}
 
-			if (ue.Enterprise == nil) || (ent.Id == nil) {
+			if ue.Enterprise == nil {
 				// The UE has no enterprise, or the enterprise has no Id
+				log.Infof("UE %s has no enterprise", *ue.Id)
 				continue
 			}
 
-			if *ue.Enterprise != *ent.Id {
-				// The UE is for some other Enterprise than the one we're working on
+			_, okay := validEnterpriseIds[*ue.Enterprise]
+			if !okay {
+				// The UE is for some other CS than the one we're working on
+				log.Infof("UE %s is not for connectivity service %s", *ue.Id, *cs.Id)
 				continue
 			}
 
 			if (ue.Enabled == nil) || (!*ue.Enabled) {
+				log.Infof("UE %s is not enabled", *ue.Id)
 				continue
 			}
 

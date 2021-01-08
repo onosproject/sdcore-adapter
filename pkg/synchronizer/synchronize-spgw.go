@@ -40,9 +40,10 @@ type SubscriberServingPlmn struct {
 }
 
 type SubscriberKeys struct {
-	ImsiRange    SubscriberImsiRange    `json:"imsi-range,omitempty"`
+	ImsiRange    *SubscriberImsiRange   `json:"imsi-range,omitempty"`
 	ServingPlmn  *SubscriberServingPlmn `json:"serving-plmn,omitempty"`
 	RequestedApn string                 `json:"requested-apn,omitempty"`
+	MatchAll     *bool                  `json:"match-all,omitempty"`
 }
 
 type SubscriberSelectionRule struct {
@@ -216,7 +217,7 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				if ue.ImsiRangeTo == nil {
 					return errors.New("ImsiRangeTo is nil, but ImsiRangeFrom is not")
 				}
-				keys.ImsiRange = SubscriberImsiRange{
+				keys.ImsiRange = &SubscriberImsiRange{
 					From: *ue.ImsiRangeFrom,
 					To:   *ue.ImsiRangeTo,
 				}
@@ -224,6 +225,12 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 
 			if ue.RequestedApn != nil {
 				keys.RequestedApn = *ue.RequestedApn
+			}
+
+			// if no keys are specified, then emit the match-all rule
+			if (ue.ServingPlmn == nil) && (ue.ImsiRangeFrom == nil) && (ue.ImsiRangeTo == nil) && (ue.RequestedApn == nil) {
+				matchAll := true
+				keys.MatchAll = &matchAll
 			}
 
 			rule := SubscriberSelectionRule{

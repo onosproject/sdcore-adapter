@@ -12,7 +12,6 @@ import (
 	"github.com/golang/protobuf/proto" //nolint: staticcheck
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/ygot"
-	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -211,18 +210,6 @@ func TestSet(t *testing.T) {
 			runTestSet(t, s, td.textPbPrefix, td.textPbUpdate, td.wantRetCode, td.modelData)
 		})
 	}
-
-	// Count the items that showed up in the ConfigUpdate channel.
-	// There should be one for each update.
-	n := 0
-	select {
-	case updateInterface := <-s.ConfigUpdate.Out():
-		_ = updateInterface.(*pb.Update)
-		n += 1
-	default:
-	}
-
-	assert.Equal(t, len(tds), n)
 }
 
 // runTestGet requests a path from the server by Get grpc call, and compares if

@@ -222,7 +222,6 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 			},
 			SecurityProfile: aStr("sample-sp"),
 		},
-
 		RequestedApn: aStr("sample-ue-req-apn"),
 		ServingPlmn: &models_v2.AetherSubscriber_Subscriber_Ue_ServingPlmn{
 			Mcc: aUint32(123),
@@ -321,6 +320,221 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
       "sqn": 96
     }
   }
+}`
+
+	content, err := ioutil.ReadFile(tempFileName)
+	assert.Nil(t, err)
+	assert.Equal(t, expected_result, string(content))
+}
+
+func TestSynchronizeDeviceImsiRangeOnly(t *testing.T) {
+	// Get a temporary file name and defer deletion of the file
+	f, err := ioutil.TempFile("", "synchronizer-json")
+	assert.Nil(t, err)
+	tempFileName := f.Name()
+	defer func() {
+		os.Remove(tempFileName)
+	}()
+
+	s := Synchronizer{}
+	s.SetOutputFileName(tempFileName)
+
+	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
+	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
+
+	ue := models_v2.AetherSubscriber_Subscriber_Ue{
+		DisplayName:   aStr("sample-ue-displayname"),
+		Enabled:       aBool(true),
+		Id:            aStr("68a3b12e-253e-11eb-adc1-0242ac120002"),
+		Priority:      aUint32(1),
+		Enterprise:    aStr("sample-ent"),
+		ImsiRangeFrom: aUint64(123456),
+		ImsiRangeTo:   aUint64(1234567),
+		Profiles:      &models_v2.AetherSubscriber_Subscriber_Ue_Profiles{},
+	}
+
+	device := models_v2.Device{
+		Enterprise:          &models_v2.Enterprise_Enterprise{Enterprise: map[string]*models_v2.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models_v2.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models_v2.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Subscriber:          &models_v2.AetherSubscriber_Subscriber{Ue: map[string]*models_v2.AetherSubscriber_Subscriber_Ue{"68a3b12e-253e-11eb-adc1-0242ac120002": &ue}},
+	}
+
+	err = s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	// define the expected json here
+	expected_result := `{
+  "subscriber-selection-rules": [
+    {
+      "priority": 1,
+      "keys": {
+        "imsi-range": {
+          "from": 123456,
+          "to": 1234567
+        }
+      }
+    }
+  ]
+}`
+
+	content, err := ioutil.ReadFile(tempFileName)
+	assert.Nil(t, err)
+	assert.Equal(t, expected_result, string(content))
+}
+
+func TestSynchronizeDeviceServingPlmnOnly(t *testing.T) {
+	// Get a temporary file name and defer deletion of the file
+	f, err := ioutil.TempFile("", "synchronizer-json")
+	assert.Nil(t, err)
+	tempFileName := f.Name()
+	defer func() {
+		os.Remove(tempFileName)
+	}()
+
+	s := Synchronizer{}
+	s.SetOutputFileName(tempFileName)
+
+	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
+	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
+
+	ue := models_v2.AetherSubscriber_Subscriber_Ue{
+		DisplayName: aStr("sample-ue-displayname"),
+		Enabled:     aBool(true),
+		Id:          aStr("68a3b12e-253e-11eb-adc1-0242ac120002"),
+		Priority:    aUint32(1),
+		Enterprise:  aStr("sample-ent"),
+		ServingPlmn: &models_v2.AetherSubscriber_Subscriber_Ue_ServingPlmn{
+			Mcc: aUint32(123),
+			Mnc: aUint32(456),
+			Tac: aUint32(789),
+		},
+		Profiles: &models_v2.AetherSubscriber_Subscriber_Ue_Profiles{},
+	}
+
+	device := models_v2.Device{
+		Enterprise:          &models_v2.Enterprise_Enterprise{Enterprise: map[string]*models_v2.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models_v2.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models_v2.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Subscriber:          &models_v2.AetherSubscriber_Subscriber{Ue: map[string]*models_v2.AetherSubscriber_Subscriber_Ue{"68a3b12e-253e-11eb-adc1-0242ac120002": &ue}},
+	}
+
+	err = s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	// define the expected json here
+	expected_result := `{
+  "subscriber-selection-rules": [
+    {
+      "priority": 1,
+      "keys": {
+        "serving-plmn": {
+          "mcc": 123,
+          "mnc": 456,
+          "tac": 789
+        }
+      }
+    }
+  ]
+}`
+
+	content, err := ioutil.ReadFile(tempFileName)
+	assert.Nil(t, err)
+	assert.Equal(t, expected_result, string(content))
+}
+
+func TestSynchronizeDeviceRequestedApnOnly(t *testing.T) {
+	// Get a temporary file name and defer deletion of the file
+	f, err := ioutil.TempFile("", "synchronizer-json")
+	assert.Nil(t, err)
+	tempFileName := f.Name()
+	defer func() {
+		os.Remove(tempFileName)
+	}()
+
+	s := Synchronizer{}
+	s.SetOutputFileName(tempFileName)
+
+	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
+	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
+
+	ue := models_v2.AetherSubscriber_Subscriber_Ue{
+		DisplayName:  aStr("sample-ue-displayname"),
+		Enabled:      aBool(true),
+		Id:           aStr("68a3b12e-253e-11eb-adc1-0242ac120002"),
+		Priority:     aUint32(1),
+		Enterprise:   aStr("sample-ent"),
+		RequestedApn: aStr("sample-ue-req-apn"),
+		Profiles:     &models_v2.AetherSubscriber_Subscriber_Ue_Profiles{},
+	}
+
+	device := models_v2.Device{
+		Enterprise:          &models_v2.Enterprise_Enterprise{Enterprise: map[string]*models_v2.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models_v2.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models_v2.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Subscriber:          &models_v2.AetherSubscriber_Subscriber{Ue: map[string]*models_v2.AetherSubscriber_Subscriber_Ue{"68a3b12e-253e-11eb-adc1-0242ac120002": &ue}},
+	}
+
+	err = s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	// define the expected json here
+	expected_result := `{
+  "subscriber-selection-rules": [
+    {
+      "priority": 1,
+      "keys": {
+        "requested-apn": "sample-ue-req-apn"
+      }
+    }
+  ]
+}`
+
+	content, err := ioutil.ReadFile(tempFileName)
+	assert.Nil(t, err)
+	assert.Equal(t, expected_result, string(content))
+}
+
+func TestSynchronizeDeviceNoKeys(t *testing.T) {
+	// Get a temporary file name and defer deletion of the file
+	f, err := ioutil.TempFile("", "synchronizer-json")
+	assert.Nil(t, err)
+	tempFileName := f.Name()
+	defer func() {
+		os.Remove(tempFileName)
+	}()
+
+	s := Synchronizer{}
+	s.SetOutputFileName(tempFileName)
+
+	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
+	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
+
+	ue := models_v2.AetherSubscriber_Subscriber_Ue{
+		DisplayName: aStr("sample-ue-displayname"),
+		Enabled:     aBool(true),
+		Id:          aStr("68a3b12e-253e-11eb-adc1-0242ac120002"),
+		Priority:    aUint32(1),
+		Enterprise:  aStr("sample-ent"),
+		Profiles:    &models_v2.AetherSubscriber_Subscriber_Ue_Profiles{},
+	}
+
+	device := models_v2.Device{
+		Enterprise:          &models_v2.Enterprise_Enterprise{Enterprise: map[string]*models_v2.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models_v2.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models_v2.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Subscriber:          &models_v2.AetherSubscriber_Subscriber{Ue: map[string]*models_v2.AetherSubscriber_Subscriber_Ue{"68a3b12e-253e-11eb-adc1-0242ac120002": &ue}},
+	}
+
+	err = s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	// define the expected json here
+	expected_result := `{
+  "subscriber-selection-rules": [
+    {
+      "priority": 1,
+      "keys": {
+        "match-all": true
+      }
+    }
+  ]
 }`
 
 	content, err := ioutil.ReadFile(tempFileName)

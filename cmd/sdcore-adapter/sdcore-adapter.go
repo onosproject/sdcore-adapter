@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -17,12 +18,14 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 var (
 	bindAddr       = flag.String("bind_address", ":10161", "Bind to address:port or just :port")
+	metricAddr     = flag.String("metric_address", ":9851", "Prometheus metric endpoint bind to address:port or just :port")
 	configFile     = flag.String("config", "", "IETF JSON file for target startup config")
 	outputFileName = flag.String("output", "", "JSON file to save output to")
 	_              = flag.String("spgw_endpoint", "", "Endpoint to post SPGW-C JSON to - DEPRECATED") // TODO: remove me
@@ -31,6 +34,13 @@ var (
 )
 
 var log = logging.GetLogger("sdcore-adapter")
+
+func serveMetrics() {
+	http.Handle("/metrics", promhttp.Handler())
+	if err := http.ListenAndServe(*metricAddr, nil); err != nil {
+		log.Fatalf("failed to serve metrics: %v", err)
+	}
+}
 
 func main() {
 	// Initialize the synchronizer's service-specific code.
@@ -81,6 +91,9 @@ func main() {
 	// Perform initial synchronization, in particular if there is any data
 	// that was supplied as part of the --config flag.
 	s.Synchronize()
+
+	log.Info("starting metric handler")
+	go serveMetrics()
 
 	log.Infof("starting to listen on %s", *bindAddr)
 	listen, err := net.Listen("tcp", *bindAddr)

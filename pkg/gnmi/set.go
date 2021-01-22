@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"time"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/gnmi/value"
@@ -180,6 +181,9 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 
 // Set implements the Set RPC in gNMI spec.
 func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, error) {
+	tStart := time.Now()
+	gnmiRequestsTotal.WithLabelValues("SET").Inc()
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -187,6 +191,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 	if err != nil {
 		msg := fmt.Sprintf("error in constructing IETF JSON tree from config struct: %v", err)
 		log.Error(msg)
+		gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 		return nil, status.Error(codes.Internal, msg)
 	}
 
@@ -197,6 +202,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		log.Info("Handling delete %v", path)
 		res, grpcStatusError := s.doDelete(jsonTree, prefix, path)
 		if grpcStatusError != nil {
+			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 			return nil, grpcStatusError
 		}
 		results = append(results, res)
@@ -205,6 +211,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		log.Info("Handling replace %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_REPLACE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
+			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 			return nil, grpcStatusError
 		}
 		results = append(results, res)
@@ -214,6 +221,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_UPDATE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			log.Info("Handle update %v returned error %v", upd, grpcStatusError)
+			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 			return nil, grpcStatusError
 		}
 		results = append(results, res)
@@ -223,6 +231,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 	if err != nil {
 		msg := fmt.Sprintf("error in marshaling IETF JSON tree to bytes: %v", err)
 		log.Error(msg)
+		gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 		return nil, status.Error(codes.Internal, msg)
 	}
 
@@ -230,6 +239,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 	if err != nil {
 		msg := fmt.Sprintf("error in creating config struct from IETF JSON data: %v", err)
 		log.Error(msg)
+		gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 		return nil, status.Error(codes.Internal, msg)
 	}
 
@@ -247,6 +257,8 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		}
 		s.ConfigUpdate.In() <- update
 	}
+
+	gnmiRequestDuration.WithLabelValues("SET").Observe(time.Now().Sub(tStart).Seconds())
 
 	return setResponse, nil
 }

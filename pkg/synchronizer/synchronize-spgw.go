@@ -158,20 +158,33 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 		}
 	}
 
+	errors := []error{}
 	for csId, cs := range device.ConnectivityService.ConnectivityService {
 		// Get the list of valid Enterprises for this CS.
 		// Note: This could return an empty map if there is a CS that no
 		//   enterprises are linked to . In that case, we can still push models
 		//   that are not directly related to an enterprise, such as profiles.
 		m := csEntMap[csId]
+
+		tStart := time.Now()
+		synchronizationTotal.WithLabelValues(csId).Inc()
+
 		err := s.SynchronizeConnectivityService(device, cs, m)
 		if err != nil {
-			// TODO: Think about this more -- if one fails then we end up aborting them all...
-			return err
+			synchronizationFailedTotal.WithLabelValues(csId).Inc()
+			// If there are errors, then build a list of them and continue to try
+			// to synchronize other connectivity services.
+			errors = append(errors, err)
+		} else {
+			synchronizationDuration.WithLabelValues(csId).Observe(time.Now().Sub(tStart).Seconds())
 		}
 	}
 
-	return nil
+	if len(errors) == 0 {
+		return nil
+	} else {
+		return fmt.Errorf("synchronization errors: %v", errors)
+	}
 }
 
 func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {

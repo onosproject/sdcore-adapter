@@ -176,7 +176,7 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 			// to synchronize other connectivity services.
 			errors = append(errors, err)
 		} else {
-			synchronizationDuration.WithLabelValues(csId).Observe(time.Now().Sub(tStart).Seconds())
+			synchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
 		}
 	}
 

@@ -258,7 +258,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		s.ConfigUpdate.In() <- update
 	}
 
-	gnmiRequestDuration.WithLabelValues("SET").Observe(time.Now().Sub(tStart).Seconds())
+	gnmiRequestDuration.WithLabelValues("SET").Observe(time.Since(tStart).Seconds())
 
 	return setResponse, nil
 }

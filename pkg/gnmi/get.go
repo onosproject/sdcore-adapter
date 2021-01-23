@@ -227,7 +227,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 	}
 	resp := &pb.GetResponse{Notification: notifications}
 
-	gnmiRequestDuration.WithLabelValues("GET").Observe(time.Now().Sub(tStart).Seconds())
+	gnmiRequestDuration.WithLabelValues("GET").Observe(time.Since(tStart).Seconds())
 
 	return resp, nil
 }

@@ -27,7 +27,11 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 
 	dataType := req.GetType()
 
+	tStart := time.Now()
+	gnmiRequestsTotal.WithLabelValues("GET").Inc()
+
 	if err := s.checkEncodingAndModel(req.GetEncoding(), req.GetUseModels()); err != nil {
+		gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 		return nil, status.Error(codes.Unimplemented, err.Error())
 	}
 
@@ -49,6 +53,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		// Gets the whole config data tree
 		node, err := ytypes.GetNode(s.model.schemaTreeRoot, s.config, &path)
 		if isNil(node) || err != nil {
+			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 			return nil, status.Errorf(codes.NotFound, "path %s not found", path.String())
 		}
 
@@ -61,6 +66,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		if err != nil {
 			msg := fmt.Sprintf("error in marshaling %s JSON tree to bytes: %v", jsonType, err)
 			log.Error(msg)
+			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 			return nil, status.Error(codes.Internal, msg)
 		}
 		ts := time.Now().UnixNano()
@@ -83,11 +89,13 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		}
 
 		if fullPath.GetElem() == nil && fullPath.GetElement() != nil { // nolint:staticcheck
+			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 			return nil, status.Error(codes.Unimplemented, "deprecated path element type is unsupported")
 		}
 
 		nodes, err := ytypes.GetNode(s.model.schemaTreeRoot, s.config, fullPath)
 		if len(nodes) == 0 || err != nil || util.IsValueNil(nodes[0].Data) {
+			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 			return nil, status.Errorf(codes.NotFound, "path %v not found: %v", fullPath, err)
 		}
 		node := nodes[0].Data
@@ -112,6 +120,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 				}
 			}
 			if !dataTypeFlag {
+				gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 				return nil, status.Error(codes.Internal, "The requested dataType is not valid")
 			}
 			var val *pb.TypedValue
@@ -122,11 +131,13 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 				if err != nil {
 					msg := fmt.Sprintf("leaf node %v does not contain a scalar type value: %v", path, err)
 					log.Error(msg)
+					gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 					return nil, status.Error(codes.Internal, msg)
 				}
 			case reflect.Int64:
 				enumMap, ok := s.model.enumData[reflect.TypeOf(node).Name()]
 				if !ok {
+					gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 					return nil, status.Error(codes.Internal, "not a GoStruct enumeration type")
 				}
 				val = &pb.TypedValue{
@@ -141,6 +152,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 					//fmt.Println(reflect.TypeOf(node[0].Data).Elem())
 					enumMap, ok := s.model.enumData[reflect.TypeOf(node).Name()]
 					if !ok {
+						gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 						return nil, status.Error(codes.Internal, "not a GoStruct enumeration type")
 					}
 					val = &pb.TypedValue{
@@ -153,10 +165,12 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 					if err != nil {
 						msg := fmt.Sprintf("leaf node %v does not contain a scalar type value: %v", path, err)
 						log.Error(msg)
+						gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 						return nil, status.Error(codes.Internal, msg)
 					}
 				}
 			default:
+				gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 				return nil, status.Errorf(codes.Internal, "unexpected kind of leaf node type: %v %v", node, kind)
 			}
 
@@ -171,6 +185,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		dataTypeString := strings.ToLower(dataType.String())
 
 		if req.GetUseModels() != nil {
+			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 			return nil, status.Errorf(codes.Unimplemented, "filtering Get using use_models is unsupported, got: %v", req.GetUseModels())
 		}
 
@@ -182,6 +197,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 
 		var jsonTree map[string]interface{}
 		if reflect.ValueOf(nodeStruct).Pointer() == 0 {
+			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 			return nil, status.Error(codes.NotFound, "value is 0")
 
 		}
@@ -190,6 +206,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		if err != nil {
 			msg := fmt.Sprintf("error in constructing %s JSON tree from requested node: %v", jsonType, err)
 			log.Error(msg)
+			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 			return nil, status.Error(codes.Internal, msg)
 		}
 
@@ -197,6 +214,7 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		if err != nil {
 			msg := fmt.Sprintf("error in marshaling %s JSON tree to bytes: %v", jsonType, err)
 			log.Error(msg)
+			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
 			return nil, status.Error(codes.Internal, msg)
 		}
 
@@ -208,6 +226,8 @@ func (s *Server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 		}
 	}
 	resp := &pb.GetResponse{Notification: notifications}
+
+	gnmiRequestDuration.WithLabelValues("GET").Observe(time.Since(tStart).Seconds())
 
 	return resp, nil
 }

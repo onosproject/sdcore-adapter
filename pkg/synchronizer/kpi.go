@@ -26,4 +26,11 @@ var (
 	},
 		[]string{"cs"},
 	)
+
+	synchronizationResourceTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "synchronization_resource_total",
+		Help: "The total number of resources synchronized",
+	},
+		[]string{"cs", "kind"},
+	)
 )

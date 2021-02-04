@@ -360,6 +360,13 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 		return err
 	}
 
+	synchronizationResourceTotal.WithLabelValues(*cs.Id, "subscriber").Set(float64(len(jsonConfig.SubscriberSelectionRules)))
+	synchronizationResourceTotal.WithLabelValues(*cs.Id, "apn-profile").Set(float64(len(jsonConfig.ApnProfiles)))
+	synchronizationResourceTotal.WithLabelValues(*cs.Id, "access-profile").Set(float64(len(jsonConfig.AccessProfiles)))
+	synchronizationResourceTotal.WithLabelValues(*cs.Id, "qos-profile").Set(float64(len(jsonConfig.QosProfiles)))
+	synchronizationResourceTotal.WithLabelValues(*cs.Id, "up-profile").Set(float64(len(jsonConfig.UpProfiles)))
+	synchronizationResourceTotal.WithLabelValues(*cs.Id, "security-profile").Set(float64(len(jsonConfig.SecurityProfiles)))
+
 	log.Infof("Emit: %v", string(data))
 
 	if s.outputFileName != "" {

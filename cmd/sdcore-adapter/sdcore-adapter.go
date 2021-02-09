@@ -80,7 +80,7 @@ func main() {
 		}
 	}
 
-	s, err := target.NewServer(model, configData, sync)
+	s, err := target.NewTarget(model, configData, sync)
 
 	if err != nil {
 		log.Fatalf("error in creating gnmi target: %v", err)

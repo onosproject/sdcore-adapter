@@ -22,7 +22,7 @@ import (
 
 // doDelete deletes the path from the json tree if the path exists. If success,
 // it calls the callback function to apply the change to the device hardware.
-func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path) (*pb.UpdateResult, error) {
+func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path) (*pb.UpdateResult, bool, error) {
 	// Update json tree of the device config
 	var curNode interface{} = jsonTree
 	pathDeleted := false
@@ -43,7 +43,7 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 				break
 			}
 			pathDeleted = deleteKeyedListEntry(node, elem)
-			if pathDeleted {
+			if !pathDeleted {
 				log.Warnf("deleteKeyedListEntry returned false on node=%v, elem=%v", node, elem)
 			}
 			break
@@ -63,7 +63,7 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 	return &pb.UpdateResult{
 		Path: path,
 		Op:   pb.UpdateResult_DELETE,
-	}, nil
+	}, pathDeleted, nil
 }
 
 // doReplaceOrUpdate validates the replace or update operation to be applied to
@@ -172,7 +172,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 
 	for _, path := range req.GetDelete() {
 		log.Info("Handling delete %v", path)
-		res, grpcStatusError := s.doDelete(jsonTree, prefix, path)
+		res, _, grpcStatusError := s.doDelete(jsonTree, prefix, path)
 		if grpcStatusError != nil {
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 			return nil, grpcStatusError
@@ -228,9 +228,11 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		}
 	}
 
+	s.config = rootStruct
+
+	// Synchronize uses s.config, so call it after we store the new config
 	s.Synchronize()
 
-	s.config = rootStruct
 	setResponse := &pb.SetResponse{
 		Prefix:   req.GetPrefix(),
 		Response: results,

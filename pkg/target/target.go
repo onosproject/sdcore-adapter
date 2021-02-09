@@ -9,7 +9,7 @@ import (
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-func NewServer(model *gnmi.Model, config []byte, synchronizer gnmi.SynchronizerInterface) (*server, error) {
+func NewTarget(model *gnmi.Model, config []byte, synchronizer gnmi.SynchronizerInterface) (*target, error) {
 	s, err := gnmi.NewServer(model, config, nil, synchronizer)
 
 	if err != nil {
@@ -18,10 +18,10 @@ func NewServer(model *gnmi.Model, config []byte, synchronizer gnmi.SynchronizerI
 
 	newconfig, _ := model.NewConfigStruct(config)
 	channelUpdate := make(chan *pb.Update)
-	server := server{Server: s, Model: model,
+	target := target{Server: s, Model: model,
 		configStruct: newconfig,
 		UpdateChann:  channelUpdate,
 	}
 
-	return &server, nil
+	return &target, nil
 }

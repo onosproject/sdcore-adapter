@@ -13,7 +13,7 @@ import (
 )
 
 // Get overrides the Get func of gnmi.Target to provide user auth.
-func (s *server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
+func (s *target) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
 	//log.Infof("Incoming get request: %v", req)
 	msg, ok := credentials.AuthorizeUser(ctx)
 	if !ok {

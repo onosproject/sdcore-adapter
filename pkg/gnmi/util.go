@@ -171,18 +171,6 @@ func isNil(i interface{}) bool {
 	}
 }
 
-func (s *Server) toGoStruct(jsonTree map[string]interface{}) (ygot.ValidatedGoStruct, error) {
-	jsonDump, err := json.Marshal(jsonTree)
-	if err != nil {
-		return nil, fmt.Errorf("error in marshaling IETF JSON tree to bytes: %v", err)
-	}
-	goStruct, err := s.model.NewConfigStruct(jsonDump)
-	if err != nil {
-		return nil, fmt.Errorf("error in creating config struct from IETF JSON data: %v", err)
-	}
-	return goStruct, nil
-}
-
 // checkEncodingAndModel checks whether encoding and models are supported by the server. Return error if anything is unsupported.
 func (s *Server) checkEncodingAndModel(encoding pb.Encoding, models []*pb.ModelData) error {
 	hasSupportedEncoding := false

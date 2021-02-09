@@ -13,7 +13,7 @@ import (
 )
 
 // Set overrides the Set func of gnmi.Target to provide user auth.
-func (s *server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, error) {
+func (s *target) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, error) {
 	msg, ok := credentials.AuthorizeUser(ctx)
 	if !ok {
 		log.Infof("denied a Set request: %v", msg)

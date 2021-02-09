@@ -17,7 +17,8 @@ import (
 
 var log = logging.GetLogger("synchronizer")
 
-func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct) error {
+func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
+	log.Infof("Synchronize, type=%s", callbackType)
 	err := s.SynchronizeDevice(config)
 	return err
 }

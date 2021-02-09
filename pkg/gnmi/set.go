@@ -22,7 +22,7 @@ import (
 
 // doDelete deletes the path from the json tree if the path exists. If success,
 // it calls the callback function to apply the change to the device hardware.
-func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path) (*pb.UpdateResult, error) {
+func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path) (*pb.UpdateResult, bool, error) {
 	// Update json tree of the device config
 	var curNode interface{} = jsonTree
 	pathDeleted := false
@@ -43,7 +43,7 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 				break
 			}
 			pathDeleted = deleteKeyedListEntry(node, elem)
-			if pathDeleted {
+			if !pathDeleted {
 				log.Warnf("deleteKeyedListEntry returned false on node=%v, elem=%v", node, elem)
 			}
 			break
@@ -60,25 +60,10 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 		}
 	}
 
-	// Apply the validated operation to the config tree and device.
-	if pathDeleted {
-		newConfig, err := s.toGoStruct(jsonTree)
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-		if s.callback != nil {
-			if applyErr := s.callback(newConfig); applyErr != nil {
-				if rollbackErr := s.callback(s.config); rollbackErr != nil {
-					return nil, status.Errorf(codes.Internal, "error in rollback the failed operation (%v): %v", applyErr, rollbackErr)
-				}
-				return nil, status.Errorf(codes.Aborted, "error in applying operation to device: %v", applyErr)
-			}
-		}
-	}
 	return &pb.UpdateResult{
 		Path: path,
 		Op:   pb.UpdateResult_DELETE,
-	}, nil
+	}, pathDeleted, nil
 }
 
 // doReplaceOrUpdate validates the replace or update operation to be applied to
@@ -159,20 +144,7 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 			jsonTree[k] = v
 		}
 	}
-	newConfig, err := s.toGoStruct(jsonTree)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
 
-	// Apply the validated operation to the device.
-	if s.callback != nil {
-		if applyErr := s.callback(newConfig); applyErr != nil {
-			if rollbackErr := s.callback(s.config); rollbackErr != nil {
-				return nil, status.Errorf(codes.Internal, "error in rollback the failed operation (%v): %v", applyErr, rollbackErr)
-			}
-			return nil, status.Errorf(codes.Aborted, "error in applying operation to device: %v", applyErr)
-		}
-	}
 	return &pb.UpdateResult{
 		Path: path,
 		Op:   op,
@@ -200,7 +172,7 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 
 	for _, path := range req.GetDelete() {
 		log.Info("Handling delete %v", path)
-		res, grpcStatusError := s.doDelete(jsonTree, prefix, path)
+		res, _, grpcStatusError := s.doDelete(jsonTree, prefix, path)
 		if grpcStatusError != nil {
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 			return nil, grpcStatusError
@@ -243,13 +215,25 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 		return nil, status.Error(codes.Internal, msg)
 	}
 
+	// Apply the validated operation to the device.
+	// Note: We apply this after all operations have been applied to the config tree, because it is
+	// more performant to the json.Marshal and NewConfigStruct once per gnmi operation than it is to
+	// do it for each individual path set or delete.
+	if s.callback != nil {
+		if applyErr := s.callback(rootStruct, Apply); applyErr != nil {
+			if rollbackErr := s.callback(s.config, Rollback); rollbackErr != nil {
+				return nil, status.Errorf(codes.Internal, "error in rollback the failed operation (%v): %v", applyErr, rollbackErr)
+			}
+			return nil, status.Errorf(codes.Aborted, "error in applying operation to device: %v", applyErr)
+		}
+	}
+
 	s.config = rootStruct
+
 	setResponse := &pb.SetResponse{
 		Prefix:   req.GetPrefix(),
 		Response: results,
 	}
-
-	s.Synchronize()
 
 	for _, response := range setResponse.GetResponse() {
 		update := &pb.Update{

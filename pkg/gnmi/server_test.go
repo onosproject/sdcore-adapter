@@ -38,7 +38,7 @@ var (
 )
 
 func TestCapabilities(t *testing.T) {
-	s, err := NewServer(model, nil, nil, nil)
+	s, err := NewServer(model, nil, nil)
 	if err != nil {
 		t.Fatalf("error in creating server: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestGet(t *testing.T) {
 		}
 	}`
 
-	s, err := NewServer(model, []byte(jsonConfigRoot), nil, nil)
+	s, err := NewServer(model, []byte(jsonConfigRoot), nil)
 	if err != nil {
 		t.Fatalf("error in creating server: %v", err)
 	}
@@ -165,7 +165,7 @@ func runTestGet(t *testing.T, s *Server, textPbPath string, wantRetCode codes.Co
 func TestSet(t *testing.T) {
 	jsonConfigRoot := `{}`
 
-	s, err := NewServer(model, []byte(jsonConfigRoot), nil, nil)
+	s, err := NewServer(model, []byte(jsonConfigRoot), nil)
 	if err != nil {
 		t.Fatalf("error in creating server: %v", err)
 	}

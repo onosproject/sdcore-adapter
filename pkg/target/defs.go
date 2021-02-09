@@ -11,7 +11,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-type server struct {
+type target struct {
 	*gnmi.Server
 	Model        *gnmi.Model
 	configStruct ygot.ValidatedGoStruct

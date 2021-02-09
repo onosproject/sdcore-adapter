@@ -13,7 +13,7 @@ import (
 )
 
 // Subscribe overrides the Subscribe function of gnmi.Target to provide user auth.
-func (s *server) Subscribe(stream pb.GNMI_SubscribeServer) error {
+func (s *target) Subscribe(stream pb.GNMI_SubscribeServer) error {
 	msg, ok := credentials.AuthorizeUser(stream.Context())
 	if !ok {
 		log.Infof("denied a Subscribe request: %v", msg)

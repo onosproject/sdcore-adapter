@@ -15,9 +15,11 @@ import (
 
 	"github.com/google/gnxi/utils/credentials"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/ygot/ygot"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -39,6 +41,20 @@ func serveMetrics() {
 	http.Handle("/metrics", promhttp.Handler())
 	if err := http.ListenAndServe(*metricAddr, nil); err != nil {
 		log.Fatalf("failed to serve metrics: %v", err)
+	}
+}
+
+// Synchronize and eat the error. This lets aether-config know we applied the
+// configuration, but leaves us to retry applying it to the southbound device
+// ourselves.
+func synchronizerWrapper(s *synchronizer.Synchronizer) gnmi.ConfigCallback {
+	return func(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
+		err := s.Synchronize(config, callbackType)
+		if err != nil {
+			// Report the error, but do not send the error upstream.
+			log.Warnf("Error during synchronize: %v", err)
+		}
+		return nil
 	}
 }
 
@@ -80,17 +96,13 @@ func main() {
 		}
 	}
 
-	s, err := target.NewServer(model, configData, sync)
+	s, err := target.NewTarget(model, configData, synchronizerWrapper(sync))
 
 	if err != nil {
 		log.Fatalf("error in creating gnmi target: %v", err)
 	}
 	pb.RegisterGNMIServer(g, s)
 	reflection.Register(g)
-
-	// Perform initial synchronization, in particular if there is any data
-	// that was supplied as part of the --config flag.
-	s.Synchronize()
 
 	log.Info("starting metric handler")
 	go serveMetrics()

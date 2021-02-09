@@ -220,8 +220,8 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 	// more performant to the json.Marshal and NewConfigStruct once per gnmi operation than it is to
 	// do it for each individual path set or delete.
 	if s.callback != nil {
-		if applyErr := s.callback(rootStruct); applyErr != nil {
-			if rollbackErr := s.callback(s.config); rollbackErr != nil {
+		if applyErr := s.callback(rootStruct, Apply); applyErr != nil {
+			if rollbackErr := s.callback(s.config, Rollback); rollbackErr != nil {
 				return nil, status.Errorf(codes.Internal, "error in rollback the failed operation (%v): %v", applyErr, rollbackErr)
 			}
 			return nil, status.Errorf(codes.Aborted, "error in applying operation to device: %v", applyErr)
@@ -229,9 +229,6 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 	}
 
 	s.config = rootStruct
-
-	// Synchronize uses s.config, so call it after we store the new config
-	s.Synchronize()
 
 	setResponse := &pb.SetResponse{
 		Prefix:   req.GetPrefix(),

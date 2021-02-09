@@ -14,21 +14,26 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+type ConfigCallbackType int
+
+const (
+	Initial ConfigCallbackType = iota
+	Apply
+	Rollback
+)
+
+func (c ConfigCallbackType) String() string {
+	return [...]string{"Initial", "Apply", "Rollback"}[c]
+}
+
 // ConfigCallback is the signature of the function to apply a validated config to the physical device.
-type ConfigCallback func(ygot.ValidatedGoStruct) error
+type ConfigCallback func(ygot.ValidatedGoStruct, ConfigCallbackType) error
 
 var (
 	pbRootPath         = &pb.Path{}
 	supportedEncodings = []pb.Encoding{pb.Encoding_JSON, pb.Encoding_JSON_IETF}
 	dataTypes          = []string{"config", "state", "operational", "all"}
 )
-
-// Interface between the Server and the Synchronizer.
-
-type SynchronizerInterface interface {
-	Synchronize(config ygot.ValidatedGoStruct) error
-	GetModels() *Model
-}
 
 // Server struct maintains the data structure for device config and implements the interface of gnmi server. It supports Capabilities, Get, and Set APIs.
 // Typical usage:
@@ -48,14 +53,12 @@ type SynchronizerInterface interface {
 //		// Do something ...
 // }
 type Server struct {
-	model               *Model
-	callback            ConfigCallback
-	config              ygot.ValidatedGoStruct
-	ConfigUpdate        *channels.RingChannel
-	mu                  sync.RWMutex // mu is the RW lock to protect the access to config
-	readOnlyUpdateValue *pb.Update
-	subscribers         map[string]*streamClient
-	synchronizer        SynchronizerInterface
+	model        *Model
+	callback     ConfigCallback
+	config       ygot.ValidatedGoStruct
+	ConfigUpdate *channels.RingChannel
+	mu           sync.RWMutex // mu is the RW lock to protect the access to config
+	subscribers  map[string]*streamClient
 }
 
 var (

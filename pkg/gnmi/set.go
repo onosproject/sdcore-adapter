@@ -12,7 +12,6 @@ import (
 	"time"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 	"golang.org/x/net/context"
@@ -94,9 +93,9 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 			return nil, status.Error(codes.Internal, msg)
 		}
 	} else {
-		var err error
-		if nodeVal, err = value.ToScalar(val); err != nil {
-			return nil, status.Errorf(codes.Internal, "cannot convert leaf node to scalar type: %v", err)
+		nodeVal, err = convertTypedValueToJsonValue(val)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -171,29 +170,32 @@ func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, 
 	var results []*pb.UpdateResult
 
 	for _, path := range req.GetDelete() {
-		log.Info("Handling delete %v", path)
+		log.Debugf("Handling delete %v", path)
 		res, _, grpcStatusError := s.doDelete(jsonTree, prefix, path)
 		if grpcStatusError != nil {
+			log.Warnf("Delete returning with error %v", grpcStatusError)
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 			return nil, grpcStatusError
 		}
 		results = append(results, res)
 	}
 	for _, upd := range req.GetReplace() {
-		log.Info("Handling replace %v", upd)
+		log.Debugf("Handling replace %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_REPLACE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
+			log.Warnf("Replace returning with error %v", grpcStatusError)
 			return nil, grpcStatusError
 		}
 		results = append(results, res)
 	}
 	for _, upd := range req.GetUpdate() {
-		log.Info("Handling update %v", upd)
+		log.Debugf("Handling update %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_UPDATE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			log.Info("Handle update %v returned error %v", upd, grpcStatusError)
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
+			log.Warnf("Update returning with error %v", grpcStatusError)
 			return nil, grpcStatusError
 		}
 		results = append(results, res)

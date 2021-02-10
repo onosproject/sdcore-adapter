@@ -624,3 +624,42 @@ func jsonEncoder(encoderType string, nodeStruct ygot.GoStruct) (map[string]inter
 	return ygot.ConstructIETFJSON(nodeStruct, &ygot.RFC7951JSONConfig{AppendModuleName: true})
 
 }
+
+/*
+ * JSON requires that 64-bit integer values be encoded as strings. 32-bit integer values
+ * may be encoded as integers. So we'll convert the integer, look at how big it is, and
+ * then output the appropriate encoding.
+ */
+
+func convertTypedValueToJsonValue(val *pb.TypedValue) (interface{}, error) {
+	var err error
+	var nodeVal interface{}
+
+	switch val.Value.(type) {
+	case *pb.TypedValue_UintVal:
+		u := val.GetUintVal()
+		if u > 4294967295 {
+			nodeVal = strconv.FormatUint(u, 10)
+			log.Infof("Coverted to string: %v", nodeVal)
+		} else {
+			nodeVal = u
+			log.Infof("Coverted to uint: %v", nodeVal)
+		}
+	case *pb.TypedValue_IntVal:
+		i := val.GetIntVal()
+		if (i < -2147483648) || (i > 2147483647) {
+			nodeVal = strconv.FormatInt(i, 10)
+			log.Infof("Coverted to string: %v", nodeVal)
+		} else {
+			nodeVal = i
+			log.Infof("Coverted to uint: %v", nodeVal)
+		}
+	default:
+		if nodeVal, err = value.ToScalar(val); err != nil {
+			return nil, status.Errorf(codes.Internal, "cannot convert leaf node to scalar type: %v", err)
+		}
+		log.Infof("Coverted to scalar: %v", nodeVal)
+	}
+
+	return nodeVal, nil
+}

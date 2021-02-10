@@ -202,6 +202,12 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				continue
 			}
 
+			if ue.Profiles == nil {
+				// Require there to be at least some profiles before we'll consider it
+				log.Infof("UE %s has no profiles", *ue.Id)
+				continue
+			}
+
 			_, okay := validEnterpriseIds[*ue.Enterprise]
 			if !okay {
 				// The UE is for some other CS than the one we're working on

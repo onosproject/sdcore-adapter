@@ -13,7 +13,6 @@ export GO111MODULE=on
 KIND_CLUSTER_NAME           ?= kind
 DOCKER_REPOSITORY           ?= onosproject/
 ONOS_SDCORE_ADAPTER_VERSION ?= latest
-ONOS_BUILD_VERSION          ?= v0.6.0
 LOCAL_AETHER_MODELS         ?=
 
 all: build images
@@ -29,17 +28,24 @@ ifdef LOCAL_AETHER_MODELS
 endif
 
 deps: # @HELP ensure that the required dependencies are in place
-	go build -v ./...
+	GOPRIVATE="github.com/onosproject/*" go build -v ./...
 	bash -c "diff -u <(echo -n) <(git diff go.mod)"
 	bash -c "diff -u <(echo -n) <(git diff go.sum)"
 
-linters: # @HELP examines Go source code and reports coding problems
-	golangci-lint run
+linters: golang-ci # @HELP examines Go source code and reports coding problems
+	golangci-lint run --timeout 5m
 
-license_check: # @HELP examine and ensure license headers exist
+build-tools: # @HELP install the ONOS build tools if needed
 	@if [ ! -d "../build-tools" ]; then cd .. && git clone https://github.com/onosproject/build-tools.git; fi
-	./../build-tools/licensing/boilerplate.py -v --rootdir=${CURDIR} LicenseRef-ONF-Member-1.0
 
+jenkins-tools: # @HELP installs tooling needed for Jenkins
+	cd .. && go get -u github.com/jstemmer/go-junit-report && go get github.com/t-yuki/gocover-cobertura
+
+golang-ci: # @HELP install golang-ci if not present
+	golangci-lint --version || curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b `go env GOPATH`/bin v1.36.0
+
+license_check: build-tools # @HELP examine and ensure license headers exist
+	./../build-tools/licensing/boilerplate.py -v --rootdir=${CURDIR} --boilerplate LicenseRef-ONF-Member-1.0
 
 # @HELP build the go binary in the cmd/sdcore-adapter package
 build: local-aether-models
@@ -48,6 +54,10 @@ build: local-aether-models
 test: build deps license_check linters
 	go test -race github.com/onosproject/sdcore-adapter/pkg/...
 	go test -race github.com/onosproject/sdcore-adapter/cmd/...
+
+jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
+jenkins-test: build deps license_check linters
+	TEST_PACKAGES=github.com/onosproject/sdcore-adapter/... ./../build-tools/build/jenkins/make-unit
 
 coverage: # @HELP generate unit test coverage data
 coverage: build deps linters license_check
@@ -59,7 +69,6 @@ coverage: build deps linters license_check
 
 sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \
-	--build-arg ONOS_BUILD_VERSION=${ONOS_BUILD_VERSION} \
 	--build-arg LOCAL_AETHER_MODELS=${LOCAL_AETHER_MODELS} \
 	-t ${DOCKER_REPOSITORY}sdcore-adapter:${ONOS_SDCORE_ADAPTER_VERSION}
 
@@ -73,6 +82,10 @@ kind-only:
 
 publish: # @HELP publish version on github and dockerhub
 	./../build-tools/publish-version ${VERSION} onosproject/sdcore-adapter
+
+jenkins-publish: build-tools jenkins-tools # @HELP Jenkins calls this to publish artifacts
+	./build/bin/push-images
+	../build-tools/release-merge-commit
 
 clean: # @HELP remove all the build artifacts
 	rm -rf ./build/_output

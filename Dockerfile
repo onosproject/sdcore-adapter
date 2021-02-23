@@ -1,6 +1,4 @@
-ARG ONOS_BUILD_VERSION=undefined
-
-FROM onosproject/golang-build:$ONOS_BUILD_VERSION as build
+FROM onosproject/golang-build:v0.6.8 as build
 
 ARG LOCAL_AETHER_MODELS
 

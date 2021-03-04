@@ -321,9 +321,12 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 			}
 
 			profile := QosProfile{
-				ApnAmbr: []uint32{*qos.ApnAmbr.Downlink, *qos.ApnAmbr.Uplink},
-				Qci:     9, // default
-				Arp:     &arp,
+				Qci: 9, // default
+				Arp: &arp,
+			}
+
+			if qos.ApnAmbr != nil {
+				profile.ApnAmbr = []uint32{*qos.ApnAmbr.Downlink, *qos.ApnAmbr.Uplink}
 			}
 
 			if qos.Qci != nil {

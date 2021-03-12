@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
 )
 
 /*

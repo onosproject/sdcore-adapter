@@ -19,6 +19,7 @@ COPY . $ADAPTER_ROOT/
 RUN if [ -n "$LOCAL_AETHER_MODELS" ] ; then \
     echo "replace github.com/onosproject/config-models/modelplugin/aether-1.0.0 => ./local-aether-models/aether-1.0.0" >> $ADAPTER_ROOT/go.mod; \
     echo "replace github.com/onosproject/config-models/modelplugin/aether-2.0.0 => ./local-aether-models/aether-2.0.0" >> $ADAPTER_ROOT/go.mod; \
+    echo "replace github.com/onosproject/config-models/modelplugin/aether-2.1.0 => ./local-aether-models/aether-2.1.0" >> $ADAPTER_ROOT/go.mod; \
     fi
 
 RUN cat $ADAPTER_ROOT/go.mod

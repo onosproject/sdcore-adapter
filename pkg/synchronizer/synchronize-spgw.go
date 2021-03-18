@@ -250,11 +250,11 @@ func (s *Synchronizer) SynchronizePCRF(device *models.Device) (*PoliciesStruct, 
 
 		for _, sg := range device.ServiceGroup.ServiceGroup {
 			jsg := ServiceGroup{}
-			for _, s := range sg.Services {
+			for _, s := range sg.ServicePolicies {
 				if *s.Kind == "default" {
-					jsg.DefaultActivateService = s.Service
+					jsg.DefaultActivateService = s.ServicePolicy
 				} else { // on-demand
-					jsg.OnDemandService = append(jsg.OnDemandService, *s.Service)
+					jsg.OnDemandService = append(jsg.OnDemandService, *s.ServicePolicy)
 				}
 			}
 			policies.ServiceGroups[*sg.Id] = jsg

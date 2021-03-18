@@ -125,7 +125,7 @@ type RuleDefinitionQos struct {
 	MBRDL     *uint32               `json:"Max-Requested-Bandwidth-DL,omitempty"`
 	GBUL      *uint32               `json:"Guaranteed-Bitrate-UL,omitempty"`
 	GBDL      *uint32               `json:"Guaranteed-Bitrate-DL,omitempty"`
-	Arp       *RuleDefinitionQosArp `json:"Allocation-Retention-Policy,omitempty,omitempty"`
+	Arp       *RuleDefinitionQosArp `json:"Allocation-Retention-Policy,omitempty"`
 	APNAMBRUL *uint32               `json:"APN-Aggregate-Max-Bitrate-UL,omitempty"`
 	APNAMBRDL *uint32               `json:"APN-Aggregate-Max-Bitrate-DL,omitempty"`
 }

@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
 )
 
 /*
@@ -64,6 +64,7 @@ type ApnProfile struct {
 	GxEnabled    *bool   `json:"gx-enabled"`
 	Network      string  `json:"network"`
 	Usage        uint32  `json:"usage"`
+	GxApn        *string `json:"gx_apn,omitempty"`
 }
 
 type UpProfile struct {
@@ -96,6 +97,59 @@ type SecurityProfile struct {
 	Sqn *uint32 `json:"sqn"`
 }
 
+type ServiceGroup struct {
+	DefaultActivateService *string  `json:"default-activate-service,omitempty"`
+	OnDemandService        []string `json:"on-demand-service,omitempty"`
+}
+
+type Service struct {
+	Qci                  *uint32  `json:"qci,omitempty"`
+	Arp                  *uint32  `json:"arp,omitempty"`
+	AMBR_UL              *uint32  `json:"AMBR_UL,omitempty"`
+	AMBR_DL              *uint32  `json:"AMBR_DL,omitempty"`
+	Rules                []string `json:"service-activation-rules"`
+	ActivateConditions   []string `json:"activate-conditions,omitempty"`
+	DeactivateConditions []string `json:"deactivate-conditions,omitempty"`
+	DeactivateActions    []string `json:"deactivate-acrionts,omitempty"`
+}
+
+type RuleDefinitionQosArp struct {
+	Priority                uint32 `json:"Priority-Level,omitempty"`
+	PreemptionCapability    uint32 `json:"Pre-emption-Capability,omitempty"`
+	PreemptionVulnerability uint32 `json:"Pre-emption-Vulnerability,omitempty"`
+}
+
+type RuleDefinitionQos struct {
+	Qci       *uint32               `json:"QoS-Class-Identifier,omitempty"`
+	MBRUL     *uint32               `json:"Max-Requested-Bandwidth-UL,omitempty"`
+	MBRDL     *uint32               `json:"Max-Requested-Bandwidth-DL,omitempty"`
+	GBUL      *uint32               `json:"Guaranteed-Bitrate-UL,omitempty"`
+	GBDL      *uint32               `json:"Guaranteed-Bitrate-DL,omitempty"`
+	Arp       *RuleDefinitionQosArp `json:"Allocation-Retention-Policy,omitempty"`
+	APNAMBRUL *uint32               `json:"APN-Aggregate-Max-Bitrate-UL,omitempty"`
+	APNAMBRDL *uint32               `json:"APN-Aggregate-Max-Bitrate-DL,omitempty"`
+}
+
+type FlowInformation struct {
+	FlowDesc string `json:"Flow-Description"`
+}
+
+type RuleDefinition struct {
+	ChargingRuleName *string            `json:"charging-rule-name,omitempty"`
+	QosInformation   *RuleDefinitionQos `json:"QoS-Information,omitempty"`
+	FlowInformation  *FlowInformation   `json:"Flow-Information,omitempty"`
+}
+
+type Rule struct {
+	Definition *RuleDefinition `json:"definition,omitempty"`
+}
+
+type PoliciesStruct struct {
+	ServiceGroups map[string]ServiceGroup `json:"service-groups,omitempty"`
+	Services      map[string]Service      `json:"services,omitempty"`
+	Rules         map[string]Rule         `json:"rules,omitempty"`
+}
+
 // On all of these, consider whether it is preferred to leave the item out if empty, or
 // to emit an empty list.
 type JsonConfig struct {
@@ -105,6 +159,7 @@ type JsonConfig struct {
 	QosProfiles              map[string]QosProfile      `json:"qos-profiles,omitempty"`
 	UpProfiles               map[string]UpProfile       `json:"user-plane-profiles,omitempty"`
 	SecurityProfiles         map[string]SecurityProfile `json:"security-profiles,omitempty"`
+	Policies                 *PoliciesStruct            `json:"policies,omitempty"`
 }
 
 func (s *Synchronizer) Post(endpoint string, data []byte) error {
@@ -185,6 +240,103 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	} else {
 		return fmt.Errorf("synchronization errors: %v", errors)
 	}
+}
+
+func (s *Synchronizer) SynchronizePCRF(device *models.Device) (*PoliciesStruct, error) {
+	policies := PoliciesStruct{}
+
+	if device.ServiceGroup != nil {
+		policies.ServiceGroups = make(map[string]ServiceGroup)
+
+		for _, sg := range device.ServiceGroup.ServiceGroup {
+			jsg := ServiceGroup{}
+			for _, s := range sg.ServicePolicies {
+				if *s.Kind == "default" {
+					jsg.DefaultActivateService = s.ServicePolicy
+				} else { // on-demand
+					jsg.OnDemandService = append(jsg.OnDemandService, *s.ServicePolicy)
+				}
+			}
+			policies.ServiceGroups[*sg.Id] = jsg
+		}
+	}
+
+	if device.ServicePolicy != nil {
+		policies.Services = make(map[string]Service)
+
+		for _, sp := range device.ServicePolicy.ServicePolicy {
+			jsp := Service{Qci: sp.Qci,
+				Arp: sp.Arp}
+
+			if sp.Ambr != nil {
+				jsp.AMBR_UL = sp.Ambr.Uplink
+				jsp.AMBR_DL = sp.Ambr.Downlink
+			}
+
+			for _, rule := range sp.Rules {
+				if *rule.Enabled {
+					jsp.Rules = append(jsp.Rules, *rule.Rule)
+				}
+			}
+
+			policies.Services[*sp.Id] = jsp
+		}
+	}
+
+	if device.ServiceRule != nil {
+		policies.Rules = make(map[string]Rule)
+
+		for _, rule := range device.ServiceRule.ServiceRule {
+			def := RuleDefinition{
+				ChargingRuleName: rule.ChargingRuleName,
+			}
+
+			if rule.Qos != nil {
+				qos := RuleDefinitionQos{
+					Qci: rule.Qos.Qci,
+				}
+
+				if rule.Qos.MaximumRequestedBandwidth != nil {
+					qos.MBRUL = rule.Qos.MaximumRequestedBandwidth.Uplink
+					qos.MBRDL = rule.Qos.MaximumRequestedBandwidth.Downlink
+				}
+
+				if rule.Qos.GuaranteedBitrate != nil {
+					qos.GBUL = rule.Qos.GuaranteedBitrate.Uplink
+					qos.GBDL = rule.Qos.GuaranteedBitrate.Downlink
+				}
+
+				if rule.Qos.AggregateMaximumBitrate != nil {
+					qos.APNAMBRUL = rule.Qos.AggregateMaximumBitrate.Uplink
+					qos.APNAMBRDL = rule.Qos.AggregateMaximumBitrate.Downlink
+				}
+
+				if rule.Qos.Arp != nil {
+					arp := RuleDefinitionQosArp{
+						Priority:                *rule.Qos.Arp.Priority,
+						PreemptionCapability:    boolToUint32(*rule.Qos.Arp.PreemptionCapability),
+						PreemptionVulnerability: boolToUint32(*rule.Qos.Arp.PreemptionVulnerability),
+					}
+					qos.Arp = &arp
+				}
+
+				def.QosInformation = &qos
+			}
+
+			if rule.Flow != nil {
+				jflow := FlowInformation{
+					FlowDesc: *rule.Flow.Specification,
+				}
+
+				def.FlowInformation = &jflow
+			}
+
+			jrule := Rule{Definition: &def}
+			policies.Rules[*rule.Id] = jrule
+		}
+	}
+
+	return &policies, nil
 }
 
 func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
@@ -282,6 +434,7 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				GxEnabled:    apn.GxEnabled,
 				Network:      "lbo", // TODO: update modeling and revise
 				Usage:        1,     // TODO: update modeling and revise
+				GxApn:        apn.ServiceGroup,
 			}
 
 			jsonConfig.ApnProfiles[*apn.Id] = profile
@@ -361,6 +514,14 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 			}
 
 			jsonConfig.SecurityProfiles[*sp.Id] = profile
+		}
+	}
+
+	if (device.ServicePolicy != nil) || (device.ServiceRule != nil) || (device.ServiceGroup != nil) {
+		var err error
+		jsonConfig.Policies, err = s.SynchronizePCRF(device)
+		if err != nil {
+			return err
 		}
 	}
 

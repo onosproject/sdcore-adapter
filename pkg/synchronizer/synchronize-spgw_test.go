@@ -5,7 +5,7 @@
 package synchronizer
 
 import (
-	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
+	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"

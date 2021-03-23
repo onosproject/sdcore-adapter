@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto" //nolint: staticcheck
+	gnmiproto "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/grpc/codes"
@@ -23,13 +24,16 @@ import (
 	// set of test models, so that this test code can remain independent of
 	// any particular service.
 	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
-	modelplugin_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
 )
+
+var ModelData = []*gnmiproto.ModelData{
+	{Name: "access-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
+}
 
 var (
 	// model is the model for test config server.
 	model = &Model{
-		modelData:       modelplugin_v2.ModelData,
+		modelData:       ModelData,
 		structRootType:  reflect.TypeOf((*models.Device)(nil)),
 		schemaTreeRoot:  models.SchemaTree["Device"],
 		jsonUnmarshaler: models.Unmarshal,

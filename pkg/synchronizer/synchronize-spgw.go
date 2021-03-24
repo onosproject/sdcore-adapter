@@ -575,8 +575,8 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 		}
 
 		if cs.PcrfEndpoint != nil {
-			log.Infof("Posting to %s", *cs.HssEndpoint)
-			err := s.Post(*cs.HssEndpoint, data)
+			log.Infof("Posting to %s", *cs.PcrfEndpoint)
+			err := s.Post(*cs.PcrfEndpoint, data)
 			if err != nil {
 				return err
 			}

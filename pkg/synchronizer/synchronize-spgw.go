@@ -573,6 +573,14 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				return err
 			}
 		}
+
+		if cs.PcrfEndpoint != nil {
+			log.Infof("Posting to %s", *cs.PcrfEndpoint)
+			err := s.Post(*cs.PcrfEndpoint, data)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

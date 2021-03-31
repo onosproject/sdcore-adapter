@@ -366,6 +366,9 @@ func FilterConfigHSS(src *JsonConfig) *JsonConfig {
 	dest := JsonConfig{
 		SubscriberSelectionRules: src.SubscriberSelectionRules,
 		SecurityProfiles:         src.SecurityProfiles,
+		// HSS also seems to need these, or it will ignore the JSON
+		ApnProfiles: src.ApnProfiles,
+		QosProfiles: src.QosProfiles,
 	}
 	return &dest
 }

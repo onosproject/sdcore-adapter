@@ -135,7 +135,7 @@ type FlowInformation struct {
 }
 
 type RuleDefinition struct {
-	ChargingRuleName *string            `json:"charging-rule-name,omitempty"`
+	ChargingRuleName *string            `json:"Charging-Rule-Name,omitempty"`
 	QosInformation   *RuleDefinitionQos `json:"QoS-Information,omitempty"`
 	FlowInformation  *FlowInformation   `json:"Flow-Information,omitempty"`
 }
@@ -150,8 +150,16 @@ type PoliciesStruct struct {
 	Rules         map[string]Rule         `json:"rules,omitempty"`
 }
 
-// On all of these, consider whether it is preferred to leave the item out if empty, or
-// to emit an empty list.
+/* SD-Core JSON Config
+ *
+ * All SD-Core components are able to accept the full config, though some
+ * components only pay attention to certain parts of it:
+ *     SPGWC: SubscriberSelectionRules,AccessProfiles,ApnProfiles,QosProfiles,UPProfiles
+ *     HSS: SubscriberSelectionRules,SecurityProfiles
+ *     PCRF: Policies
+ * The excess can be omitted when posting for performance improvement
+ *    (...and it also works around the large packet size bug)
+ */
 type JsonConfig struct {
 	SubscriberSelectionRules []SubscriberSelectionRule  `json:"subscriber-selection-rules,omitempty"`
 	AccessProfiles           map[string]AccessProfile   `json:"access-profiles,omitempty"`
@@ -337,6 +345,62 @@ func (s *Synchronizer) SynchronizePCRF(device *models.Device) (*PoliciesStruct, 
 	}
 
 	return &policies, nil
+}
+
+type FilterDataFunc func(*JsonConfig) *JsonConfig
+
+// Return the portion of the JsonConfig relevant to SPGWC
+func FilterConfigSPGWC(src *JsonConfig) *JsonConfig {
+	dest := JsonConfig{
+		SubscriberSelectionRules: src.SubscriberSelectionRules,
+		AccessProfiles:           src.AccessProfiles,
+		ApnProfiles:              src.ApnProfiles,
+		QosProfiles:              src.QosProfiles,
+		UpProfiles:               src.UpProfiles,
+	}
+	return &dest
+}
+
+// Return the portion of the JsonConfig relevant to HSS
+func FilterConfigHSS(src *JsonConfig) *JsonConfig {
+	dest := JsonConfig{
+		SubscriberSelectionRules: src.SubscriberSelectionRules,
+		SecurityProfiles:         src.SecurityProfiles,
+	}
+	return &dest
+}
+
+// Return the portion of the JsonConfig relevant to PCRF
+func FilterConfigPCRF(src *JsonConfig) *JsonConfig {
+	dest := JsonConfig{
+		Policies: src.Policies,
+	}
+	return &dest
+}
+
+func (s *Synchronizer) PostData(name string, endpoint string, filter FilterDataFunc, jsonConfig *JsonConfig) error {
+	var filteredConfig *JsonConfig
+	if filter == nil {
+		filteredConfig = jsonConfig
+
+	} else {
+		filteredConfig = filter(jsonConfig)
+	}
+
+	data, err := json.MarshalIndent(*filteredConfig, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Data to %s: %v", name, string(data))
+
+	log.Infof("Posting %d bytes to %s at %s", len(data), name, endpoint)
+	err = s.Post(endpoint, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
@@ -525,11 +589,6 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 		}
 	}
 
-	data, err := json.MarshalIndent(jsonConfig, "", "  ")
-	if err != nil {
-		return err
-	}
-
 	synchronizationResourceTotal.WithLabelValues(*cs.Id, "subscriber").Set(float64(len(jsonConfig.SubscriberSelectionRules)))
 	synchronizationResourceTotal.WithLabelValues(*cs.Id, "apn-profile").Set(float64(len(jsonConfig.ApnProfiles)))
 	synchronizationResourceTotal.WithLabelValues(*cs.Id, "access-profile").Set(float64(len(jsonConfig.AccessProfiles)))
@@ -537,9 +596,14 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 	synchronizationResourceTotal.WithLabelValues(*cs.Id, "up-profile").Set(float64(len(jsonConfig.UpProfiles)))
 	synchronizationResourceTotal.WithLabelValues(*cs.Id, "security-profile").Set(float64(len(jsonConfig.SecurityProfiles)))
 
-	log.Infof("Emit: %v", string(data))
-
 	if s.outputFileName != "" {
+		data, err := json.MarshalIndent(jsonConfig, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		log.Infof("Writing to file: %v", string(data))
+
 		log.Infof("Writing %s", s.outputFileName)
 		file, err := os.OpenFile(
 			s.outputFileName,
@@ -559,24 +623,21 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 
 	if s.postEnable {
 		if cs.SpgwcEndpoint != nil {
-			log.Infof("Posting to %s", *cs.SpgwcEndpoint)
-			err := s.Post(*cs.SpgwcEndpoint, data)
+			err := s.PostData("SPGWC", *cs.SpgwcEndpoint, FilterConfigSPGWC, &jsonConfig)
 			if err != nil {
 				return err
 			}
 		}
 
 		if cs.HssEndpoint != nil {
-			log.Infof("Posting to %s", *cs.HssEndpoint)
-			err := s.Post(*cs.HssEndpoint, data)
+			err := s.PostData("HSS", *cs.SpgwcEndpoint, FilterConfigHSS, &jsonConfig)
 			if err != nil {
 				return err
 			}
 		}
 
 		if cs.PcrfEndpoint != nil {
-			log.Infof("Posting to %s", *cs.PcrfEndpoint)
-			err := s.Post(*cs.PcrfEndpoint, data)
+			err := s.PostData("PCRF", *cs.SpgwcEndpoint, FilterConfigPCRF, &jsonConfig)
 			if err != nil {
 				return err
 			}

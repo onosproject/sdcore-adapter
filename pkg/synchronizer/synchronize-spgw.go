@@ -630,22 +630,14 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 		}
 
 		if cs.HssEndpoint != nil {
-			err := s.PostData("HSS", *cs.SpgwcEndpoint, FilterConfigHSS, &jsonConfig)
+			err := s.PostData("HSS", *cs.HssEndpoint, FilterConfigHSS, &jsonConfig)
 			if err != nil {
 				return err
 			}
 		}
 
 		if cs.PcrfEndpoint != nil {
-			err := s.PostData("PCRF", *cs.SpgwcEndpoint, FilterConfigPCRF, &jsonConfig)
-			if err != nil {
-				return err
-			}
-		}
-
-		if cs.PcrfEndpoint != nil {
-			log.Infof("Posting to %s", *cs.PcrfEndpoint)
-			err := s.Post(*cs.PcrfEndpoint, data)
+			err := s.PostData("PCRF", *cs.PcrfEndpoint, FilterConfigPCRF, &jsonConfig)
 			if err != nil {
 				return err
 			}

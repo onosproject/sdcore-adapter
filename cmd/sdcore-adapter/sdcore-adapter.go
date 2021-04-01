@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/gnxi/utils/credentials"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
@@ -113,9 +114,11 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	log.Info("starting out-of-band API")
+	diagapi.StartDiagnosticAPI(s)
+
 	log.Info("starting to serve")
 	if err := g.Serve(listen); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
-
 }

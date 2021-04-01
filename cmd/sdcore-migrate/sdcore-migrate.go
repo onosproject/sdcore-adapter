@@ -60,8 +60,10 @@ func main() {
 	mig := migration.NewMigrator(*aetherConfigAddr)
 	mig.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models, steps.MigrateV1V2)
 
+	sec := migration.GetDefaultSecuritySettings()
+
 	// Perform the migration
-	err := mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion)
+	err := mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion, sec)
 	if err != nil {
 		log.Errorf("%v", err)
 	}

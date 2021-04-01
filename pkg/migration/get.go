@@ -21,7 +21,7 @@ type MockGetFunction func(*gpb.GetRequest) (*gpb.GetResponse, error)
 
 var MockGet MockGetFunction
 
-func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetResponse, error) {
+func ExecuteGet(r *gpb.GetRequest, addr string, sec *SecuritySettings, ctx context.Context) (*gpb.GetResponse, error) {
 	// for ease of unit testing
 	if MockGet != nil {
 		return MockGet(r)
@@ -29,7 +29,7 @@ func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetRe
 
 	q := client.Query{TLS: &tls.Config{}}
 
-	err := readCerts(q)
+	err := readCerts(sec, q)
 	if err != nil {
 		return nil, err
 	}
@@ -53,13 +53,13 @@ func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetRe
 	return response, nil
 }
 
-func GetPath(path string, target string, addr string, ctx context.Context) (*gpb.TypedValue, error) {
+func GetPath(path string, target string, addr string, sec *SecuritySettings, ctx context.Context) (*gpb.TypedValue, error) {
 	req := &gpb.GetRequest{
 		Path:     []*gpb.Path{StringToPath(path, target)},
 		Encoding: gpb.Encoding_JSON,
 	}
 
-	resp, err := ExecuteGet(req, addr, ctx)
+	resp, err := ExecuteGet(req, addr, sec, ctx)
 	if err != nil {
 		return nil, err
 	}

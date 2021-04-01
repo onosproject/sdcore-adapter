@@ -161,7 +161,9 @@ func TestRunStep(t *testing.T) {
 	V1SetRequests = []*gpb.SetRequest{}
 	V2SetRequests = []*gpb.SetRequest{}
 
-	actions, err := m.RunStep(m.steps[0], "v1-device", "v2-device")
+	sec := GetDefaultSecuritySettings()
+
+	actions, err := m.RunStep(m.steps[0], "v1-device", "v2-device", sec)
 	assert.Nil(t, err)
 
 	// The step should have added an update request
@@ -188,7 +190,9 @@ func TestExecuteActions(t *testing.T) {
 	V1SetRequests = []*gpb.SetRequest{}
 	V2SetRequests = []*gpb.SetRequest{}
 
-	err := m.ExecuteActions(actions, "v1-device", "v2-device")
+	sec := GetDefaultSecuritySettings()
+
+	err := m.ExecuteActions(actions, "v1-device", "v2-device", sec)
 	assert.Nil(t, err)
 
 	// one delete of the v1 model
@@ -212,8 +216,10 @@ func TestMigrate(t *testing.T) {
 	V1SetRequests = []*gpb.SetRequest{}
 	V2SetRequests = []*gpb.SetRequest{}
 
+	sec := GetDefaultSecuritySettings()
+
 	// Should cause the V1->V2 migration step to be executed.
-	err := m.Migrate("v1-device", "1.0.0", "v2-device", "2.0.0")
+	err := m.Migrate("v1-device", "1.0.0", "v2-device", "2.0.0", sec)
 	assert.Nil(t, err)
 
 	// one delete of the v1 model

@@ -6,7 +6,9 @@
 package gnmi
 
 import (
+	"encoding/json"
 	"github.com/eapache/channels"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // NewServer creates an instance of Server with given json config.
@@ -42,4 +44,40 @@ func NewServer(model *Model, config []byte, callback ConfigCallback) (*Server, e
 	s.ConfigUpdate = channels.NewRingChannel(100)
 
 	return s, nil
+}
+
+func (s *Server) ExecuteCallbacks(reason ConfigCallbackType) error {
+	if s.callback != nil {
+		if err := s.callback(s.config, reason); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) GetJSON() ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	jsonTree, err := ygot.ConstructIETFJSON(s.config, &ygot.RFC7951JSONConfig{})
+	if err != nil {
+		return []byte{}, err
+	}
+	data, err := json.MarshalIndent(jsonTree, "", "  ")
+	if err != nil {
+		return []byte{}, err
+	}
+	return data, nil
+}
+
+func (s *Server) PutJSON(b []byte) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	rootStruct, err := s.model.NewConfigStruct(b)
+	if err != nil {
+		return err
+	}
+	s.config = rootStruct
+	return nil
 }

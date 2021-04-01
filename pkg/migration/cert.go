@@ -26,41 +26,61 @@ var (
 	hostCheckDisabled = flag.Bool("hostCheckDisabled", false, "When set, host name in server cert will not be verified")
 )
 
-func readCerts(q client.Query) error {
-	if *tlsDisabled {
+type SecuritySettings struct {
+	caCert            string
+	clientCert        string
+	clientKey         string
+	tlsDisabled       bool
+	hostCheckDisabled bool
+}
+
+func GetDefaultSecuritySettings() *SecuritySettings {
+	s := SecuritySettings{}
+
+	s.caCert = *caCert
+	s.clientCert = *clientCert
+	s.clientKey = *clientKey
+	s.hostCheckDisabled = *hostCheckDisabled
+	s.tlsDisabled = *tlsDisabled
+
+	return &s
+}
+
+func readCerts(sec *SecuritySettings, q client.Query) error {
+	if sec.tlsDisabled {
 		q.TLS = nil
 		return nil
 	}
 
-	if *hostCheckDisabled {
+	if sec.hostCheckDisabled {
 		q.TLS.InsecureSkipVerify = true
 	}
 
-	if *caCert != "" {
+	if sec.caCert != "" {
 		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(*caCert)
+		ca, err := ioutil.ReadFile(sec.caCert)
 		if err != nil {
-			return fmt.Errorf("could not read %q: %s", *caCert, err)
+			return fmt.Errorf("could not read %q: %s", sec.caCert, err)
 		}
 		if ok := certPool.AppendCertsFromPEM(ca); !ok {
 			return fmt.Errorf("failed to append CA certificates")
 		}
 
-		log.Debugf("Successfully read and configured caCert %s", *caCert)
+		log.Debugf("Successfully read and configured caCert %s", sec.caCert)
 
 		q.TLS.RootCAs = certPool
 	}
 
-	if *clientCert != "" || *clientKey != "" {
-		if *clientCert == "" || *clientKey == "" {
+	if sec.clientCert != "" || sec.clientKey != "" {
+		if sec.clientCert == "" || sec.clientKey == "" {
 			return fmt.Errorf("--client_crt and --client_key must be set with file locations")
 		}
-		certificate, err := tls.LoadX509KeyPair(*clientCert, *clientKey)
+		certificate, err := tls.LoadX509KeyPair(sec.clientCert, sec.clientKey)
 		if err != nil {
 			return fmt.Errorf("could not load client key pair: %s", err)
 		}
 
-		log.Debugf("Successfully read and configured clientCert %s and clientKey %s", *clientCert, *clientKey)
+		log.Debugf("Successfully read and configured clientCert %s and clientKey %s", sec.clientCert, sec.clientKey)
 
 		q.TLS.Certificates = []tls.Certificate{certificate}
 	}

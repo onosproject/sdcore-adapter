@@ -68,16 +68,16 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]*Migra
 	return steps, nil
 }
 
-func (m *Migrator) RunStep(step *MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
+func (m *Migrator) RunStep(step *MigrationStep, fromTarget string, toTarget string, sec *SecuritySettings) ([]*MigrationActions, error) {
 	// fetch the old models
-	srcVal, err := GetPath("", fromTarget, m.AetherConfigAddr, context.Background())
+	srcVal, err := GetPath("", fromTarget, m.AetherConfigAddr, sec, context.Background())
 	if err != nil {
 		return nil, err
 	}
 	// TODO: handle srcVal == nil
 
 	// fetch the new models
-	destVal, err := GetPath("", toTarget, m.AetherConfigAddr, context.Background())
+	destVal, err := GetPath("", toTarget, m.AetherConfigAddr, sec, context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -92,10 +92,10 @@ func (m *Migrator) RunStep(step *MigrationStep, fromTarget string, toTarget stri
 	return actions, nil
 }
 
-func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string, toTarget string) error {
+func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string, toTarget string, sec *SecuritySettings) error {
 	// do the updates in forward order
 	for _, action := range actions {
-		err := Update(action.UpdatePrefix, toTarget, m.AetherConfigAddr, action.Updates, context.Background())
+		err := Update(action.UpdatePrefix, toTarget, m.AetherConfigAddr, action.Updates, sec, context.Background())
 		if err != nil {
 			return err
 		}
@@ -104,7 +104,7 @@ func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string
 	// now do the deletes in reverse order
 	for i := len(actions) - 1; i >= 0; i-- {
 		action := actions[i]
-		err := Delete(action.DeletePrefix, fromTarget, m.AetherConfigAddr, action.Deletes, context.Background())
+		err := Delete(action.DeletePrefix, fromTarget, m.AetherConfigAddr, action.Deletes, sec, context.Background())
 		if err != nil {
 			return err
 		}
@@ -112,19 +112,19 @@ func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string
 	return nil
 }
 
-func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget string, toVersion string) error {
+func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget string, toVersion string, sec *SecuritySettings) error {
 	steps, err := m.BuildStepList(fromVersion, toVersion)
 	if err != nil {
 		return err
 	}
 
 	for _, step := range steps {
-		actions, err := m.RunStep(step, fromTarget, toTarget)
+		actions, err := m.RunStep(step, fromTarget, toTarget, sec)
 		if err != nil {
 			return err
 		}
 
-		err = m.ExecuteActions(actions, fromTarget, toTarget)
+		err = m.ExecuteActions(actions, fromTarget, toTarget, sec)
 		if err != nil {
 			return err
 		}

@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -90,9 +89,6 @@ func (m *DiagnosticApi) postCache(w http.ResponseWriter, r *http.Request) {
 func (m *DiagnosticApi) pullFromOnosConfig(w http.ResponseWriter, r *http.Request) {
 	queryArgs := r.URL.Query()
 
-	// security settings for using migration.GetPath()
-	sec := migration.GetDefaultSecuritySettings()
-
 	target := queryArgs.Get("target")
 	if target == "" {
 		target = m.defaultTarget
@@ -103,15 +99,9 @@ func (m *DiagnosticApi) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 		aetherConfigAddr = m.defaultAetherConfigAddr
 	}
 
-	// allow security settings to be overridden
-	hostCheckDisabled := queryArgs.Get("hostCheckDisabled")
-	if hostCheckDisabled != "" {
-		sec.hostCheckDisabled, _ = strconv.ParseBool(hostCheckDisabled)
-	}
-
 	log.Infof("Pull, aetherConfig=%s, target=%s", aetherConfigAddr, target)
 
-	srcVal, err := migration.GetPath("", target, aetherConfigAddr, sec, context.Background())
+	srcVal, err := migration.GetPath("", target, aetherConfigAddr, context.Background())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

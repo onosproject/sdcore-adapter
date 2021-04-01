@@ -21,7 +21,7 @@ type MockSetFunction func(*gpb.SetRequest) (*gpb.SetResponse, error)
 
 var MockSet MockSetFunction
 
-func ExecuteSet(r *gpb.SetRequest, addr string, sec *SecuritySettings, ctx context.Context) (*gpb.SetResponse, error) {
+func ExecuteSet(r *gpb.SetRequest, addr string, ctx context.Context) (*gpb.SetResponse, error) {
 	// for ease of unit testing
 	if MockSet != nil {
 		return MockSet(r)
@@ -29,7 +29,7 @@ func ExecuteSet(r *gpb.SetRequest, addr string, sec *SecuritySettings, ctx conte
 
 	q := client.Query{TLS: &tls.Config{}}
 
-	err := readCerts(sec, q)
+	err := readCerts(q)
 	if err != nil {
 		return nil, err
 	}
@@ -53,13 +53,13 @@ func ExecuteSet(r *gpb.SetRequest, addr string, sec *SecuritySettings, ctx conte
 	return response, nil
 }
 
-func Update(prefix *gpb.Path, target string, addr string, updates []*gpb.Update, sec *SecuritySettings, ctx context.Context) error {
+func Update(prefix *gpb.Path, target string, addr string, updates []*gpb.Update, ctx context.Context) error {
 	req := &gpb.SetRequest{
 		Prefix: prefix,
 		Update: updates,
 	}
 
-	resp, err := ExecuteSet(req, addr, sec, ctx)
+	resp, err := ExecuteSet(req, addr, ctx)
 	if err != nil {
 		return err
 	}
@@ -69,13 +69,13 @@ func Update(prefix *gpb.Path, target string, addr string, updates []*gpb.Update,
 	return nil
 }
 
-func Delete(prefix *gpb.Path, target string, addr string, deletes []*gpb.Path, sec *SecuritySettings, ctx context.Context) error {
+func Delete(prefix *gpb.Path, target string, addr string, deletes []*gpb.Path, ctx context.Context) error {
 	req := &gpb.SetRequest{
 		Prefix: prefix,
 		Delete: deletes,
 	}
 
-	resp, err := ExecuteSet(req, addr, sec, ctx)
+	resp, err := ExecuteSet(req, addr, ctx)
 	if err != nil {
 		return err
 	}

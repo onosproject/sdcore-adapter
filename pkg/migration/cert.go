@@ -9,11 +9,13 @@
 package migration
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
 	"fmt"
 	"github.com/openconfig/gnmi/client"
+	"google.golang.org/grpc/metadata"
 	"io/ioutil"
 )
 
@@ -24,6 +26,7 @@ var (
 	clientKey         = flag.String("client_key", "", "Client private key file. Used for client certificate-based authentication.")
 	tlsDisabled       = flag.Bool("tlsDisabled", false, "When set, caCert, clientCert & clientKey will be ignored")
 	hostCheckDisabled = flag.Bool("hostCheckDisabled", false, "When set, host name in server cert will not be verified")
+	authHeader        = flag.String("ah", "", "Authorization token to use when contacting aether-config")
 )
 
 func readCerts(q client.Query) error {
@@ -66,4 +69,14 @@ func readCerts(q client.Query) error {
 	}
 
 	return nil
+}
+
+func getAuthContext(ctxBkg context.Context) context.Context {
+	if *authHeader != "" {
+		md := make(metadata.MD)
+		md.Set("authorization", *authHeader)
+		ctxBkg = metadata.NewOutgoingContext(ctxBkg, md)
+	}
+
+	return ctxBkg
 }

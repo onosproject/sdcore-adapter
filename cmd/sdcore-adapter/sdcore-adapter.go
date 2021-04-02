@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -15,7 +16,9 @@ import (
 
 	"github.com/google/gnxi/utils/credentials"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
@@ -26,13 +29,15 @@ import (
 )
 
 var (
-	bindAddr       = flag.String("bind_address", ":10161", "Bind to address:port or just :port")
-	metricAddr     = flag.String("metric_address", ":9851", "Prometheus metric endpoint bind to address:port or just :port")
-	configFile     = flag.String("config", "", "IETF JSON file for target startup config")
-	outputFileName = flag.String("output", "", "JSON file to save output to")
-	_              = flag.String("spgw_endpoint", "", "Endpoint to post SPGW-C JSON to - DEPRECATED") // TODO: remove me
-	postDisable    = flag.Bool("post_disable", false, "Disable posting to connectivity service endpoints")
-	postTimeout    = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
+	bindAddr           = flag.String("bind_address", ":10161", "Bind to address:port or just :port")
+	metricAddr         = flag.String("metric_address", ":9851", "Prometheus metric endpoint bind to address:port or just :port")
+	configFile         = flag.String("config", "", "IETF JSON file for target startup config")
+	outputFileName     = flag.String("output", "", "JSON file to save output to")
+	_                  = flag.String("spgw_endpoint", "", "Endpoint to post SPGW-C JSON to - DEPRECATED") // TODO: remove me
+	postDisable        = flag.Bool("post_disable", false, "Disable posting to connectivity service endpoints")
+	postTimeout        = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
+	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
+	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v2", "Target to use when pulling from aether-config")
 )
 
 var log = logging.GetLogger("sdcore-adapter")
@@ -87,13 +92,34 @@ func main() {
 
 	sync.Start()
 
+	if (*configFile != "") && (*aetherConfigAddr != "") {
+		log.Fatalf("use --configfile or --aetherConfigAddr, but not both")
+	}
+
 	var configData []byte
+
+	// Optional: pull initial config from a local file
 	if *configFile != "" {
 		var err error
 		configData, err = ioutil.ReadFile(*configFile)
 		if err != nil {
 			log.Fatalf("error in reading config file: %v", err)
 		}
+	}
+
+	// Optional: pull initial config from onos-config
+	if *aetherConfigAddr != "" {
+		log.Infof("Fetching initial state from %s, target %s", *aetherConfigAddr, *aetherConfigTarget)
+		// The migration library has the functions for fetching from onos-config
+		srcVal, err := migration.GetPath("", *aetherConfigTarget, *aetherConfigAddr, context.Background())
+		if err != nil {
+			log.Fatalf("Error fetching initial data from onos-config: %s", err.Error())
+			return
+		}
+
+		configData = srcVal.GetJsonVal()
+
+		log.Infof("Fetched config: %s", string(configData))
 	}
 
 	s, err := target.NewTarget(model, configData, synchronizerWrapper(sync))
@@ -107,6 +133,9 @@ func main() {
 	log.Info("starting metric handler")
 	go serveMetrics()
 
+	log.Info("starting out-of-band API")
+	diagapi.StartDiagnosticAPI(s, *aetherConfigAddr, *aetherConfigTarget)
+
 	log.Infof("starting to listen on %s", *bindAddr)
 	listen, err := net.Listen("tcp", *bindAddr)
 	if err != nil {
@@ -117,5 +146,4 @@ func main() {
 	if err := g.Serve(listen); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
-
 }

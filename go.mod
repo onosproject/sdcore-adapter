@@ -8,6 +8,7 @@ require (
 	github.com/google/gnxi v0.0.0-20190228205329-8521faedac37
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/mux v1.7.3
 	github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201217104719-f0b4f4c16f49
 	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180505-6d1bbdac02b2
 	github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.0.0-20210318164050-747863f7c91e

@@ -20,6 +20,7 @@ const (
 	Initial ConfigCallbackType = iota
 	Apply
 	Rollback
+	Forced
 )
 
 func (c ConfigCallbackType) String() string {

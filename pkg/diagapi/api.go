@@ -5,16 +5,16 @@ package diagapi
  *
  * Examples:
  *   # dump the current cache to a file
- *   curl http://localhost:8081/cache > state.json
+ *   curl http://localhost:8080/cache > state.json
  *
  *   # delete the contents of the cache
- *   curl --header "Content-Type: application/json" -X DELETE http://localhost:8081/cache
+ *   curl --header "Content-Type: application/json" -X DELETE http://localhost:8080/cache
  *
  *   # load the cache from a file
- *   curl --header "Content-Type: application/json" -X POST --data @state.json http://localhost:8081/cache
+ *   curl --header "Content-Type: application/json" -X POST --data @state.json http://localhost:8080/cache
  *
  *   # pull state from onos-config and populate the cache
- *   curl --header "Content-Type: application/json" -X POST "http://localhost:8081/pull?target=connectivity-service-v2&aetherConfigAddr=onos-config:5150"
+ *   curl --header "Content-Type: application/json" -X POST "http://localhost:8080/pull?target=connectivity-service-v2&aetherConfigAddr=onos-config:5150"
  */
 
 import (
@@ -124,10 +124,14 @@ func (m *DiagnosticApi) handleRequests() {
 	myRouter.HandleFunc("/cache", m.postCache).Methods("POST")
 	myRouter.HandleFunc("/cache", m.deleteCache).Methods("DELETE")
 	myRouter.HandleFunc("/pull", m.pullFromOnosConfig).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8081", myRouter))
+	log.Fatal(http.ListenAndServe(":8080", myRouter))
 }
 
-func StartDiagnosticAPI(targetServer TargetInterface) {
-	m := DiagnosticApi{targetServer: targetServer}
+func StartDiagnosticAPI(targetServer TargetInterface,
+	defaultAetherConfigAddr string,
+	defaultTarget string) {
+	m := DiagnosticApi{targetServer: targetServer,
+		defaultAetherConfigAddr: defaultAetherConfigAddr,
+		defaultTarget:           defaultTarget}
 	go m.handleRequests()
 }

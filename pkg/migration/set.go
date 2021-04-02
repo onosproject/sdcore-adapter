@@ -34,6 +34,8 @@ func ExecuteSet(r *gpb.SetRequest, addr string, ctx context.Context) (*gpb.SetRe
 		return nil, err
 	}
 
+	ctx = getAuthContext(ctx)
+
 	c, err := gclient.New(ctx, client.Destination{
 		Addrs:       []string{addr},
 		Timeout:     q.Timeout,

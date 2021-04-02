@@ -34,6 +34,8 @@ func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetRe
 		return nil, err
 	}
 
+	ctx = getAuthContext(ctx)
+
 	c, err := gclient.New(ctx, client.Destination{
 		Addrs:       []string{addr},
 		Timeout:     q.Timeout,

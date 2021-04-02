@@ -50,8 +50,12 @@ type DiagnosticApi struct {
 func (m *DiagnosticApi) reSync(w http.ResponseWriter, r *http.Request) {
 	// TODO: tell the target server to synchronize
 	_ = r
-	m.targetServer.ExecuteCallbacks(gnmi.Forced)
-	fmt.Fprintf(w, "Okay")
+	err := m.targetServer.ExecuteCallbacks(gnmi.Forced)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "SUCCESS")
 }
 
 func (m *DiagnosticApi) getCache(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +66,11 @@ func (m *DiagnosticApi) getCache(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonDump)
+	_, err = w.Write(jsonDump)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (m *DiagnosticApi) deleteCache(w http.ResponseWriter, r *http.Request) {

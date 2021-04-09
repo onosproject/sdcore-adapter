@@ -9,6 +9,7 @@
 package migration
 
 import (
+	"context"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"strings"
 )
@@ -136,4 +137,15 @@ func DeleteFromUpdates(updates []*gpb.Update, target string) []*gpb.Path {
 		})
 	}
 	return deletePaths
+}
+
+// If a context includes a particular key, then use it, otherwise use the default
+func OverrideFromContext(ctx context.Context, key interface{}, defaultValue interface{}) interface{} {
+	if contextVal := ctx.Value(key); contextVal != nil {
+		// Use the key from the context, if available
+		return contextVal
+	} else {
+		// Revert to the default, otherwise
+		return defaultValue
+	}
 }

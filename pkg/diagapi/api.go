@@ -19,6 +19,10 @@ package diagapi
  *
  *   # pull state from onos-config and populate the cache
  *   curl --header "Content-Type: application/json" -X POST "http://localhost:8080/pull?target=connectivity-service-v2&aetherConfigAddr=onos-config:5150"
+ *
+ *   # pull state from onos-config and populate the cache, with auth token
+ *   AUTH=<...stuff...>
+ *   curl --header "Content-Type: application/json" --header "Authorization: Bearer $AUTH" -X POST "http://localhost:8080/pull?target=connectivity-service-v2&aetherConfigAddr=onos-config:5150"
  */
 
 import (
@@ -113,7 +117,12 @@ func (m *DiagnosticApi) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 
 	log.Infof("Pull, aetherConfig=%s, target=%s", aetherConfigAddr, target)
 
-	srcVal, err := migration.GetPath("", target, aetherConfigAddr, context.Background())
+	ctx := context.Background()
+	if auth := r.Header.Get("Authorization"); auth != "" {
+		ctx = migration.WithAuthorization(ctx, auth)
+	}
+
+	srcVal, err := migration.GetPath("", target, aetherConfigAddr, ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

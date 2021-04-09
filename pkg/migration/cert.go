@@ -29,6 +29,14 @@ var (
 	authHeader        = flag.String("ah", "", "Authorization token to use when contacting aether-config")
 )
 
+// Best practice: Keys used in context.WithValue should use unique types to
+// prevent collision.
+type contextKey int
+
+const (
+	authContextKey contextKey = iota
+)
+
 func readCerts(q client.Query) error {
 	if *tlsDisabled {
 		q.TLS = nil
@@ -71,12 +79,20 @@ func readCerts(q client.Query) error {
 	return nil
 }
 
-func getAuthContext(ctxBkg context.Context) context.Context {
-	if *authHeader != "" {
+// Add an authorization header to a context
+func WithAuthorization(ctx context.Context, auth string) context.Context {
+	return context.WithValue(ctx, authContextKey, auth)
+}
+
+// Propagate through the authorization header into HTTP metadata to make an HTTP request,
+// either from the context, or from the default command-line options.
+func getAuthContext(ctx context.Context) context.Context {
+	reqAuthHeader := OverrideFromContext(ctx, authContextKey, *authHeader).(string)
+	if reqAuthHeader != "" {
 		md := make(metadata.MD)
-		md.Set("authorization", *authHeader)
-		ctxBkg = metadata.NewOutgoingContext(ctxBkg, md)
+		md.Set("authorization", reqAuthHeader)
+		ctx = metadata.NewOutgoingContext(ctx, md)
 	}
 
-	return ctxBkg
+	return ctx
 }

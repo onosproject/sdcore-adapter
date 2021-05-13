@@ -6,7 +6,7 @@
 package synchronizer
 
 import (
-	models "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-2.2.0/aether_2_2_0"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	gnmiproto "github.com/openconfig/gnmi/proto/gnmi"

@@ -269,6 +269,8 @@ github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180
 github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180505-6d1bbdac02b2/go.mod h1:jy8z05rNVgQKYsD3+MkTAjkhGLN4mj8gBEIIKIYUlyA=
 github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.0.0-20210318164050-747863f7c91e h1:amIQeWcfl+LtTHscF2YWluugPkgMyI9TZM/vLYcA66E=
 github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.0.0-20210318164050-747863f7c91e/go.mod h1:+QTBTs4PhUn5ec3KhsyZ5Bd9+KqVpdKGyCVlc/jThPE=
+github.com/onosproject/config-models/modelplugin/aether-2.2.0 v0.0.0-20210513141945-bd46f22a908a h1:P7HLuwALH5dVOb8I0nwOi5J/mesUzOTjGzElayTEang=
+github.com/onosproject/config-models/modelplugin/aether-2.2.0 v0.0.0-20210513141945-bd46f22a908a/go.mod h1:njpyIOGK+T6oZ60pPgqMZcZ6hIbBqTzaaHAY3ZqpjYo=
 github.com/onosproject/onos-lib-go v0.6.19 h1:9hV67s/4Qnx1DUtbr6glcOzC2XdxgeoiqZ8B4FIhHAQ=
 github.com/onosproject/onos-lib-go v0.6.19/go.mod h1:x0vnsS7xhJVIHxtRFLmBW3sm9OdKnmTkCCVo8eGy8lU=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
@@ -290,8 +292,8 @@ github.com/openconfig/ygot v0.6.0/go.mod h1:o30svNf7O0xK+R35tlx95odkDmZWS9JyWWQS
 github.com/openconfig/ygot v0.6.1-0.20200103195725-e3c44fa43926/go.mod h1:o30svNf7O0xK+R35tlx95odkDmZWS9JyWWQSmIhqwAs=
 github.com/openconfig/ygot v0.8.12 h1:UVYGo51K4DDJwNtJkYF23+gYVj8ZtjErrnzTY6YfK0w=
 github.com/openconfig/ygot v0.8.12/go.mod h1:Qh/F0ycMLXJlZn4cR+5iuefEMthLggO8KBq8wjXYPTY=
-github.com/openconfig/ygot v0.9.1-0.20201217195010-7872e9d3d591 h1:bX9EAwf5++K6Ko/BkuoyHg5NAbkotNfz1ndB77/wdmg=
-github.com/openconfig/ygot v0.9.1-0.20201217195010-7872e9d3d591/go.mod h1:oCQNdXnv7dWc8scTDgoFkauv1wwplJn5HspHcjlxSAQ=
+github.com/openconfig/ygot v0.10.5 h1:8RQxM/AY4bbfKAtYihWlyIEwKuLjNE1jzXI4gxPN27w=
+github.com/openconfig/ygot v0.10.5/go.mod h1:oCQNdXnv7dWc8scTDgoFkauv1wwplJn5HspHcjlxSAQ=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=
 github.com/opentracing/basictracer-go v1.0.0/go.mod h1:QfBfYuafItcjQuMwinw9GhYKwFXS9KnPs5lxoYwgW74=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=

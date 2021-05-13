@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	models "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-2.2.0/aether_2_2_0"
 )
 
 /*
@@ -239,7 +239,15 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 			// to synchronize other connectivity services.
 			errors = append(errors, err)
 		} else {
-			synchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
+			err := s.SynchronizeHSSService(device, cs, m)
+			if err != nil {
+				synchronizationFailedTotal.WithLabelValues(csId).Inc()
+				// If there are errors, then build a list of them and continue to try
+				// to synchronize other connectivity services.
+				errors = append(errors, err)
+			} else {
+				synchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
+			}
 		}
 	}
 
@@ -370,6 +378,7 @@ func FilterConfigHSS(src *JsonConfig) *JsonConfig {
 		ApnProfiles: src.ApnProfiles,
 		QosProfiles: src.QosProfiles,
 	}
+
 	return &dest
 }
 
@@ -383,9 +392,9 @@ func FilterConfigPCRF(src *JsonConfig) *JsonConfig {
 
 func (s *Synchronizer) PostData(name string, endpoint string, filter FilterDataFunc, jsonConfig *JsonConfig) error {
 	var filteredConfig *JsonConfig
+
 	if filter == nil {
 		filteredConfig = jsonConfig
-
 	} else {
 		filteredConfig = filter(jsonConfig)
 	}
@@ -406,6 +415,74 @@ func (s *Synchronizer) PostData(name string, endpoint string, filter FilterDataF
 	return nil
 }
 
+// Return true if the UE is relevant to the connectivity service and enterprise being synchronized
+func (s *Synchronizer) UEIsRelevant(ue *models.AetherSubscriber_Subscriber_Ue, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) bool {
+	if ue.Enterprise == nil {
+		// The UE has no enterprise, or the enterprise has no Id
+		log.Infof("UE %s has no enterprise", *ue.Id)
+		return false
+	}
+
+	if ue.Profiles == nil {
+		// Require there to be at least some profiles before we'll consider it
+		log.Infof("UE %s has no profiles", *ue.Id)
+		return false
+	}
+
+	_, okay := validEnterpriseIds[*ue.Enterprise]
+	if !okay {
+		// The UE is for some other CS than the one we're working on
+		log.Infof("UE %s is not for connectivity service %s", *ue.Id, *cs.Id)
+		return false
+	}
+
+	if (ue.Enabled == nil) || (!*ue.Enabled) {
+		log.Infof("UE %s is not enabled", *ue.Id)
+		return false
+	}
+
+	return true
+}
+
+// Build the keys structure for a UE
+func (s *Synchronizer) BuildUEKeys(ue *models.AetherSubscriber_Subscriber_Ue) (*SubscriberKeys, error) {
+	keys := SubscriberKeys{}
+
+	if ue.ServingPlmn != nil {
+		keys.ServingPlmn = &SubscriberServingPlmn{
+			Mcc: *ue.ServingPlmn.Mcc,
+			Mnc: *ue.ServingPlmn.Mnc,
+			Tac: *ue.ServingPlmn.Tac,
+		}
+	}
+
+	if ue.ImsiRangeFrom != nil || ue.ImsiRangeTo != nil {
+		// If we have one, then we require the other.
+		if ue.ImsiRangeFrom == nil {
+			return nil, errors.New("ImsiRangeFrom is nil, but ImsiRangeTo is not")
+		}
+		if ue.ImsiRangeTo == nil {
+			return nil, errors.New("ImsiRangeTo is nil, but ImsiRangeFrom is not")
+		}
+		keys.ImsiRange = &SubscriberImsiRange{
+			From: *ue.ImsiRangeFrom,
+			To:   *ue.ImsiRangeTo,
+		}
+	}
+
+	if ue.RequestedApn != nil {
+		keys.RequestedApn = *ue.RequestedApn
+	}
+
+	// if no keys are specified, then emit the match-all rule
+	if (ue.ServingPlmn == nil) && (ue.ImsiRangeFrom == nil) && (ue.ImsiRangeTo == nil) && (ue.RequestedApn == nil) {
+		matchAll := true
+		keys.MatchAll = &matchAll
+	}
+
+	return &keys, nil
+}
+
 func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	jsonConfig := JsonConfig{}
 
@@ -413,71 +490,22 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 
 	if device.Subscriber != nil {
 		for _, ue := range device.Subscriber.Ue {
-			keys := SubscriberKeys{}
-
-			if ue.Enterprise == nil {
-				// The UE has no enterprise, or the enterprise has no Id
-				log.Infof("UE %s has no enterprise", *ue.Id)
+			if !s.UEIsRelevant(ue, cs, validEnterpriseIds) {
 				continue
 			}
 
-			if ue.Profiles == nil {
-				// Require there to be at least some profiles before we'll consider it
-				log.Infof("UE %s has no profiles", *ue.Id)
-				continue
+			keys, err := s.BuildUEKeys(ue)
+			if err != nil {
+				return err
 			}
 
-			_, okay := validEnterpriseIds[*ue.Enterprise]
-			if !okay {
-				// The UE is for some other CS than the one we're working on
-				log.Infof("UE %s is not for connectivity service %s", *ue.Id, *cs.Id)
-				continue
-			}
-
-			if (ue.Enabled == nil) || (!*ue.Enabled) {
-				log.Infof("UE %s is not enabled", *ue.Id)
-				continue
-			}
-
-			if ue.ServingPlmn != nil {
-				keys.ServingPlmn = &SubscriberServingPlmn{
-					Mcc: *ue.ServingPlmn.Mcc,
-					Mnc: *ue.ServingPlmn.Mnc,
-					Tac: *ue.ServingPlmn.Tac,
-				}
-			}
-
-			if ue.ImsiRangeFrom != nil || ue.ImsiRangeTo != nil {
-				// If we have one, then we require the other.
-				if ue.ImsiRangeFrom == nil {
-					return errors.New("ImsiRangeFrom is nil, but ImsiRangeTo is not")
-				}
-				if ue.ImsiRangeTo == nil {
-					return errors.New("ImsiRangeTo is nil, but ImsiRangeFrom is not")
-				}
-				keys.ImsiRange = &SubscriberImsiRange{
-					From: *ue.ImsiRangeFrom,
-					To:   *ue.ImsiRangeTo,
-				}
-			}
-
-			if ue.RequestedApn != nil {
-				keys.RequestedApn = *ue.RequestedApn
-			}
-
-			// if no keys are specified, then emit the match-all rule
-			if (ue.ServingPlmn == nil) && (ue.ImsiRangeFrom == nil) && (ue.ImsiRangeTo == nil) && (ue.RequestedApn == nil) {
-				matchAll := true
-				keys.MatchAll = &matchAll
-			}
-
+			// SecurityProfile is excluded; we'll do HSS separately
 			rule := SubscriberSelectionRule{
-				Priority:        ue.Priority,
-				Keys:            keys,
-				ApnProfile:      ue.Profiles.ApnProfile,
-				QosProfile:      ue.Profiles.QosProfile,
-				UpProfile:       ue.Profiles.UpProfile,
-				SecurityProfile: ue.Profiles.SecurityProfile,
+				Priority:   ue.Priority,
+				Keys:       *keys,
+				ApnProfile: ue.Profiles.ApnProfile,
+				QosProfile: ue.Profiles.QosProfile,
+				UpProfile:  ue.Profiles.UpProfile,
 			}
 
 			for _, ap := range ue.Profiles.AccessProfile {
@@ -571,19 +599,6 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 		}
 	}
 
-	if device.SecurityProfile != nil {
-		jsonConfig.SecurityProfiles = make(map[string]SecurityProfile)
-		for _, sp := range device.SecurityProfile.SecurityProfile {
-			profile := SecurityProfile{
-				Key: sp.Key,
-				Opc: sp.Opc,
-				Sqn: sp.Sqn,
-			}
-
-			jsonConfig.SecurityProfiles[*sp.Id] = profile
-		}
-	}
-
 	if (device.ServicePolicy != nil) || (device.ServiceRule != nil) || (device.ServiceGroup != nil) {
 		var err error
 		jsonConfig.Policies, err = s.SynchronizePCRF(device)
@@ -597,7 +612,6 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 	synchronizationResourceTotal.WithLabelValues(*cs.Id, "access-profile").Set(float64(len(jsonConfig.AccessProfiles)))
 	synchronizationResourceTotal.WithLabelValues(*cs.Id, "qos-profile").Set(float64(len(jsonConfig.QosProfiles)))
 	synchronizationResourceTotal.WithLabelValues(*cs.Id, "up-profile").Set(float64(len(jsonConfig.UpProfiles)))
-	synchronizationResourceTotal.WithLabelValues(*cs.Id, "security-profile").Set(float64(len(jsonConfig.SecurityProfiles)))
 
 	if s.outputFileName != "" {
 		data, err := json.MarshalIndent(jsonConfig, "", "  ")
@@ -632,15 +646,113 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 			}
 		}
 
-		if cs.HssEndpoint != nil {
-			err := s.PostData("HSS", *cs.HssEndpoint, FilterConfigHSS, &jsonConfig)
+		if cs.PcrfEndpoint != nil {
+			err := s.PostData("PCRF", *cs.PcrfEndpoint, FilterConfigPCRF, &jsonConfig)
 			if err != nil {
 				return err
 			}
 		}
+	}
 
-		if cs.PcrfEndpoint != nil {
-			err := s.PostData("PCRF", *cs.PcrfEndpoint, FilterConfigPCRF, &jsonConfig)
+	return nil
+}
+
+func (s *Synchronizer) SynchronizeHSSService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+	jsonConfig := JsonConfig{}
+
+	log.Infof("Synchronizing HSS Service %s", *cs.Id)
+
+	if device.Subscriber != nil {
+		// For backward compatibility, one way to attach keys to an IMSI is to attach
+		// a SecurityProfile to a Subscriber. This is deprecated.
+		for _, ue := range device.Subscriber.Ue {
+			if !s.UEIsRelevant(ue, cs, validEnterpriseIds) {
+				continue
+			}
+
+			if ue.Profiles.SecurityProfile == nil {
+				log.Infof("UE %s has no security profile", *ue.Id)
+				continue
+			}
+
+			keys, err := s.BuildUEKeys(ue)
+			if err != nil {
+				return err
+			}
+
+			// HSS only needs to know about the SecurityProfile, not the other Profiles
+			rule := SubscriberSelectionRule{
+				Priority:        ue.Priority,
+				Keys:            *keys,
+				SecurityProfile: ue.Profiles.SecurityProfile,
+			}
+			jsonConfig.SubscriberSelectionRules = append(jsonConfig.SubscriberSelectionRules, rule)
+		}
+	}
+
+	if device.SecurityProfile != nil {
+		jsonConfig.SecurityProfiles = make(map[string]SecurityProfile)
+		for _, sp := range device.SecurityProfile.SecurityProfile {
+			profile := SecurityProfile{
+				Key: sp.Key,
+				Opc: sp.Opc,
+				Sqn: sp.Sqn,
+			}
+
+			jsonConfig.SecurityProfiles[*sp.Id] = profile
+
+			// Moving forward, the new way to attach security keys to an IMSI is to specify
+			// the IMSI directly in the SecurityProfile, instead of connecting the profile
+			// to an existing subscriber object. HSS still expects to see a SubscriberSelectionRules,
+			// so emit that here.
+
+			if (sp.ImsiRangeFrom != nil) || (sp.ImsiRangeTo != nil) {
+				if sp.ImsiRangeFrom == nil {
+					return errors.New("ImsiRangeFrom is nil, but ImsiRangeTo is not")
+				}
+				if sp.ImsiRangeTo == nil {
+					return errors.New("ImsiRangeTo is nil, but ImsiRangeFrom is not")
+				}
+				keys := SubscriberKeys{ImsiRange: &SubscriberImsiRange{
+					From: *sp.ImsiRangeFrom,
+					To:   *sp.ImsiRangeTo}}
+				rule := SubscriberSelectionRule{Keys: keys, SecurityProfile: sp.Id}
+				jsonConfig.SubscriberSelectionRules = append(jsonConfig.SubscriberSelectionRules, rule)
+			}
+		}
+	}
+
+	synchronizationResourceTotal.WithLabelValues(*cs.Id, "hss-subscriber").Set(float64(len(jsonConfig.SubscriberSelectionRules)))
+	synchronizationResourceTotal.WithLabelValues(*cs.Id, "security-profile").Set(float64(len(jsonConfig.SecurityProfiles)))
+
+	if s.outputFileName != "" {
+		data, err := json.MarshalIndent(jsonConfig, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		log.Infof("Writing to file: %v", string(data))
+
+		log.Infof("Writing %s-hss", s.outputFileName)
+		file, err := os.OpenFile(
+			s.outputFileName+"-hss",
+			os.O_WRONLY|os.O_TRUNC|os.O_CREATE,
+			0666,
+		)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		_, err = file.Write(data)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.postEnable {
+		if cs.HssEndpoint != nil {
+			err := s.PostData("HSS", *cs.HssEndpoint, FilterConfigHSS, &jsonConfig)
 			if err != nil {
 				return err
 			}

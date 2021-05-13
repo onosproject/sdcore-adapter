@@ -5,7 +5,7 @@
 package synchronizer
 
 import (
-	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
+	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.2.0/aether_2_2_0"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -266,8 +266,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
         "sample-acp"
       ],
       "selected-qos-profile": "sample-qp",
-      "selected-user-plane-profile": "sample-up",
-      "selected-security-profile": "sample-sp"
+      "selected-user-plane-profile": "sample-up"
     }
   ],
   "access-profiles": {
@@ -312,7 +311,29 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
         "tag1": "BW"
       }
     }
-  },
+  }
+}`
+
+	// define the expected json here
+	expected_hss_result := `{
+  "subscriber-selection-rules": [
+    {
+      "priority": 1,
+      "keys": {
+        "imsi-range": {
+          "from": 123456,
+          "to": 1234567
+        },
+        "serving-plmn": {
+          "mcc": 123,
+          "mnc": 456,
+          "tac": 789
+        },
+        "requested-apn": "sample-ue-req-apn"
+      },
+      "selected-security-profile": "sample-sp"
+    }
+  ],
   "security-profiles": {
     "sample-sp": {
       "key": "sample-sp-key",
@@ -325,6 +346,10 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)
 	assert.Equal(t, expected_result, string(content))
+
+	content, err = ioutil.ReadFile(tempFileName + "-hss")
+	assert.Nil(t, err)
+	assert.Equal(t, expected_hss_result, string(content))
 }
 
 func TestSynchronizeDeviceImsiRangeOnly(t *testing.T) {

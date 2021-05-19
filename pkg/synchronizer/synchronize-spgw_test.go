@@ -279,10 +279,10 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
   "apn-profiles": {
     "sample-app": {
       "apn-name": "sample-app-name",
-      "dns-primary": "sample-app-dnsprimary",
-      "dns-secondary": "sample-app-dnssecondary",
+      "dns_primary": "sample-app-dnsprimary",
+      "dns_secondary": "sample-app-dnssecondary",
       "mtu": 123,
-      "gx-enabled": true,
+      "gx_enabled": true,
       "network": "lbo",
       "usage": 1
     }

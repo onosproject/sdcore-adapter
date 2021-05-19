@@ -58,10 +58,10 @@ type SubscriberSelectionRule struct {
 
 type ApnProfile struct {
 	ApnName      *string `json:"apn-name"`
-	DnsPrimary   *string `json:"dns-primary"`
-	DnsSecondary *string `json:"dns-secondary"`
+	DnsPrimary   *string `json:"dns_primary"`
+	DnsSecondary *string `json:"dns_secondary"`
 	Mtu          *uint32 `json:"mtu"`
-	GxEnabled    *bool   `json:"gx-enabled"`
+	GxEnabled    *bool   `json:"gx_enabled"`
 	Network      string  `json:"network"`
 	Usage        uint32  `json:"usage"`
 	GxApn        *string `json:"gx_apn,omitempty"`

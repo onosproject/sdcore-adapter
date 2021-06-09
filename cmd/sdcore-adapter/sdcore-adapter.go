@@ -19,7 +19,7 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
+	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
 // Utility functions for synchronizer
-package synchronizer
+package synchronizerv2
 
 func boolToUint32(b bool) uint32 {
 	if b {

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-package synchronizer
+package synchronizerv3
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

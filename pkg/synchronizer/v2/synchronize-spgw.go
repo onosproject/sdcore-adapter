@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
 // Package synchronizer implements a synchronizer for converting sdcore gnmi to json
-package synchronizer
+package synchronizerv2
 
 import (
 	"bytes"

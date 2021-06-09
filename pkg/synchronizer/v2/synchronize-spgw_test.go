@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-package synchronizer
+package synchronizerv2
 
 import (
 	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"

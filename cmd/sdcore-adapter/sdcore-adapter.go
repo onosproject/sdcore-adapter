@@ -19,7 +19,9 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
-	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
+	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
+	synchronizerv2 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v2"
+	synchronizerv3 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
@@ -38,6 +40,7 @@ var (
 	postTimeout        = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
 	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
 	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v2", "Target to use when pulling from aether-config")
+	modelVersion       = flag.String("model_version", "v3", "Version of modeling to use")
 )
 
 var log = logging.GetLogger("sdcore-adapter")
@@ -52,7 +55,7 @@ func serveMetrics() {
 // Synchronize and eat the error. This lets aether-config know we applied the
 // configuration, but leaves us to retry applying it to the southbound device
 // ourselves.
-func synchronizerWrapper(s *synchronizer.Synchronizer) gnmi.ConfigCallback {
+func synchronizerWrapper(s synchronizer.SynchronizerInterface) gnmi.ConfigCallback {
 	return func(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
 		err := s.Synchronize(config, callbackType)
 		if err != nil {
@@ -64,8 +67,14 @@ func synchronizerWrapper(s *synchronizer.Synchronizer) gnmi.ConfigCallback {
 }
 
 func main() {
+	var sync synchronizer.SynchronizerInterface
+
 	// Initialize the synchronizer's service-specific code.
-	sync := synchronizer.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	if *modelVersion == "v2" {
+		sync = synchronizerv2.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	} else {
+		sync = synchronizerv3.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	}
 
 	// The synchronizer will convey its list of models.
 	model := sync.GetModels()

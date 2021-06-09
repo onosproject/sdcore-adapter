@@ -12,10 +12,11 @@ require (
 	github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201217104719-f0b4f4c16f49
 	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180505-6d1bbdac02b2
 	github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.0.0-20210318164050-747863f7c91e
+	github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.6.30
 	github.com/onosproject/onos-lib-go v0.6.19
 	github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802
 	github.com/openconfig/goyang v0.2.2
-	github.com/openconfig/ygot v0.9.1-0.20201217195010-7872e9d3d591
+	github.com/openconfig/ygot v0.10.5
 	github.com/prometheus/client_golang v1.9.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/stretchr/testify v1.6.1

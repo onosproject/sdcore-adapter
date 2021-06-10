@@ -84,6 +84,14 @@ type Slice struct {
 	Applications      []Application `json:"application-information"`
 }
 
+func ProtoStringToProtoNumber(s string) (uint32, error) {
+	n, okay := map[string]uint32{"TCP": 6, "UDP": 17}[s]
+	if !okay {
+		return 0, fmt.Errorf("Unknown protocl %s", s)
+	}
+	return n, nil
+}
+
 // NOTE: This function is nearly identical with the v2 synchronizer. Refactor?
 func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	device := config.(*models.Device)
@@ -183,6 +191,51 @@ func (s *Synchronizer) GetIpDomain(device *models.Device, id *string) (*models.I
 		return nil, fmt.Errorf("IpDomain %s not found", id)
 	}
 	return ipd, nil
+}
+
+// Lookup an ApList
+func (s *Synchronizer) GetApList(device *models.Device, id *string) (*models.ApList_ApList_ApList, error) {
+	if device.ApList == nil {
+		return nil, fmt.Errorf("Device contains no ApLists")
+	}
+	if (id == nil) || (*id == "") {
+		return nil, fmt.Errorf("ApList id is blank")
+	}
+	apl, okay := device.ApList.ApList[*id]
+	if !okay {
+		return nil, fmt.Errorf("ApList %s not found", id)
+	}
+	return apl, nil
+}
+
+// Lookup a UPF
+func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.Upf_Upf_Upf, error) {
+	if device.Upf == nil {
+		return nil, fmt.Errorf("Device contains no Upfs")
+	}
+	if (id == nil) || (*id == "") {
+		return nil, fmt.Errorf("Upf id is blank")
+	}
+	upf, okay := device.Upf.Upf[*id]
+	if !okay {
+		return nil, fmt.Errorf("Upf %s not found", id)
+	}
+	return upf, nil
+}
+
+// Lookup an Application
+func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*models.Application_Application_Application, error) {
+	if device.Application == nil {
+		return nil, fmt.Errorf("Device contains no Applications")
+	}
+	if (id == nil) || (*id == "") {
+		return nil, fmt.Errorf("Application id is blank")
+	}
+	app, okay := device.Application.Application[*id]
+	if !okay {
+		return nil, fmt.Errorf("Application %s not found", id)
+	}
+	return app, nil
 }
 
 func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
@@ -302,14 +355,87 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			SiteName: *site.Id,
 			Plmn:     plmn,
 		}
+
+		if vcs.Ap != nil {
+			apList, err := s.GetApList(device, vcs.Ap)
+			if err != nil {
+				log.Warnf("Vcs %s unable to determine ap list: %s", *vcs.Id, err)
+				continue
+			}
+			for _, ap := range apList.AccessPoints {
+				if *ap.Enable {
+					gNodeB := GNodeB{Name: *ap.Address,
+						Tac: *ap.Tac}
+					siteInfo.GNodeBs = append(siteInfo.GNodeBs, gNodeB)
+				}
+			}
+		}
+
+		if vcs.Upf != nil {
+			upf, err := s.GetUpf(device, vcs.Upf)
+			if err != nil {
+				log.Warnf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
+				continue
+			}
+			siteInfo.Upf = Upf{
+				Name: *upf.Address,
+				Port: *upf.Port,
+			}
+		}
+
 		sliceId := SliceId{
 			Sst: *vcs.Sst,
 			Sd:  *vcs.Sd,
 		}
+
 		slice := Slice{
 			Id:          sliceId,
 			DeviceGroup: *dg.Id,
-			SiteInfo:    siteInfo}
+			SiteInfo:    siteInfo,
+		}
+
+		// TODO: These should be uint64 in the modeling
+		if vcs.Uplink != nil {
+			slice.Qos.Uplink = uint64(*vcs.Uplink)
+		}
+		if vcs.Downlink != nil {
+			slice.Qos.Uplink = uint64(*vcs.Downlink)
+		}
+
+		for _, appRef := range vcs.Application {
+			app, err := s.GetApplication(device, appRef.Application)
+			if err != nil {
+				log.Warnf("Vcs %s unable to determine application: %s", *vcs.Id, err)
+				continue
+			}
+			if *appRef.Allow {
+				slice.PermitApplication = append(slice.PermitApplication, *app.Id)
+			} else {
+				slice.DenyApplication = append(slice.DenyApplication, *app.Id)
+			}
+			appCore := Application{
+				Name: *app.Id,
+			}
+			if len(app.Endpoint) > 1 {
+				// this is a temporary restriction
+				log.Warnf("Vcs %s Applicaiton %s has more endpoints than are allowed", *vcs.Id, *app.Id)
+				continue
+			}
+			// there can be at most one at this point...
+			for _, endpoint := range app.Endpoint {
+				appCore.Endpoint = *endpoint.Address
+				appCore.StartPort = *endpoint.PortStart
+				appCore.EndPort = *endpoint.PortEnd
+
+				protoNum, err := ProtoStringToProtoNumber(*endpoint.Protocol)
+				if err != nil {
+					log.Warnf("Vcs %s Applicaiton %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
+					continue
+				}
+				appCore.Protocol = protoNum
+			}
+			slice.Applications = append(slice.Applications, appCore)
+		}
 	}
 
 	/*

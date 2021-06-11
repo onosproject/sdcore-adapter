@@ -17,6 +17,7 @@ import (
 	"time"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 type IpDomain struct {
@@ -130,16 +131,16 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 		m := csEntMap[csId]
 
 		tStart := time.Now()
-		synchronizationTotal.WithLabelValues(csId).Inc()
+		synchronizer.KpiSynchronizationTotal.WithLabelValues(csId).Inc()
 
 		err := s.SynchronizeConnectivityService(device, cs, m)
 		if err != nil {
-			synchronizationFailedTotal.WithLabelValues(csId).Inc()
+			synchronizer.KpiSynchronizationFailedTotal.WithLabelValues(csId).Inc()
 			// If there are errors, then build a list of them and continue to try
 			// to synchronize other connectivity services.
 			errors = append(errors, err)
 		} else {
-			synchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
+			synchronizer.KpiSynchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
 		}
 	}
 
@@ -436,23 +437,14 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			}
 			slice.Applications = append(slice.Applications, appCore)
 		}
+
+		data, err := json.MarshalIndent(slice, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		log.Infof("Put Slice: %v", string(data))
 	}
-
-	/*
-		SiteName string   `json:"site-name"`
-		Plmn     Plmn     `json:"plmn"`
-		GNodeBs  []GNodeB `json:"gNodeBs"`
-		Upf      Upf      `json:"upf"`
-
-			type Slice struct {
-			Id                SliceId       `json:"slice-id"`
-			Qos               Qos           `json:"qos"`
-			DeviceGroup       string        `json:"device-group"`
-			SiteInfo          SiteInfo      `json:"site-info"`
-			DenyApplication   []string      `json:"deny-application"`
-			PermitApplication []string      `json:"permitted-applications"`
-			Applications      []Application `json:"application-information"`
-	*/
 
 	return nil
 }

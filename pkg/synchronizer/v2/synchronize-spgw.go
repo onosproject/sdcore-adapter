@@ -323,8 +323,8 @@ func (s *Synchronizer) SynchronizePCRF(device *models.Device) (*PoliciesStruct, 
 				if rule.Qos.Arp != nil {
 					arp := RuleDefinitionQosArp{
 						Priority:                *rule.Qos.Arp.Priority,
-						PreemptionCapability:    boolToUint32(*rule.Qos.Arp.PreemptionCapability),
-						PreemptionVulnerability: boolToUint32(*rule.Qos.Arp.PreemptionVulnerability),
+						PreemptionCapability:    synchronizer.BoolToUint32(*rule.Qos.Arp.PreemptionCapability),
+						PreemptionVulnerability: synchronizer.BoolToUint32(*rule.Qos.Arp.PreemptionVulnerability),
 					}
 					qos.Arp = &arp
 				}
@@ -534,10 +534,10 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 					arp.Priority = *qos.Arp.Priority
 				}
 				if qos.Arp.PreemptionCapability != nil {
-					arp.PreemptionCapability = boolToUint32(*qos.Arp.PreemptionCapability)
+					arp.PreemptionCapability = synchronizer.BoolToUint32(*qos.Arp.PreemptionCapability)
 				}
 				if qos.Arp.PreemptionVulnerability != nil {
-					arp.PreemptionVulnerability = boolToUint32(*qos.Arp.PreemptionVulnerability)
+					arp.PreemptionVulnerability = synchronizer.BoolToUint32(*qos.Arp.PreemptionVulnerability)
 				}
 			}
 

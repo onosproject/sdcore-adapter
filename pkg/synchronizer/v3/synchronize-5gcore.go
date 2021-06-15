@@ -20,6 +20,13 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
+// Ideally we would get these from the yang defaults
+const (
+	DEFAULT_ADMINSTATUS = "ENABLE"
+	DEFAULT_MTU         = 1492
+	DEFAULT_PROTOCOL    = "TCP"
+)
+
 type IpDomain struct {
 	Dnn         string `json:"dnn"`
 	Pool        string `json:"ue-ip-pool"`
@@ -88,7 +95,7 @@ type Slice struct {
 func ProtoStringToProtoNumber(s string) (uint32, error) {
 	n, okay := map[string]uint32{"TCP": 6, "UDP": 17}[s]
 	if !okay {
-		return 0, fmt.Errorf("Unknown protocl %s", s)
+		return 0, fmt.Errorf("Unknown protocol %s", s)
 	}
 	return n, nil
 }
@@ -158,7 +165,7 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 		s.SynchronizeDeviceGroups(device, cs, validEnterpriseIds)
 	}
 	if device.Vcs != nil {
-		//SynchronizeVCS(device.Vcs)
+		s.SynchronizeVcs(device, cs, validEnterpriseIds)
 	}
 
 	return nil
@@ -270,6 +277,69 @@ func (s *Synchronizer) GetVcsSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs
 	return dg, site, err
 }
 
+// return error if VCS cannot be synchronized due to missing data
+func (s *Synchronizer) validateVcs(vcs *models.Vcs_Vcs_Vcs) error {
+	if vcs.Sst == nil {
+		return fmt.Errorf("Sst is nil")
+	}
+	if vcs.Sd == nil {
+		return fmt.Errorf("Sd is nil")
+	}
+	return nil
+}
+
+// return error if IpDomain cannot be synchronized due to missing data
+func (s *Synchronizer) validateAppEndpoint(ep *models.Application_Application_Application_Endpoint) error {
+	if ep.Address == nil {
+		return fmt.Errorf("Address is nil")
+	}
+	if ep.PortStart == nil {
+		return fmt.Errorf("PortStart is nil")
+	}
+	return nil
+}
+
+// return error if IpDomain cannot be synchronized due to missing data
+func (s *Synchronizer) validateIpDomain(ipd *models.IpDomain_IpDomain_IpDomain) error {
+	if ipd.Subnet == nil {
+		return fmt.Errorf("Subnet is nil")
+	}
+	return nil
+}
+
+// return error if AccessPoint cannot be synchronized due to missing data
+func (s *Synchronizer) validateAccessPoint(ap *models.ApList_ApList_ApList_AccessPoints) error {
+	if ap.Address == nil {
+		return fmt.Errorf("Address is nil")
+	}
+	if ap.Tac == nil {
+		return fmt.Errorf("Tac is nil")
+	}
+	return nil
+}
+
+// return error if Network cannot be synchronized due to missing data
+func (s *Synchronizer) validateNetwork(n *models.Network_Network_Network) error {
+	if n.Mnc == nil {
+		return fmt.Errorf("Mnc is nil")
+	}
+	if n.Mcc == nil {
+		return fmt.Errorf("Mcc is nil")
+	}
+	return nil
+}
+
+// return error if UPF cannot be synchronized due to missing data
+func (s *Synchronizer) validateUpf(u *models.Upf_Upf_Upf) error {
+	if u.Address == nil {
+		return fmt.Errorf("Address is nil")
+	}
+	if u.Port == nil {
+		return fmt.Errorf("Port is nil")
+	}
+	return nil
+}
+
 func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	for _, dg := range device.DeviceGroup.DeviceGroup {
 		site, err := s.GetDeviceGroupSite(device, dg)
@@ -290,22 +360,28 @@ func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models
 
 		// populate the imsi list
 		for _, imsiBlock := range dg.Imsis {
-			var lastImsi uint64
 			if imsiBlock.ImsiRangeFrom == nil {
+				log.Infof("imsiBlock has blank ImsiRangeFrom: %v", imsiBlock)
 				// print error?
 				continue
 			}
+			firstImsi := *imsiBlock.ImsiRangeFrom
+			var lastImsi uint64
 			if imsiBlock.ImsiRangeTo == nil {
-				lastImsi = *imsiBlock.ImsiRangeFrom
+				lastImsi = firstImsi
+			} else {
+				lastImsi = *imsiBlock.ImsiRangeTo
 			}
-			for i := *imsiBlock.ImsiRangeFrom; i <= lastImsi; i++ {
+			for i := firstImsi; i <= lastImsi; i++ {
 				dgCore.Imsis = append(dgCore.Imsis, strconv.FormatUint(i, 10))
 			}
 		}
 
 		ipd, err := s.GetIpDomain(device, dg.IpDomain)
+
+		err = s.validateIpDomain(ipd)
 		if err != nil {
-			log.Warnf("DeviceGroup %s unable to determine ipDomain: %s", *dg.Id, err)
+			log.Warnf("DeviceGroup %s invalid: %s", *dg.Id, err)
 			continue
 		}
 
@@ -313,9 +389,9 @@ func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models
 		ipdCore := IpDomain{
 			Dnn:         "Internet", // hardcoded
 			Pool:        *ipd.Subnet,
-			AdminStatus: *ipd.AdminStatus,
-			DnsPrimary:  *ipd.DnsPrimary,
-			Mtu:         *ipd.Mtu,
+			AdminStatus: synchronizer.DerefStrPtr(ipd.AdminStatus, DEFAULT_ADMINSTATUS),
+			DnsPrimary:  synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
+			Mtu:         synchronizer.DerefUint32Ptr(ipd.Mtu, DEFAULT_MTU),
 		}
 		dgCore.IpDomain = ipdCore
 
@@ -342,9 +418,21 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			continue
 		}
 
+		err = s.validateVcs(vcs)
+		if err != nil {
+			log.Warnf("Vcs %s is invalid: %s", err)
+			continue
+		}
+
 		net, err := s.GetNetwork(device, site.Network)
 		if err != nil {
 			log.Warnf("Vcs %s unable to determine network: %s", *vcs.Id, err)
+			continue
+		}
+
+		err = s.validateNetwork(net)
+		if err != nil {
+			log.Warn("Vcs %s Network Invalid: %s", *vcs.Id)
 			continue
 		}
 
@@ -364,9 +452,16 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 				continue
 			}
 			for _, ap := range apList.AccessPoints {
+				err = s.validateAccessPoint(ap)
+				if err != nil {
+					log.Warnf("AccessPointList %s invalid: %s", *apList.Id, err)
+					continue
+				}
 				if *ap.Enable {
-					gNodeB := GNodeB{Name: *ap.Address,
-						Tac: *ap.Tac}
+					gNodeB := GNodeB{
+						Name: *ap.Address,
+						Tac:  *ap.Tac,
+					}
 					siteInfo.GNodeBs = append(siteInfo.GNodeBs, gNodeB)
 				}
 			}
@@ -376,6 +471,11 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			upf, err := s.GetUpf(device, vcs.Upf)
 			if err != nil {
 				log.Warnf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
+				continue
+			}
+			err = s.validateUpf(upf)
+			if err != nil {
+				log.Warnf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
 				continue
 			}
 			siteInfo.Upf = Upf{
@@ -390,9 +490,11 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 		}
 
 		slice := Slice{
-			Id:          sliceId,
-			DeviceGroup: *dg.Id,
-			SiteInfo:    siteInfo,
+			Id:                sliceId,
+			DeviceGroup:       *dg.Id,
+			SiteInfo:          siteInfo,
+			PermitApplication: []string{},
+			DenyApplication:   []string{},
 		}
 
 		// TODO: These should be uint64 in the modeling
@@ -400,7 +502,7 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			slice.Qos.Uplink = uint64(*vcs.Uplink)
 		}
 		if vcs.Downlink != nil {
-			slice.Qos.Uplink = uint64(*vcs.Downlink)
+			slice.Qos.Downlink = uint64(*vcs.Downlink)
 		}
 
 		for _, appRef := range vcs.Application {
@@ -419,18 +521,28 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			}
 			if len(app.Endpoint) > 1 {
 				// this is a temporary restriction
-				log.Warnf("Vcs %s Applicaiton %s has more endpoints than are allowed", *vcs.Id, *app.Id)
+				log.Warnf("Vcs %s Application %s has more endpoints than are allowed", *vcs.Id, *app.Id)
 				continue
 			}
 			// there can be at most one at this point...
 			for _, endpoint := range app.Endpoint {
+				err = s.validateAppEndpoint(endpoint)
+				if err != nil {
+					log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
+					continue
+				}
 				appCore.Endpoint = *endpoint.Address
 				appCore.StartPort = *endpoint.PortStart
-				appCore.EndPort = *endpoint.PortEnd
+				if endpoint.PortEnd != nil {
+					appCore.EndPort = synchronizer.DerefUint32Ptr(endpoint.PortEnd, 0)
+				} else {
+					// no EndPort specified -- assume it's a singleton range
+					appCore.EndPort = appCore.StartPort
+				}
 
-				protoNum, err := ProtoStringToProtoNumber(*endpoint.Protocol)
+				protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DEFAULT_PROTOCOL))
 				if err != nil {
-					log.Warnf("Vcs %s Applicaiton %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
+					log.Warnf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
 					continue
 				}
 				appCore.Protocol = protoNum

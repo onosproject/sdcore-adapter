@@ -177,7 +177,7 @@ func (s *Synchronizer) GetNetwork(device *models.Device, id *string) (*models.Ne
 	}
 	net, okay := device.Network.Network[*id]
 	if !okay {
-		return nil, fmt.Errorf("Network %s not found", id)
+		return nil, fmt.Errorf("Network %s not found", *id)
 	}
 	return net, nil
 }
@@ -192,7 +192,7 @@ func (s *Synchronizer) GetIpDomain(device *models.Device, id *string) (*models.I
 	}
 	ipd, okay := device.IpDomain.IpDomain[*id]
 	if !okay {
-		return nil, fmt.Errorf("IpDomain %s not found", id)
+		return nil, fmt.Errorf("IpDomain %s not found", *id)
 	}
 	return ipd, nil
 }
@@ -207,7 +207,7 @@ func (s *Synchronizer) GetApList(device *models.Device, id *string) (*models.ApL
 	}
 	apl, okay := device.ApList.ApList[*id]
 	if !okay {
-		return nil, fmt.Errorf("ApList %s not found", id)
+		return nil, fmt.Errorf("ApList %s not found", *id)
 	}
 	return apl, nil
 }
@@ -222,7 +222,7 @@ func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.Upf_Up
 	}
 	upf, okay := device.Upf.Upf[*id]
 	if !okay {
-		return nil, fmt.Errorf("Upf %s not found", id)
+		return nil, fmt.Errorf("Upf %s not found", *id)
 	}
 	return upf, nil
 }
@@ -237,7 +237,7 @@ func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*model
 	}
 	app, okay := device.Application.Application[*id]
 	if !okay {
-		return nil, fmt.Errorf("Application %s not found", id)
+		return nil, fmt.Errorf("Application %s not found", *id)
 	}
 	return app, nil
 }

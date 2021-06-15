@@ -33,17 +33,17 @@ func aUint64(u uint64) *uint64 {
 }
 
 // populate an Enterprise structure
-func MakeEnterprise(desc string, displayName string, id string, cs []string) *models_v2.Enterprise_Enterprise_Enterprise {
-	csList := map[string]*models_v2.Enterprise_Enterprise_Enterprise_ConnectivityService{}
+func MakeEnterprise(desc string, displayName string, id string, cs []string) *models_v3.Enterprise_Enterprise_Enterprise {
+	csList := map[string]*models_v3.Enterprise_Enterprise_Enterprise_ConnectivityService{}
 
 	for _, csId := range cs {
-		csList[csId] = &models_v2.Enterprise_Enterprise_Enterprise_ConnectivityService{
+		csList[csId] = &models_v3.Enterprise_Enterprise_Enterprise_ConnectivityService{
 			ConnectivityService: aStr(csId),
 			Enabled:             aBool(true),
 		}
 	}
 
-	ent := models_v2.Enterprise_Enterprise_Enterprise{
+	ent := models_v3.Enterprise_Enterprise_Enterprise{
 		Description:         aStr(desc),
 		DisplayName:         aStr(displayName),
 		Id:                  aStr(id),
@@ -53,8 +53,8 @@ func MakeEnterprise(desc string, displayName string, id string, cs []string) *mo
 	return &ent
 }
 
-func MakeCs(desc string, displayName string, id string) *models_v2.ConnectivityService_ConnectivityService_ConnectivityService {
-	cs := models_v2.ConnectivityService_ConnectivityService_ConnectivityService{
+func MakeCs(desc string, displayName string, id string) *models_v3.ConnectivityService_ConnectivityService_ConnectivityService {
+	cs := models_v3.ConnectivityService_ConnectivityService_ConnectivityService{
 		Description: aStr(desc),
 		DisplayName: aStr(displayName),
 		Id:          aStr(id),
@@ -75,7 +75,7 @@ func TestSynchronizeDeviceEmpty(t *testing.T) {
 
 	s := Synchronizer{}
 	s.SetOutputFileName(tempFileName)
-	device := models_v2.Device{}
+	device := models_v3.Device{}
 	err = s.SynchronizeDevice(&device)
 	assert.Nil(t, err)
 

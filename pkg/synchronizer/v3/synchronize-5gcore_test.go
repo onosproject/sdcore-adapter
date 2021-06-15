@@ -12,27 +12,8 @@ import (
 	"testing"
 )
 
-// to facilitate easy declaring of pointers to strings
-func aStr(s string) *string {
-	return &s
-}
-
-// to facilitate easy declaring of pointers to bools
-func aBool(b bool) *bool {
-	return &b
-}
-
-// to facilitate easy declaring of pointers to uint32
-func aUint32(u uint32) *uint32 {
-	return &u
-}
-
-// to facilitate easy declaring of pointers to uint64
-func aUint64(u uint64) *uint64 {
-	return &u
-}
-
 // populate an Enterprise structure
+/*
 func MakeEnterprise(desc string, displayName string, id string, cs []string) *models_v3.Enterprise_Enterprise_Enterprise {
 	csList := map[string]*models_v3.Enterprise_Enterprise_Enterprise_ConnectivityService{}
 
@@ -62,6 +43,7 @@ func MakeCs(desc string, displayName string, id string) *models_v3.ConnectivityS
 
 	return &cs
 }
+*/
 
 // an empty device should yield empty json
 func TestSynchronizeDeviceEmpty(t *testing.T) {

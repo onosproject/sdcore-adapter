@@ -158,10 +158,16 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 	log.Infof("Synchronizing Connectivity Service %s", *cs.Id)
 
 	if device.DeviceGroup != nil {
-		s.SynchronizeDeviceGroups(device, cs, validEnterpriseIds)
+		err := s.SynchronizeDeviceGroups(device, cs, validEnterpriseIds)
+		if err != nil {
+			return err
+		}
 	}
 	if device.Vcs != nil {
-		s.SynchronizeVcs(device, cs, validEnterpriseIds)
+		err := s.SynchronizeVcs(device, cs, validEnterpriseIds)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -245,7 +251,6 @@ func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*model
 func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
 		return nil, fmt.Errorf("DeviceGroup %s has no site.", *dg.Id)
-		return nil, nil
 	}
 	site, okay := device.Site.Site[*dg.Site]
 	if !okay {
@@ -253,7 +258,6 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.Devi
 	}
 	if (site.Enterprise == nil) || (*site.Enterprise == "") {
 		return nil, fmt.Errorf("DeviceGroup %s has no enterprise.", *dg.Id)
-		return nil, nil
 	}
 	return site, nil
 }
@@ -311,6 +315,10 @@ deviceGroupLoop:
 		}
 
 		ipd, err := s.GetIpDomain(device, dg.IpDomain)
+		if err != nil {
+			log.Warnf("DeviceGroup %s failed to get IpDomain: %s", *dg.Id, err)
+			continue deviceGroupLoop
+		}
 
 		err = s.validateIpDomain(ipd)
 		if err != nil {

@@ -41,6 +41,7 @@ var (
 	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
 	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v2", "Target to use when pulling from aether-config")
 	modelVersion       = flag.String("model_version", "v3", "Version of modeling to use")
+	showModelList      = flag.Bool("show_models", false, "Show list of available modes")
 )
 
 var log = logging.GetLogger("sdcore-adapter")
@@ -69,27 +70,33 @@ func synchronizerWrapper(s synchronizer.SynchronizerInterface) gnmi.ConfigCallba
 func main() {
 	var sync synchronizer.SynchronizerInterface
 
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
 	// Initialize the synchronizer's service-specific code.
 	if *modelVersion == "v2" {
+		log.Infof("Initializing synchronizer for v2 models")
 		sync = synchronizerv2.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
-	} else {
+	} else if *modelVersion == "v3" {
+		log.Infof("Initializing synchronizer for v3 models")
 		sync = synchronizerv3.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	} else {
+		log.Panicf("invalid modelVersion %s", *modelVersion)
 	}
 
 	// The synchronizer will convey its list of models.
 	model := sync.GetModels()
 
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Supported models:\n")
+	if *showModelList {
+		fmt.Fprintf(os.Stdout, "Supported models:\n")
 		for _, m := range model.SupportedModels() {
-			fmt.Fprintf(os.Stderr, "  %s\n", m)
+			fmt.Fprintf(os.Stdout, "  %s\n", m)
 		}
-		fmt.Fprintf(os.Stderr, "\n")
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-		flag.PrintDefaults()
+		return
 	}
-
-	flag.Parse()
 
 	opts := credentials.ServerCredentials()
 	g := grpc.NewServer(opts...)

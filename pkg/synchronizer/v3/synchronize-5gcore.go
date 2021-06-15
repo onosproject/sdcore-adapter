@@ -278,16 +278,17 @@ func (s *Synchronizer) GetVcsSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs
 }
 
 func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+deviceGroupLoop:
 	for _, dg := range device.DeviceGroup.DeviceGroup {
 		site, err := s.GetDeviceGroupSite(device, dg)
 		if err != nil {
 			log.Warnf("DeviceGroup %s unable to determine site: %s", *dg.Id, err)
-			continue
+			continue deviceGroupLoop
 		}
 		valid, okay := validEnterpriseIds[*site.Enterprise]
 		if (!okay) || (!valid) {
 			log.Infof("DeviceGroup %s is not part of ConnectivityService %s.", *dg.Id, *cs.Id)
-			continue
+			continue deviceGroupLoop
 		}
 
 		dgCore := DeviceGroup{
@@ -299,8 +300,7 @@ func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models
 		for _, imsiBlock := range dg.Imsis {
 			if imsiBlock.ImsiRangeFrom == nil {
 				log.Infof("imsiBlock has blank ImsiRangeFrom: %v", imsiBlock)
-				// print error?
-				continue
+				continue deviceGroupLoop
 			}
 			firstImsi := *imsiBlock.ImsiRangeFrom
 			var lastImsi uint64
@@ -319,7 +319,7 @@ func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models
 		err = s.validateIpDomain(ipd)
 		if err != nil {
 			log.Warnf("DeviceGroup %s invalid: %s", *dg.Id, err)
-			continue
+			continue deviceGroupLoop
 		}
 
 		dgCore.IpDomainName = *ipd.Id
@@ -334,43 +334,45 @@ func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models
 
 		data, err := json.MarshalIndent(dgCore, "", "  ")
 		if err != nil {
-			return err
+			log.Warnf("DeviceGroup %s failed to Marshal Json: %s", *dg.Id, err)
+			continue deviceGroupLoop
 		}
 
-		log.Infof("Put IpDomain: %v", string(data))
+		log.Infof("Put DeviceGroup: %v", string(data))
 	}
 	return nil
 }
 
 func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+vcsLoop:
 	for _, vcs := range device.Vcs.Vcs {
 		dg, site, err := s.GetVcsSite(device, vcs)
 		if err != nil {
 			log.Warnf("Vcs %s unable to determine site", *vcs.Id)
-			continue
+			continue vcsLoop
 		}
 		valid, okay := validEnterpriseIds[*site.Enterprise]
 		if (!okay) || (!valid) {
 			log.Infof("VCS %s is not part of ConnectivityService %s.", *vcs.Id, *cs.Id)
-			continue
+			continue vcsLoop
 		}
 
 		err = s.validateVcs(vcs)
 		if err != nil {
 			log.Warnf("Vcs %s is invalid: %s", err)
-			continue
+			continue vcsLoop
 		}
 
 		net, err := s.GetNetwork(device, site.Network)
 		if err != nil {
 			log.Warnf("Vcs %s unable to determine network: %s", *vcs.Id, err)
-			continue
+			continue vcsLoop
 		}
 
 		err = s.validateNetwork(net)
 		if err != nil {
 			log.Warn("Vcs %s Network Invalid: %s", *vcs.Id)
-			continue
+			continue vcsLoop
 		}
 
 		plmn := Plmn{
@@ -386,13 +388,13 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			apList, err := s.GetApList(device, vcs.Ap)
 			if err != nil {
 				log.Warnf("Vcs %s unable to determine ap list: %s", *vcs.Id, err)
-				continue
+				continue vcsLoop
 			}
 			for _, ap := range apList.AccessPoints {
 				err = s.validateAccessPoint(ap)
 				if err != nil {
 					log.Warnf("AccessPointList %s invalid: %s", *apList.Id, err)
-					continue
+					continue vcsLoop
 				}
 				if *ap.Enable {
 					gNodeB := GNodeB{
@@ -408,12 +410,12 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			upf, err := s.GetUpf(device, vcs.Upf)
 			if err != nil {
 				log.Warnf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
-				continue
+				continue vcsLoop
 			}
 			err = s.validateUpf(upf)
 			if err != nil {
 				log.Warnf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
-				continue
+				continue vcsLoop
 			}
 			siteInfo.Upf = Upf{
 				Name: *upf.Address,
@@ -446,7 +448,7 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			app, err := s.GetApplication(device, appRef.Application)
 			if err != nil {
 				log.Warnf("Vcs %s unable to determine application: %s", *vcs.Id, err)
-				continue
+				continue vcsLoop
 			}
 			if *appRef.Allow {
 				slice.PermitApplication = append(slice.PermitApplication, *app.Id)
@@ -459,14 +461,14 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 			if len(app.Endpoint) > 1 {
 				// this is a temporary restriction
 				log.Warnf("Vcs %s Application %s has more endpoints than are allowed", *vcs.Id, *app.Id)
-				continue
+				continue vcsLoop
 			}
 			// there can be at most one at this point...
 			for _, endpoint := range app.Endpoint {
 				err = s.validateAppEndpoint(endpoint)
 				if err != nil {
 					log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
-					continue
+					continue vcsLoop
 				}
 				appCore.Endpoint = *endpoint.Address
 				appCore.StartPort = *endpoint.PortStart
@@ -480,7 +482,7 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 				protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DEFAULT_PROTOCOL))
 				if err != nil {
 					log.Warnf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
-					continue
+					continue vcsLoop
 				}
 				appCore.Protocol = protoNum
 			}
@@ -489,7 +491,8 @@ func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.Connecti
 
 		data, err := json.MarshalIndent(slice, "", "  ")
 		if err != nil {
-			return err
+			log.Warnf("Vcs %s failed to marshal JSON: %s", *vcs.Id, err)
+			continue vcsLoop
 		}
 
 		log.Infof("Put Slice: %v", string(data))

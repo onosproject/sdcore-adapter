@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
 // Package gnmi implements a gnmi server to mock a device with YANG models.
-package synchronizer
+package synchronizerv2
 
 import (
 	"github.com/stretchr/testify/assert"

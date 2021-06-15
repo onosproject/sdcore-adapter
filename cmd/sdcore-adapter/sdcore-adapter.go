@@ -19,7 +19,9 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
+	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
+	synchronizerv2 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v2"
+	synchronizerv3 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
@@ -38,6 +40,8 @@ var (
 	postTimeout        = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
 	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
 	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v2", "Target to use when pulling from aether-config")
+	modelVersion       = flag.String("model_version", "v3", "Version of modeling to use")
+	showModelList      = flag.Bool("show_models", false, "Show list of available modes")
 )
 
 var log = logging.GetLogger("sdcore-adapter")
@@ -52,7 +56,7 @@ func serveMetrics() {
 // Synchronize and eat the error. This lets aether-config know we applied the
 // configuration, but leaves us to retry applying it to the southbound device
 // ourselves.
-func synchronizerWrapper(s *synchronizer.Synchronizer) gnmi.ConfigCallback {
+func synchronizerWrapper(s synchronizer.SynchronizerInterface) gnmi.ConfigCallback {
 	return func(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
 		err := s.Synchronize(config, callbackType)
 		if err != nil {
@@ -64,23 +68,35 @@ func synchronizerWrapper(s *synchronizer.Synchronizer) gnmi.ConfigCallback {
 }
 
 func main() {
+	var sync synchronizer.SynchronizerInterface
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
 	// Initialize the synchronizer's service-specific code.
-	sync := synchronizer.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	if *modelVersion == "v2" {
+		log.Infof("Initializing synchronizer for v2 models")
+		sync = synchronizerv2.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	} else if *modelVersion == "v3" {
+		log.Infof("Initializing synchronizer for v3 models")
+		sync = synchronizerv3.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	} else {
+		log.Panicf("invalid modelVersion %s", *modelVersion)
+	}
 
 	// The synchronizer will convey its list of models.
 	model := sync.GetModels()
 
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Supported models:\n")
+	if *showModelList {
+		fmt.Fprintf(os.Stdout, "Supported models:\n")
 		for _, m := range model.SupportedModels() {
-			fmt.Fprintf(os.Stderr, "  %s\n", m)
+			fmt.Fprintf(os.Stdout, "  %s\n", m)
 		}
-		fmt.Fprintf(os.Stderr, "\n")
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-		flag.PrintDefaults()
+		return
 	}
-
-	flag.Parse()
 
 	opts := credentials.ServerCredentials()
 	g := grpc.NewServer(opts...)

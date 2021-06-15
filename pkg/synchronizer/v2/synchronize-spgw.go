@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
 // Package synchronizer implements a synchronizer for converting sdcore gnmi to json
-package synchronizer
+package synchronizerv2
 
 import (
 	"bytes"
@@ -16,6 +16,7 @@ import (
 	"time"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
+	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 /*
@@ -230,16 +231,16 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 		m := csEntMap[csId]
 
 		tStart := time.Now()
-		synchronizationTotal.WithLabelValues(csId).Inc()
+		synchronizer.KpiSynchronizationTotal.WithLabelValues(csId).Inc()
 
 		err := s.SynchronizeConnectivityService(device, cs, m)
 		if err != nil {
-			synchronizationFailedTotal.WithLabelValues(csId).Inc()
+			synchronizer.KpiSynchronizationFailedTotal.WithLabelValues(csId).Inc()
 			// If there are errors, then build a list of them and continue to try
 			// to synchronize other connectivity services.
 			errors = append(errors, err)
 		} else {
-			synchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
+			synchronizer.KpiSynchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
 		}
 	}
 
@@ -322,8 +323,8 @@ func (s *Synchronizer) SynchronizePCRF(device *models.Device) (*PoliciesStruct, 
 				if rule.Qos.Arp != nil {
 					arp := RuleDefinitionQosArp{
 						Priority:                *rule.Qos.Arp.Priority,
-						PreemptionCapability:    boolToUint32(*rule.Qos.Arp.PreemptionCapability),
-						PreemptionVulnerability: boolToUint32(*rule.Qos.Arp.PreemptionVulnerability),
+						PreemptionCapability:    synchronizer.BoolToUint32(*rule.Qos.Arp.PreemptionCapability),
+						PreemptionVulnerability: synchronizer.BoolToUint32(*rule.Qos.Arp.PreemptionVulnerability),
 					}
 					qos.Arp = &arp
 				}
@@ -533,10 +534,10 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 					arp.Priority = *qos.Arp.Priority
 				}
 				if qos.Arp.PreemptionCapability != nil {
-					arp.PreemptionCapability = boolToUint32(*qos.Arp.PreemptionCapability)
+					arp.PreemptionCapability = synchronizer.BoolToUint32(*qos.Arp.PreemptionCapability)
 				}
 				if qos.Arp.PreemptionVulnerability != nil {
-					arp.PreemptionVulnerability = boolToUint32(*qos.Arp.PreemptionVulnerability)
+					arp.PreemptionVulnerability = synchronizer.BoolToUint32(*qos.Arp.PreemptionVulnerability)
 				}
 			}
 
@@ -592,12 +593,12 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 		}
 	}
 
-	synchronizationResourceTotal.WithLabelValues(*cs.Id, "subscriber").Set(float64(len(jsonConfig.SubscriberSelectionRules)))
-	synchronizationResourceTotal.WithLabelValues(*cs.Id, "apn-profile").Set(float64(len(jsonConfig.ApnProfiles)))
-	synchronizationResourceTotal.WithLabelValues(*cs.Id, "access-profile").Set(float64(len(jsonConfig.AccessProfiles)))
-	synchronizationResourceTotal.WithLabelValues(*cs.Id, "qos-profile").Set(float64(len(jsonConfig.QosProfiles)))
-	synchronizationResourceTotal.WithLabelValues(*cs.Id, "up-profile").Set(float64(len(jsonConfig.UpProfiles)))
-	synchronizationResourceTotal.WithLabelValues(*cs.Id, "security-profile").Set(float64(len(jsonConfig.SecurityProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "subscriber").Set(float64(len(jsonConfig.SubscriberSelectionRules)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "apn-profile").Set(float64(len(jsonConfig.ApnProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "access-profile").Set(float64(len(jsonConfig.AccessProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "qos-profile").Set(float64(len(jsonConfig.QosProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "up-profile").Set(float64(len(jsonConfig.UpProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "security-profile").Set(float64(len(jsonConfig.SecurityProfiles)))
 
 	if s.outputFileName != "" {
 		data, err := json.MarshalIndent(jsonConfig, "", "  ")

@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
 // Package gnmi implements a gnmi server to mock a device with YANG models.
-package synchronizer
+package synchronizerv3
 
 import (
-	models "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	gnmiproto "github.com/openconfig/gnmi/proto/gnmi"
@@ -26,17 +26,21 @@ var log = logging.GetLogger("synchronizer")
  *   not returned by capabilities, only the names of the models.
  */
 var ModelData = []*gnmiproto.ModelData{
-	{Name: "access-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-	{Name: "aether-subscriber", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-	{Name: "apn-profile", Organization: "Open Networking Foundation", Version: "2021-03-04"},
-	{Name: "connectivity-service", Organization: "Open Networking Foundation", Version: "2021-03-18"},
-	{Name: "enterprise", Organization: "Open Networking Foundation", Version: "2020-11-30"},
-	{Name: "qos-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-	{Name: "security-profile", Organization: "Open Networking Foundation", Version: "2020-11-30"},
-	{Name: "up-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
-	{Name: "service-policy", Organization: "Open Networking Foundation", Version: "2021-03-04"},
-	{Name: "service-group", Organization: "Open Networking Foundation", Version: "2021-03-04"},
-	{Name: "service-rule", Organization: "Open Networking Foundation", Version: "2021-03-04"},
+	{Name: "connectivity-service", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "enterprise", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+
+	{Name: "aether-types", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "ap-list", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "application", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "device-group", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "device-model-list", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "ip-domain", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "network", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "site", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "upf", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "vcs", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "template", Organization: "Open Networking Foundation", Version: "2021-06-02"},
+	{Name: "traffic-class", Organization: "Open Networking Foundation", Version: "2021-06-02"},
 }
 
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {

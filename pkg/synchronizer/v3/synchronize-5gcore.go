@@ -24,11 +24,11 @@ const (
 )
 
 type IpDomain struct {
-	Dnn         string `json:"dnn"`
-	Pool        string `json:"ue-ip-pool"`
-	AdminStatus string `json:"admin-status"`
-	DnsPrimary  string `json:"dns-primary"`
-	Mtu         uint32 `json:"mtu"`
+	Dnn  string `json:"dnn"`
+	Pool string `json:"ue-ip-pool"`
+	// AdminStatus string `json:"admin-status"`  Dropped from current JSON
+	DnsPrimary string `json:"dns-primary"`
+	Mtu        uint32 `json:"mtu"`
 }
 
 type DeviceGroup struct {
@@ -44,8 +44,9 @@ type SliceId struct {
 }
 
 type Qos struct {
-	Uplink   uint64 `json:"uplink"`
-	Downlink uint64 `json:"downlink"`
+	Uplink       uint64 `json:"uplink"`
+	Downlink     uint64 `json:"downlink"`
+	TrafficClass string `json:"traffic-class"`
 }
 
 type GNodeB struct {
@@ -81,11 +82,11 @@ type Application struct {
 type Slice struct {
 	Id                SliceId       `json:"slice-id"`
 	Qos               Qos           `json:"qos"`
-	DeviceGroup       string        `json:"device-group"`
+	DeviceGroup       string        `json:"site-device-group"`
 	SiteInfo          SiteInfo      `json:"site-info"`
 	DenyApplication   []string      `json:"deny-application"`
 	PermitApplication []string      `json:"permitted-applications"`
-	Applications      []Application `json:"application-information"`
+	Applications      []Application `json:"applications-information"`
 }
 
 func ProtoStringToProtoNumber(s string) (uint32, error) {
@@ -248,6 +249,21 @@ func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*model
 	return app, nil
 }
 
+// Lookup an TrafficClass
+func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*models.TrafficClass_TrafficClass_TrafficClass, error) {
+	if device.TrafficClass == nil {
+		return nil, fmt.Errorf("Device contains no Traffic Classes")
+	}
+	if (id == nil) || (*id == "") {
+		return nil, fmt.Errorf("Traffic Class id is blank")
+	}
+	tc, okay := device.TrafficClass.TrafficClass[*id]
+	if !okay {
+		return nil, fmt.Errorf("TrafficClass %s not found", *id)
+	}
+	return tc, nil
+}
+
 func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
 		return nil, fmt.Errorf("DeviceGroup %s has no site.", *dg.Id)
@@ -275,6 +291,12 @@ func (s *Synchronizer) GetVcsSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs
 		return nil, nil, err
 	}
 	return dg, site, err
+}
+
+func (s *Synchronizer) PutUpdate(cs *models.ConnectivityService_ConnectivityService_ConnectivityService, url string, data []byte) error {
+	log.Infof("Put %s %s", url, string(data))
+
+	return nil
 }
 
 func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
@@ -328,11 +350,11 @@ deviceGroupLoop:
 
 		dgCore.IpDomainName = *ipd.Id
 		ipdCore := IpDomain{
-			Dnn:         "Internet", // hardcoded
-			Pool:        *ipd.Subnet,
-			AdminStatus: synchronizer.DerefStrPtr(ipd.AdminStatus, DEFAULT_ADMINSTATUS),
-			DnsPrimary:  synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-			Mtu:         synchronizer.DerefUint32Ptr(ipd.Mtu, DEFAULT_MTU),
+			Dnn:  "Internet", // hardcoded
+			Pool: *ipd.Subnet,
+			// AdminStatus: synchronizer.DerefStrPtr(ipd.AdminStatus, DEFAULT_ADMINSTATUS),   Dropped from current JSON
+			DnsPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
+			Mtu:        synchronizer.DerefUint32Ptr(ipd.Mtu, DEFAULT_MTU),
 		}
 		dgCore.IpDomain = ipdCore
 
@@ -342,7 +364,12 @@ deviceGroupLoop:
 			continue deviceGroupLoop
 		}
 
-		log.Infof("Put DeviceGroup: %v", string(data))
+		url := fmt.Sprintf("/config/v1/device-group/%s", *dg.Id)
+		err = s.PutUpdate(cs, url, data)
+		if err != nil {
+			log.Warnf("DeviceGroup %s failed to Put update: %s", *dg.Id, err)
+			continue deviceGroupLoop
+		}
 	}
 	return nil
 }
@@ -448,6 +475,15 @@ vcsLoop:
 			slice.Qos.Downlink = uint64(*vcs.Downlink)
 		}
 
+		if vcs.TrafficClass != nil {
+			trafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
+			if err != nil {
+				log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
+				continue vcsLoop
+			}
+			slice.Qos.TrafficClass = *trafficClass.Id
+		}
+
 		for _, appRef := range vcs.Application {
 			app, err := s.GetApplication(device, appRef.Application)
 			if err != nil {
@@ -499,7 +535,12 @@ vcsLoop:
 			continue vcsLoop
 		}
 
-		log.Infof("Put Slice: %v", string(data))
+		url := fmt.Sprintf("/config/v1/network-slice/%s", *vcs.Id)
+		err = s.PutUpdate(cs, url, data)
+		if err != nil {
+			log.Warnf("Vcs %s failed to put update: %s", *vcs.Id, err)
+			continue vcsLoop
+		}
 	}
 
 	return nil

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/openconfig/ygot/ygot"
 	"strconv"
+	"strings"
 	"time"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
@@ -55,8 +56,8 @@ type GNodeB struct {
 }
 
 type Plmn struct {
-	Mcc uint32 `json:"mcc"`
-	Mnc uint32 `json:"mnc"`
+	Mcc string `json:"mcc"`
+	Mnc string `json:"mnc"`
 }
 
 type Upf struct {
@@ -84,8 +85,8 @@ type Slice struct {
 	Qos               Qos           `json:"qos"`
 	DeviceGroup       string        `json:"site-device-group"`
 	SiteInfo          SiteInfo      `json:"site-info"`
-	DenyApplication   []string      `json:"deny-application"`
-	PermitApplication []string      `json:"permitted-applications"`
+	DenyApplication   []string      `json:"deny-applications"`
+	PermitApplication []string      `json:"permit-applications"`
 	Applications      []Application `json:"applications-information"`
 }
 
@@ -128,6 +129,11 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 
 	errors := []error{}
 	for csId, cs := range device.ConnectivityService.ConnectivityService {
+		if (cs.Core_5GEndpoint == nil) || (*cs.Core_5GEndpoint == "") {
+			log.Warnf("Skipping connectivity service %s because it has no 5G Endpoint", *cs.Id)
+			continue
+		}
+
 		// Get the list of valid Enterprises for this CS.
 		// Note: This could return an empty map if there is a CS that no
 		//   enterprises are linked to . In that case, we can still push models
@@ -293,12 +299,6 @@ func (s *Synchronizer) GetVcsSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs
 	return dg, site, err
 }
 
-func (s *Synchronizer) PutUpdate(cs *models.ConnectivityService_ConnectivityService_ConnectivityService, url string, data []byte) error {
-	log.Infof("Put %s %s", url, string(data))
-
-	return nil
-}
-
 func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 deviceGroupLoop:
 	for _, dg := range device.DeviceGroup.DeviceGroup {
@@ -364,10 +364,10 @@ deviceGroupLoop:
 			continue deviceGroupLoop
 		}
 
-		url := fmt.Sprintf("/config/v1/device-group/%s", *dg.Id)
-		err = s.PutUpdate(cs, url, data)
+		url := fmt.Sprintf("%s/v1/device-group/%s", *cs.Core_5GEndpoint, *dg.Id)
+		err = s.PushUpdate(url, data)
 		if err != nil {
-			log.Warnf("DeviceGroup %s failed to Put update: %s", *dg.Id, err)
+			log.Warnf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
 			continue deviceGroupLoop
 		}
 	}
@@ -407,8 +407,8 @@ vcsLoop:
 		}
 
 		plmn := Plmn{
-			Mcc: *net.Mcc,
-			Mnc: *net.Mnc,
+			Mcc: strconv.FormatUint(uint64(*net.Mcc), 10),
+			Mnc: strconv.FormatUint(uint64(*net.Mnc), 10),
 		}
 		siteInfo := SiteInfo{
 			SiteName: *site.Id,
@@ -510,7 +510,12 @@ vcsLoop:
 					log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
 					continue vcsLoop
 				}
-				appCore.Endpoint = *endpoint.Address
+				if strings.Contains(*endpoint.Address, "/") {
+					appCore.Endpoint = *endpoint.Address
+				} else {
+					appCore.Endpoint = *endpoint.Address + "/32"
+				}
+
 				appCore.StartPort = *endpoint.PortStart
 				if endpoint.PortEnd != nil {
 					appCore.EndPort = synchronizer.DerefUint32Ptr(endpoint.PortEnd, 0)
@@ -535,10 +540,10 @@ vcsLoop:
 			continue vcsLoop
 		}
 
-		url := fmt.Sprintf("/config/v1/network-slice/%s", *vcs.Id)
-		err = s.PutUpdate(cs, url, data)
+		url := fmt.Sprintf("%s/v1/network-slice/%s", *cs.Core_5GEndpoint, *vcs.Id)
+		err = s.PushUpdate(url, data)
 		if err != nil {
-			log.Warnf("Vcs %s failed to put update: %s", *vcs.Id, err)
+			log.Warnf("Vcs %s failed to push update: %s", *vcs.Id, err)
 			continue vcsLoop
 		}
 	}

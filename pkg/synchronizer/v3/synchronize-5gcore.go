@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/openconfig/ygot/ygot"
 	"strconv"
+	"strings"
 	"time"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
@@ -24,11 +25,11 @@ const (
 )
 
 type IpDomain struct {
-	Dnn         string `json:"dnn"`
-	Pool        string `json:"ue-ip-pool"`
-	AdminStatus string `json:"admin-status"`
-	DnsPrimary  string `json:"dns-primary"`
-	Mtu         uint32 `json:"mtu"`
+	Dnn  string `json:"dnn"`
+	Pool string `json:"ue-ip-pool"`
+	// AdminStatus string `json:"admin-status"`  Dropped from current JSON
+	DnsPrimary string `json:"dns-primary"`
+	Mtu        uint32 `json:"mtu"`
 }
 
 type DeviceGroup struct {
@@ -44,8 +45,9 @@ type SliceId struct {
 }
 
 type Qos struct {
-	Uplink   uint64 `json:"uplink"`
-	Downlink uint64 `json:"downlink"`
+	Uplink       uint64 `json:"uplink"`
+	Downlink     uint64 `json:"downlink"`
+	TrafficClass string `json:"traffic-class"`
 }
 
 type GNodeB struct {
@@ -54,8 +56,8 @@ type GNodeB struct {
 }
 
 type Plmn struct {
-	Mcc uint32 `json:"mcc"`
-	Mnc uint32 `json:"mnc"`
+	Mcc string `json:"mcc"`
+	Mnc string `json:"mnc"`
 }
 
 type Upf struct {
@@ -81,11 +83,11 @@ type Application struct {
 type Slice struct {
 	Id                SliceId       `json:"slice-id"`
 	Qos               Qos           `json:"qos"`
-	DeviceGroup       string        `json:"device-group"`
+	DeviceGroup       string        `json:"site-device-group"`
 	SiteInfo          SiteInfo      `json:"site-info"`
-	DenyApplication   []string      `json:"deny-application"`
-	PermitApplication []string      `json:"permitted-applications"`
-	Applications      []Application `json:"application-information"`
+	DenyApplication   []string      `json:"deny-applications"`
+	PermitApplication []string      `json:"permit-applications"`
+	Applications      []Application `json:"applications-information"`
 }
 
 func ProtoStringToProtoNumber(s string) (uint32, error) {
@@ -127,6 +129,11 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 
 	errors := []error{}
 	for csId, cs := range device.ConnectivityService.ConnectivityService {
+		if (cs.Core_5GEndpoint == nil) || (*cs.Core_5GEndpoint == "") {
+			log.Warnf("Skipping connectivity service %s because it has no 5G Endpoint", *cs.Id)
+			continue
+		}
+
 		// Get the list of valid Enterprises for this CS.
 		// Note: This could return an empty map if there is a CS that no
 		//   enterprises are linked to . In that case, we can still push models
@@ -248,6 +255,21 @@ func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*model
 	return app, nil
 }
 
+// Lookup an TrafficClass
+func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*models.TrafficClass_TrafficClass_TrafficClass, error) {
+	if device.TrafficClass == nil {
+		return nil, fmt.Errorf("Device contains no Traffic Classes")
+	}
+	if (id == nil) || (*id == "") {
+		return nil, fmt.Errorf("Traffic Class id is blank")
+	}
+	tc, okay := device.TrafficClass.TrafficClass[*id]
+	if !okay {
+		return nil, fmt.Errorf("TrafficClass %s not found", *id)
+	}
+	return tc, nil
+}
+
 func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
 		return nil, fmt.Errorf("DeviceGroup %s has no site.", *dg.Id)
@@ -328,11 +350,11 @@ deviceGroupLoop:
 
 		dgCore.IpDomainName = *ipd.Id
 		ipdCore := IpDomain{
-			Dnn:         "Internet", // hardcoded
-			Pool:        *ipd.Subnet,
-			AdminStatus: synchronizer.DerefStrPtr(ipd.AdminStatus, DEFAULT_ADMINSTATUS),
-			DnsPrimary:  synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-			Mtu:         synchronizer.DerefUint32Ptr(ipd.Mtu, DEFAULT_MTU),
+			Dnn:  "Internet", // hardcoded
+			Pool: *ipd.Subnet,
+			// AdminStatus: synchronizer.DerefStrPtr(ipd.AdminStatus, DEFAULT_ADMINSTATUS),   Dropped from current JSON
+			DnsPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
+			Mtu:        synchronizer.DerefUint32Ptr(ipd.Mtu, DEFAULT_MTU),
 		}
 		dgCore.IpDomain = ipdCore
 
@@ -342,7 +364,12 @@ deviceGroupLoop:
 			continue deviceGroupLoop
 		}
 
-		log.Infof("Put DeviceGroup: %v", string(data))
+		url := fmt.Sprintf("%s/v1/device-group/%s", *cs.Core_5GEndpoint, *dg.Id)
+		err = s.PushUpdate(url, data)
+		if err != nil {
+			log.Warnf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
+			continue deviceGroupLoop
+		}
 	}
 	return nil
 }
@@ -380,8 +407,8 @@ vcsLoop:
 		}
 
 		plmn := Plmn{
-			Mcc: *net.Mcc,
-			Mnc: *net.Mnc,
+			Mcc: strconv.FormatUint(uint64(*net.Mcc), 10),
+			Mnc: strconv.FormatUint(uint64(*net.Mnc), 10),
 		}
 		siteInfo := SiteInfo{
 			SiteName: *site.Id,
@@ -448,6 +475,15 @@ vcsLoop:
 			slice.Qos.Downlink = uint64(*vcs.Downlink)
 		}
 
+		if vcs.TrafficClass != nil {
+			trafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
+			if err != nil {
+				log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
+				continue vcsLoop
+			}
+			slice.Qos.TrafficClass = *trafficClass.Id
+		}
+
 		for _, appRef := range vcs.Application {
 			app, err := s.GetApplication(device, appRef.Application)
 			if err != nil {
@@ -474,7 +510,12 @@ vcsLoop:
 					log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
 					continue vcsLoop
 				}
-				appCore.Endpoint = *endpoint.Address
+				if strings.Contains(*endpoint.Address, "/") {
+					appCore.Endpoint = *endpoint.Address
+				} else {
+					appCore.Endpoint = *endpoint.Address + "/32"
+				}
+
 				appCore.StartPort = *endpoint.PortStart
 				if endpoint.PortEnd != nil {
 					appCore.EndPort = synchronizer.DerefUint32Ptr(endpoint.PortEnd, 0)
@@ -499,7 +540,12 @@ vcsLoop:
 			continue vcsLoop
 		}
 
-		log.Infof("Put Slice: %v", string(data))
+		url := fmt.Sprintf("%s/v1/network-slice/%s", *cs.Core_5GEndpoint, *vcs.Id)
+		err = s.PushUpdate(url, data)
+		if err != nil {
+			log.Warnf("Vcs %s failed to push update: %s", *vcs.Id, err)
+			continue vcsLoop
+		}
 	}
 
 	return nil

@@ -83,7 +83,7 @@ type Application struct {
 type Slice struct {
 	Id                SliceId       `json:"slice-id"`
 	Qos               Qos           `json:"qos"`
-	DeviceGroup       string        `json:"site-device-group"`
+	DeviceGroup       []string      `json:"site-device-group"`
 	SiteInfo          SiteInfo      `json:"site-info"`
 	DenyApplication   []string      `json:"deny-applications"`
 	PermitApplication []string      `json:"permit-applications"`
@@ -284,7 +284,7 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.Devi
 	return site, nil
 }
 
-func (s *Synchronizer) GetVcsSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs) (*models.DeviceGroup_DeviceGroup_DeviceGroup, *models.Site_Site_Site, error) {
+func (s *Synchronizer) GetVcsSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs) ([]*models.DeviceGroup_DeviceGroup_DeviceGroup, *models.Site_Site_Site, error) {
 	if (vcs.DeviceGroup == nil) || (*vcs.DeviceGroup == "") {
 		return nil, nil, fmt.Errorf("VCS %s has no deviceGroup.", *vcs.Id)
 	}
@@ -296,7 +296,10 @@ func (s *Synchronizer) GetVcsSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs
 	if err != nil {
 		return nil, nil, err
 	}
-	return dg, site, err
+
+	dgList := []*models.DeviceGroup_DeviceGroup_DeviceGroup{dg}
+
+	return dgList, site, err
 }
 
 func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
@@ -377,7 +380,7 @@ deviceGroupLoop:
 func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 vcsLoop:
 	for _, vcs := range device.Vcs.Vcs {
-		dg, site, err := s.GetVcsSite(device, vcs)
+		dgList, site, err := s.GetVcsSite(device, vcs)
 		if err != nil {
 			log.Warnf("Vcs %s unable to determine site", *vcs.Id)
 			continue vcsLoop
@@ -461,10 +464,13 @@ vcsLoop:
 
 		slice := Slice{
 			Id:                sliceId,
-			DeviceGroup:       *dg.Id,
 			SiteInfo:          siteInfo,
 			PermitApplication: []string{},
 			DenyApplication:   []string{},
+		}
+
+		for _, dg := range dgList {
+			slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
 		}
 
 		// TODO: These should be uint64 in the modeling

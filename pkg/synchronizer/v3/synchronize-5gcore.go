@@ -368,7 +368,7 @@ deviceGroupLoop:
 		}
 
 		url := fmt.Sprintf("%s/v1/device-group/%s", *cs.Core_5GEndpoint, *dg.Id)
-		err = s.PushUpdate(url, data)
+		err = s.pusher.PushUpdate(url, data)
 		if err != nil {
 			log.Warnf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
 			continue deviceGroupLoop
@@ -547,7 +547,7 @@ vcsLoop:
 		}
 
 		url := fmt.Sprintf("%s/v1/network-slice/%s", *cs.Core_5GEndpoint, *vcs.Id)
-		err = s.PushUpdate(url, data)
+		err = s.pusher.PushUpdate(url, data)
 		if err != nil {
 			log.Warnf("Vcs %s failed to push update: %s", *vcs.Id, err)
 			continue vcsLoop

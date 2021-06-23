@@ -7,10 +7,13 @@ package synchronizerv3
 
 import (
 	"time"
+
+	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 type Synchronizer struct {
 	outputFileName string
 	postEnable     bool
 	postTimeout    time.Duration
+	pusher         synchronizer.PusherInterface
 }

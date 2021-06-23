@@ -13,6 +13,8 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
 	"time"
+
+	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 var log = logging.GetLogger("synchronizer")
@@ -67,6 +69,10 @@ func (s *Synchronizer) SetPostEnable(postEnable bool) {
 
 func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 	s.postTimeout = postTimeout
+}
+
+func (s *Synchronizer) SetPusher(pusher synchronizer.PusherInterface) {
+	// not used at this time
 }
 
 func (s *Synchronizer) Start() {

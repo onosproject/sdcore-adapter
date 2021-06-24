@@ -284,20 +284,36 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.Devi
 	return site, nil
 }
 
-func (s *Synchronizer) GetVcsSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs) ([]*models.DeviceGroup_DeviceGroup_DeviceGroup, *models.Site_Site_Site, error) {
-	if (vcs.DeviceGroup == nil) || (*vcs.DeviceGroup == "") {
-		return nil, nil, fmt.Errorf("VCS %s has no deviceGroup.", *vcs.Id)
+// Given a VCS, return the set of DeviceGroup attached to it, and the Site.
+func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs) ([]*models.DeviceGroup_DeviceGroup_DeviceGroup, *models.Site_Site_Site, error) {
+	dgList := []*models.DeviceGroup_DeviceGroup_DeviceGroup{}
+	for _, dgLink := range vcs.DeviceGroup {
+		if !*dgLink.Enable {
+			continue
+		}
+		dg, okay := device.DeviceGroup.DeviceGroup[*dgLink.DeviceGroup]
+		if !okay {
+			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s not found.", *vcs.Id, *dgLink.DeviceGroup)
+		}
+		if (dg.Site == nil) || (*dg.Site == "") {
+			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s has no site.", *vcs.Id, *dgLink.DeviceGroup)
+		}
+
+		dgList = append(dgList, dg)
+
+		if *dgList[0].Site != *dg.Site {
+			return nil, nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites.", *vcs.Id, *dgList[0].Site, *dg.Site)
+		}
 	}
-	dg, okay := device.DeviceGroup.DeviceGroup[*vcs.DeviceGroup]
-	if !okay {
-		return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s not found.", *vcs.Id, *vcs.DeviceGroup)
+
+	if len(dgList) == 0 {
+		return nil, nil, fmt.Errorf("VCS %s has no deviceGroups.", *vcs.Id)
 	}
-	site, err := s.GetDeviceGroupSite(device, dg)
+
+	site, err := s.GetDeviceGroupSite(device, dgList[0])
 	if err != nil {
 		return nil, nil, err
 	}
-
-	dgList := []*models.DeviceGroup_DeviceGroup_DeviceGroup{dg}
 
 	return dgList, site, err
 }
@@ -380,9 +396,9 @@ deviceGroupLoop:
 func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 vcsLoop:
 	for _, vcs := range device.Vcs.Vcs {
-		dgList, site, err := s.GetVcsSite(device, vcs)
+		dgList, site, err := s.GetVcsDGAndSite(device, vcs)
 		if err != nil {
-			log.Warnf("Vcs %s unable to determine site", *vcs.Id)
+			log.Warnf("Vcs %s unable to determine site: %s", *vcs.Id, err)
 			continue vcsLoop
 		}
 		valid, okay := validEnterpriseIds[*site.Enterprise]

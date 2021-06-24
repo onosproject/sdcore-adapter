@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+// RESTPusher implements a pusher that pushes to a REST API endpoint.
+
 package synchronizerv3
 
 import (
@@ -11,6 +12,9 @@ import (
 	"net/http"
 	"time"
 )
+
+type RESTPusher struct {
+}
 
 // http.client lacks a "put" operation
 // NOTE: This will be needed when sdcore implements put operation.
@@ -33,7 +37,7 @@ func httpPut(client *http.Client, endpoint string, mimetype string, data []byte)
 }
 */
 
-func (s *Synchronizer) PushUpdate(endpoint string, data []byte) error {
+func (p *RESTPusher) PushUpdate(endpoint string, data []byte) error {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}

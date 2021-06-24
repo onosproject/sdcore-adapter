@@ -13,6 +13,8 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
 	"time"
+
+	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 var log = logging.GetLogger("synchronizer")
@@ -73,6 +75,10 @@ func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 	s.postTimeout = postTimeout
 }
 
+func (s *Synchronizer) SetPusher(pusher synchronizer.PusherInterface) {
+	s.pusher = pusher
+}
+
 func (s *Synchronizer) Start() {
 	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%s, postTimeout=%d)",
 		s.outputFileName,
@@ -83,10 +89,14 @@ func (s *Synchronizer) Start() {
 }
 
 func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Duration) *Synchronizer {
+	// By default, push via REST. Test infrastructure can override this.
+	p := &RESTPusher{}
+
 	s := &Synchronizer{
 		outputFileName: outputFileName,
 		postEnable:     postEnable,
 		postTimeout:    postTimeout,
+		pusher:         p,
 	}
 	return s
 }

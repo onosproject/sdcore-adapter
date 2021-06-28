@@ -14,9 +14,21 @@ import (
 
 func main() {
 
-	collector.RecordMetrics(2 * time.Second, "starbucks_newyork_cameras")
-	collector.RecordMetrics(2 * time.Second, "starbucks_seattle_cameras")
-	collector.RecordMetrics(2 * time.Second, "acme_chicago_robots")
+	collector.RecordMetrics(2*time.Second, "starbucks_newyork_cameras")
+	collector.RecordMetrics(2*time.Second, "starbucks_seattle_cameras")
+	collector.RecordMetrics(2*time.Second, "acme_chicago_robots")
+
+	collector.RecordSmfMetrics(2*time.Second, "starbucks_newyork_cameras", []string{
+		"170029313275040",
+		"170029313275041",
+		"170029313275050",
+		"170029313275051",
+		"170029313275052",
+		"170029313275053",
+		"170029313275054",
+		"170029313275055",
+	})
+
 	http.Handle("/metrics", promhttp.Handler())
 	if err := http.ListenAndServe(":2112", nil); err != nil {
 		log.Fatal(err)

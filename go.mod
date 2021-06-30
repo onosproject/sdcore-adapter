@@ -18,6 +18,7 @@ require (
 	github.com/openconfig/goyang v0.2.2
 	github.com/openconfig/ygot v0.10.5
 	github.com/prometheus/client_golang v1.9.0
+	github.com/prometheus/common v0.15.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381

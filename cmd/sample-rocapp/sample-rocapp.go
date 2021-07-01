@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/onosproject/sdcore-adapter/pkg/closedloop"
-
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/sdcore-adapter/pkg/closedloop"
+	//"github.com/onosproject/sdcore-adapter/pkg/metrics"
 )
 
 // kubectl -n micro-onos port-forward services/aether-roc-umbrella-prometheus-server --address 0.0.0.0 8180:80
@@ -68,15 +68,19 @@ func main() {
 		fmt.Printf("%v\n", um)
 	*/
 
-	conf := closedloop.ClosedLoopConfig{}
+	conf := &closedloop.ClosedLoopConfig{}
 	err := conf.LoadFromYamlFile("/etc/sample-rocapp.yaml")
 	if err != nil {
 		panic(err)
 	}
 
-	control := closedloop.NewClosedLoopControl(conf)
+	log.Infof("Loaded Config %+v", conf)
 
-	fmt.Printf("%+v\b", conf)
+	control := closedloop.NewClosedLoopControl(conf)
+	err = control.Evaluate()
+	if err != nil {
+		panic(err)
+	}
 
 	/*
 

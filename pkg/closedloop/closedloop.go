@@ -9,18 +9,23 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/metrics"
 )
+
+var log = logging.GetLogger("closedloop")
 
 type Action struct {
 	SetUpstream *uint64 `yaml:"set-upstream"`
 }
 
 type Rule struct {
-	Name    string   `yaml:"name"`
-	Expr    *string  `yaml:"expr"`
-	Source  *string  `yaml:"source"`
-	Actions []Action `yaml:"actions"`
+	Name     string   `yaml:"name"`
+	Expr     *string  `yaml:"expr"`
+	Source   *string  `yaml:"source"`
+	Actions  []Action `yaml:"actions"`
+	Debug    *bool    `yaml:"debug"`
+	Continue *bool    `yaml:"continue"`
 }
 
 type Source struct {
@@ -29,7 +34,7 @@ type Source struct {
 }
 
 type Vcs struct {
-	Name  string
+	Name  string `yaml:"name"`
 	Rules []Rule `yaml:"rules"`
 }
 
@@ -109,12 +114,49 @@ func (c *ClosedLoopControl) EvaluateRule(rule *Rule) ([]Action, error) {
 		return nil, err
 	}
 
+	if rule.Debug != nil && *rule.Debug {
+		if result != nil {
+			log.Infof("Debug: %s: %f", rule.Name, *result)
+		} else {
+			log.Infof("Debug: %s: <nil>", rule.Name)
+		}
+	}
+
+	if rule.Continue != nil && *rule.Continue {
+		return nil, nil
+	}
+
 	if result != nil {
 		// Match!!
 		return rule.Actions, nil
 	}
 
 	return nil, nil
+}
+
+func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
+	for _, rule := range vcs.Rules {
+		actions, err := c.EvaluateRule(&rule)
+		if err != nil {
+			return err
+		}
+		if actions != nil {
+			// successful match, we're done.
+			log.Infof("Vcs %s Rule %s matched", vcs.Name, rule.Name)
+			return nil
+		}
+	}
+	return nil
+}
+
+func (c *ClosedLoopControl) Evaluate() error {
+	for _, vcs := range c.Config.Vcs {
+		err := c.EvaluateVcs(&vcs)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewClosedLoopControl(config *ClosedLoopConfig) *ClosedLoopControl {

@@ -6,7 +6,6 @@ package metrics
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"time"
 
@@ -15,28 +14,42 @@ import (
 	promModel "github.com/prometheus/common/model"
 )
 
-var (
-	metricAddr = flag.String("metric_address", "http://aether-roc-umbrella-prometheus-server:80/", "Prometheus metric endpoint bind to retrieve metrics from")
-)
-
 type UEMetrics struct {
 	Active   int32
 	Inactive int32
 	Idle     int32
 }
 
-func GetMetrics(query string) (promModel.Value, error) {
-	client, err := promApi.NewClient(promApi.Config{
-		Address: *metricAddr,
+type MetricsFetcher struct {
+	Address string
+	client  promApi.Client
+	v1api   promApiV1.API
+}
+
+func NewMetricsFetcher(address string) (*MetricsFetcher, error) {
+	mf := &MetricsFetcher{Address: address}
+	return mf, mf.Connect()
+}
+
+func (m *MetricsFetcher) Connect() error {
+	var err error
+
+	m.client, err = promApi.NewClient(promApi.Config{
+		Address: m.Address,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Error creating client: %v\n", err)
+		return fmt.Errorf("Error creating client: %v\n", err)
 	}
 
-	v1api := promApiV1.NewAPI(client)
+	m.v1api = promApiV1.NewAPI(m.client)
+
+	return nil
+}
+
+func (m *MetricsFetcher) GetMetrics(query string) (promModel.Value, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	result, warnings, err := v1api.Query(ctx, query, time.Now())
+	result, warnings, err := m.v1api.Query(ctx, query, time.Now())
 	if err != nil {
 		return nil, fmt.Errorf("Error querying Prometheus: %v\n", err)
 	}
@@ -51,8 +64,8 @@ func GetMetrics(query string) (promModel.Value, error) {
 	return result, nil
 }
 
-func GetVector(query string) (promModel.Vector, error) {
-	result, err := GetMetrics(query)
+func (m *MetricsFetcher) GetVector(query string) (promModel.Vector, error) {
+	result, err := m.GetMetrics(query)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +75,8 @@ func GetVector(query string) (promModel.Vector, error) {
 	return v, nil
 }
 
-func GetSingleVector(query string) (*float64, error) {
-	v, err := GetVector(query)
+func (m *MetricsFetcher) GetSingleVector(query string) (*float64, error) {
+	v, err := m.GetVector(query)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +91,8 @@ func GetSingleVector(query string) (*float64, error) {
 	return &floatVal, nil
 }
 
-func GetScalar(query string) (*float64, error) {
-	result, err := GetMetrics(query)
+func (m *MetricsFetcher) GetScalar(query string) (*float64, error) {
+	result, err := m.GetMetrics(query)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +107,9 @@ func GetScalar(query string) (*float64, error) {
 	return &floatVal, nil
 }
 
-func GetSliceUEMetrics(sliceName string) (*UEMetrics, error) {
+func (m *MetricsFetcher) GetSliceUEMetrics(sliceName string) (*UEMetrics, error) {
 	query := fmt.Sprintf("sum by (state) (smf_pdu_session_profile{slice=\"%s\"})", sliceName)
-	result, err := GetMetrics(query)
+	result, err := m.GetMetrics(query)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +120,7 @@ func GetSliceUEMetrics(sliceName string) (*UEMetrics, error) {
 		return nil, nil
 	}
 
-	m := UEMetrics{}
+	uem := UEMetrics{}
 
 	for _, sample := range v {
 		state, okay := sample.Metric["state"]
@@ -116,13 +129,13 @@ func GetSliceUEMetrics(sliceName string) (*UEMetrics, error) {
 		}
 		switch state {
 		case "active":
-			m.Active += int32(sample.Value)
+			uem.Active += int32(sample.Value)
 		case "inactive":
-			m.Inactive += int32(sample.Value)
+			uem.Inactive += int32(sample.Value)
 		case "idle":
-			m.Idle += int32(sample.Value)
+			uem.Idle += int32(sample.Value)
 		}
 	}
 
-	return &m, nil
+	return &uem, nil
 }

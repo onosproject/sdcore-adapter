@@ -43,3 +43,5 @@ COPY --from=build /go/bin/sdcore-adapter /usr/local/bin/
 COPY --from=build /go/bin/sdcore-migrate /usr/local/bin/
 COPY --from=build /go/bin/sdcore-exporter /usr/local/bin/
 COPY --from=build /go/bin/sample-rocapp /usr/local/bin/
+
+COPY examples/sample-rocapp.yaml /etc/

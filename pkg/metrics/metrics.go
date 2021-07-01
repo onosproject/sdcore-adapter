@@ -25,7 +25,7 @@ type UEMetrics struct {
 	Idle     int32
 }
 
-func getMetrics(query string) (promModel.Value, error) {
+func GetMetrics(query string) (promModel.Value, error) {
 	client, err := promApi.NewClient(promApi.Config{
 		Address: *metricAddr,
 	})
@@ -51,14 +51,61 @@ func getMetrics(query string) (promModel.Value, error) {
 	return result, nil
 }
 
-func GetSliceUEMetrics(sliceName string) (*UEMetrics, error) {
-	query := fmt.Sprintf("sum by (state) (smf_pdu_session_profile{slice=\"%s\"})", sliceName)
-	result, err := getMetrics(query)
+func GetVector(query string) (promModel.Vector, error) {
+	result, err := GetMetrics(query)
 	if err != nil {
 		return nil, err
 	}
 
 	v := result.(promModel.Vector)
+
+	return v, nil
+}
+
+func GetSingleVector(query string) (*float64, error) {
+	v, err := GetVector(query)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(v) != 1 {
+		// TODO: no result; should this be an error
+		return nil, nil
+	}
+
+	floatVal := float64(v[0].Value)
+
+	return &floatVal, nil
+}
+
+func GetScalar(query string) (*float64, error) {
+	result, err := GetMetrics(query)
+	if err != nil {
+		return nil, err
+	}
+
+	s := result.(*promModel.Scalar)
+	if s == nil {
+		return nil, nil
+	}
+
+	floatVal := float64(s.Value)
+
+	return &floatVal, nil
+}
+
+func GetSliceUEMetrics(sliceName string) (*UEMetrics, error) {
+	query := fmt.Sprintf("sum by (state) (smf_pdu_session_profile{slice=\"%s\"})", sliceName)
+	result, err := GetMetrics(query)
+	if err != nil {
+		return nil, err
+	}
+
+	v := result.(promModel.Vector)
+
+	if len(v) == 0 {
+		return nil, nil
+	}
 
 	m := UEMetrics{}
 

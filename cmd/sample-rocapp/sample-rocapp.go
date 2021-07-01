@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/onosproject/sdcore-adapter/pkg/closedloop"
 	"github.com/onosproject/sdcore-adapter/pkg/metrics"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -35,11 +36,39 @@ func main() {
 	}
 	flag.Parse()
 
-	m, err := metrics.GetSliceUEMetrics("starbucks_newyork_cameras")
+	m, err := metrics.GetSingleVector("SUM(smf_pdu_session_profile{slice=\"starbucks_newyork_cameras\",state=\"active\"}) <= 3")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%v\n", m)
+	if m == nil {
+		fmt.Print("nil\n")
+	} else {
+		fmt.Printf("%v\n", *m)
+	}
+
+	m, err = metrics.GetSingleVector("SUM(smf_pdu_session_profile{slice=\"starbucks_newyork_cameras\",state=\"active\"}) > 3")
+	if err != nil {
+		panic(err)
+	}
+	if m == nil {
+		fmt.Print("nil\n")
+	} else {
+		fmt.Printf("%v\n", *m)
+	}
+
+	um, err := metrics.GetSliceUEMetrics("starbucks_newyork_cameras")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%v\n", um)
+
+	conf := closedloop.ClosedLoopConfig{}
+	err = conf.LoadFromYamlFile("/etc/sample-rocapp.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%+v\b", conf)
 
 	/*
 

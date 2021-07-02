@@ -14,6 +14,8 @@ import (
 	//"github.com/onosproject/sdcore-adapter/pkg/metrics"
 )
 
+// sample-rocapp -client_key=/etc/sdcore-adapter/certs/tls.key -client_crt=/etc/sdcore-adapter/certs/tls.crt -ca_crt=/etc/sdcore-adapter/certs/tls.cacert -hostCheckDisabled
+
 // kubectl -n micro-onos port-forward services/aether-roc-umbrella-prometheus-server --address 0.0.0.0 8180:80
 
 // smf_pdu_session_profile{state="active",slice="starbucks_newyork_cameras"}==1 ... list all UEs that are active

@@ -1,10 +1,10 @@
 sources:
   - name: default
-		endpoint: http://aether-roc-umbrella-prometheus-server:80/
+    endpoint: http://aether-roc-umbrella-prometheus-server:80/
 destinations:
-	- name: default
-		endpoint: http://onos-config:5150/
-		target: connectivity-service-v3
+  - name: default
+    endpoint: onos-config:5150
+    target: connectivity-service-v3
 vcs:
   - name: starbucks_newyork_cameras
     rules:

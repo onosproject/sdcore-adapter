@@ -205,9 +205,16 @@ func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, a
 		updates = migration.AddUpdate(updates, migration.UpdateUInt32(*action.Field, destination.Target, action.Value))
 	}
 
-	prefix := migration.StringToPath(fmt.Sprintf("vcs/vcs[id=%s]", vcs.Name), destination.Target)
+	vcsName := vcs.Name
+	if vcsName == "starbucks_newyork_cameras" {
+		// minor naming goof between megapatch and sdcore-exporter
+		vcsName = "starbuck-newyork-cameras"
+	}
 
-	log.Infof("Executing target=%s:%s, endpoint=%s, updates=%+v", destination.Target, prefix, destination.Endpoint, updates)
+	prefixStr := fmt.Sprintf("vcs/vcs[id=%s]", vcsName)
+	prefix := migration.StringToPath(prefixStr, destination.Target)
+
+	log.Infof("Executing target=%s:%s, endpoint=%s, updates=%+v", destination.Target, prefixStr, destination.Endpoint, updates)
 
 	err := migration.Update(prefix, destination.Target, destination.Endpoint, updates, context.Background())
 	if err != nil {

@@ -8,10 +8,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/closedloop"
-	//"github.com/onosproject/sdcore-adapter/pkg/metrics"
 )
 
 // sample-rocapp -client_key=/etc/sdcore-adapter/certs/tls.key -client_crt=/etc/sdcore-adapter/certs/tls.crt -ca_crt=/etc/sdcore-adapter/certs/tls.cacert -hostCheckDisabled
@@ -37,39 +37,6 @@ func main() {
 	}
 	flag.Parse()
 
-	/*
-		mf, err := metrics.NewMetricsFetcher(*metricAddr)
-		if err != nil {
-			panic(err)
-		}
-
-		m, err := mf.GetSingleVector("SUM(smf_pdu_session_profile{slice=\"starbucks_newyork_cameras\",state=\"active\"}) <= 3")
-		if err != nil {
-			panic(err)
-		}
-		if m == nil {
-			fmt.Print("nil\n")
-		} else {
-			fmt.Printf("%v\n", *m)
-		}
-
-		m, err = mf.GetSingleVector("SUM(smf_pdu_session_profile{slice=\"starbucks_newyork_cameras\",state=\"active\"}) > 3")
-		if err != nil {
-			panic(err)
-		}
-		if m == nil {
-			fmt.Print("nil\n")
-		} else {
-			fmt.Printf("%v\n", *m)
-		}
-
-		um, err := mf.GetSliceUEMetrics("starbucks_newyork_cameras")
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("%v\n", um)
-	*/
-
 	conf := &closedloop.ClosedLoopConfig{}
 	err := conf.LoadFromYamlFile("/etc/sample-rocapp.yaml")
 	if err != nil {
@@ -79,25 +46,12 @@ func main() {
 	log.Infof("Loaded Config %+v", conf)
 
 	control := closedloop.NewClosedLoopControl(conf)
-	err = control.Evaluate()
-	if err != nil {
-		panic(err)
+
+	for {
+		err = control.Evaluate()
+		if err != nil {
+			log.Errorf("Error: %v", err)
+		}
+		time.Sleep(5 * time.Second)
 	}
-
-	/*
-
-		// Optional: pull initial config from onos-config
-		if *aetherConfigAddr != "" {
-			log.Infof("Fetching initial state from %s, target %s", *aetherConfigAddr, *aetherConfigTarget)
-			// The migration library has the functions for fetching from onos-config
-			srcVal, err := migration.GetPath("", *aetherConfigTarget, *aetherConfigAddr, context.Background())
-			if err != nil {
-				log.Fatalf("Error fetching initial data from onos-config: %s", err.Error())
-				return
-			}
-
-			configData = srcVal.GetJsonVal()
-
-			log.Infof("Fetched config: %s", string(configData))
-		}*/
 }

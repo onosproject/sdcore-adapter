@@ -57,8 +57,9 @@ type ClosedLoopConfig struct {
 }
 
 type ClosedLoopControl struct {
-	Config  *ClosedLoopConfig
-	Sources map[string]*metrics.MetricsFetcher
+	Config   *ClosedLoopConfig
+	Sources  map[string]*metrics.MetricsFetcher
+	LastRule map[string]string
 }
 
 func (c *ClosedLoopConfig) LoadFromYamlFile(fn string) error {
@@ -166,6 +167,14 @@ func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 			// successful match, we're done.
 			log.Infof("Vcs %s Rule %s matched", vcs.Name, rule.Name)
 
+			lastRule, okay := c.LastRule[vcs.Name]
+			if okay && (lastRule == rule.Name) {
+				// TODO: This assumes nobody manually changes the variable. Maybe eventually
+				// we want to verify this and/or occasionally throw out the cache values.
+				log.Infof("Rule %s is already applied", rule.Name)
+				return nil
+			}
+
 			var destination *Destination
 			if rule.Destination != nil {
 				destination, err = c.Config.GetDestinationByName(*rule.Destination)
@@ -183,6 +192,9 @@ func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 			if err != nil {
 				return err
 			}
+
+			c.LastRule[vcs.Name] = rule.Name
+
 			return nil
 		}
 	}
@@ -202,7 +214,16 @@ func (c *ClosedLoopControl) Evaluate() error {
 func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, actions []Action) error {
 	updates := []*gpb.Update{}
 	for _, action := range actions {
-		updates = migration.AddUpdate(updates, migration.UpdateUInt32(*action.Field, destination.Target, action.Value))
+		switch action.Operation {
+		case "set":
+			if action.Field == nil {
+				return fmt.Errorf("Set action must contain a non-nil Field")
+			}
+
+			updates = migration.AddUpdate(updates, migration.UpdateUInt32(*action.Field, destination.Target, action.Value))
+		default:
+			return fmt.Errorf("Unknown action operation %s", action.Operation)
+		}
 	}
 
 	vcsName := vcs.Name
@@ -227,5 +248,6 @@ func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, a
 func NewClosedLoopControl(config *ClosedLoopConfig) *ClosedLoopControl {
 	clc := &ClosedLoopControl{Config: config}
 	clc.Sources = map[string]*metrics.MetricsFetcher{}
+	clc.LastRule = map[string]string{}
 	return clc
 }

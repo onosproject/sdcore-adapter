@@ -5,32 +5,44 @@
 package closedloop
 
 import (
+	"context"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/metrics"
+	"github.com/onosproject/sdcore-adapter/pkg/migration"
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 var log = logging.GetLogger("closedloop")
 
 type Action struct {
-	SetUpstream *uint64 `yaml:"set-upstream"`
+	Operation string  `yaml:"operation"`
+	Field     *string `yaml:"field"`
+	Value     *uint32 `yaml:"value"`
 }
 
 type Rule struct {
-	Name     string   `yaml:"name"`
-	Expr     *string  `yaml:"expr"`
-	Source   *string  `yaml:"source"`
-	Actions  []Action `yaml:"actions"`
-	Debug    *bool    `yaml:"debug"`
-	Continue *bool    `yaml:"continue"`
+	Name        string   `yaml:"name"`
+	Expr        *string  `yaml:"expr"`
+	Source      *string  `yaml:"source"`
+	Destination *string  `yaml:"destination"`
+	Actions     []Action `yaml:"actions"`
+	Debug       *bool    `yaml:"debug"`
+	Continue    *bool    `yaml:"continue"`
 }
 
 type Source struct {
 	Name     string
 	Endpoint string
+}
+
+type Destination struct {
+	Name     string
+	Endpoint string
+	Target   string
 }
 
 type Vcs struct {
@@ -39,8 +51,9 @@ type Vcs struct {
 }
 
 type ClosedLoopConfig struct {
-	Sources []Source `yaml:"sources"`
-	Vcs     []Vcs    `yaml:"vcs"`
+	Sources      []Source      `yaml:"sources"`
+	Destinations []Destination `yaml:"destinations"`
+	Vcs          []Vcs         `yaml:"vcs"`
 }
 
 type ClosedLoopControl struct {
@@ -67,6 +80,15 @@ func (c *ClosedLoopConfig) GetSourceByName(name string) (*Source, error) {
 		}
 	}
 	return nil, fmt.Errorf("Failed to find source %s", name)
+}
+
+func (c *ClosedLoopConfig) GetDestinationByName(name string) (*Destination, error) {
+	for _, dst := range c.Destinations {
+		if dst.Name == name {
+			return &dst, nil
+		}
+	}
+	return nil, fmt.Errorf("Failed to find destination %s", name)
 }
 
 func (c *ClosedLoopControl) GetFetcher(endpoint string) (*metrics.MetricsFetcher, error) {
@@ -143,6 +165,24 @@ func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 		if actions != nil {
 			// successful match, we're done.
 			log.Infof("Vcs %s Rule %s matched", vcs.Name, rule.Name)
+
+			var destination *Destination
+			if rule.Destination != nil {
+				destination, err = c.Config.GetDestinationByName(*rule.Destination)
+				if err != nil {
+					return err
+				}
+			} else {
+				destination, err = c.Config.GetDestinationByName("default")
+				if err != nil {
+					return err
+				}
+			}
+
+			err := c.ExecuteActions(vcs, destination, rule.Actions)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -156,6 +196,24 @@ func (c *ClosedLoopControl) Evaluate() error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, actions []Action) error {
+	updates := []*gpb.Update{}
+	for _, action := range actions {
+		updates = migration.AddUpdate(updates, migration.UpdateUInt32(*action.Field, destination.Target, action.Value))
+	}
+
+	prefix := migration.StringToPath(fmt.Sprintf("vcs/vcs[id=%s]", vcs.Name), destination.Target)
+
+	log.Infof("Executing target=%s:%s, endpoint=%s, updates=%+v", destination.Target, prefix, destination.Endpoint, updates)
+
+	err := migration.Update(prefix, destination.Target, destination.Endpoint, updates, context.Background())
+	if err != nil {
+		return fmt.Errorf("Error executing actions: %v", err)
+	}
+
 	return nil
 }
 

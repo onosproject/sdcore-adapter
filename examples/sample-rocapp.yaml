@@ -6,26 +6,38 @@ destinations:
     endpoint: onos-config:5150
     target: connectivity-service-v3
 vcs:
-  - name: starbucks_newyork_cameras
+  - name: zynga-sfo-vrgames
     rules:
-      - name: starbucks-debug
-        expr: sum(smf_pdu_session_profile{slice="starbucks_newyork_cameras",state="active"})
+      - name: zynga
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})
         debug: true
         continue: true
-      - name: starbucks-low-utilization
-        expr: sum(smf_pdu_session_profile{slice="starbucks_newyork_cameras",state="active"})<=3
+      - name: zynga-verylow-utilization
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=20
         actions:
           - operation: set
-            field: uplink
-            value: 100000000
-      - name: starbucks-high-utilization
-        expr: sum(smf_pdu_session_profile{slice="starbucks_newyork_cameras",state="active"})>5
+            field: downlink
+            value: 100000
+      - name: zynga-low-utilization
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=30
         actions:
           - operation: set
-            field: uplink
-            value: 900000000
-      - name: starbucks-default
+            field: downlink
+            value: 500000
+      - name: zynga-medium-utilization
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=40
         actions:
           - operation: set
-            field: uplink
-            value: 500000000
+            field: downlink
+            value: 750000            
+      - name: zynga-high-utilization
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=50
+        actions:
+          - operation: set
+            field: downlink
+            value: 1000000
+      - name: zynga-veryhigh-utilization
+        actions:
+          - operation: set
+            field: downlink
+            value: 2000000

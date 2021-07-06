@@ -20,12 +20,6 @@ import (
 // If you want to forward the prometheus, for manual inspection
 // kubectl -n micro-onos port-forward services/aether-roc-umbrella-prometheus-server --address 0.0.0.0 8180:80
 
-var (
-	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
-	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v2", "Target to use when pulling from aether-config")
-	sliceName          = flag.String("slice_name", "starbuck-newyork-cameras", "Target to use when pulling from aether-config")
-)
-
 var log = logging.GetLogger("sample-rocapp")
 
 func main() {

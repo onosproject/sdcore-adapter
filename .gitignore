@@ -23,3 +23,5 @@ build/_output/*
 *coverage*.xml
 *-output.out
 
+sdcore-exporter
+

@@ -16,12 +16,13 @@ func RecordMetrics(period time.Duration, vcdID string) {
 	vcsLatency.WithLabelValues(vcdID).Set(21.0)
 	vcsJitter.WithLabelValues(vcdID).Set(3.0)
 	vcsThroughput.WithLabelValues(vcdID).Set(10000)
+	rand.Seed(time.Now().UnixNano())
 
 	go func() {
 		for {
-			vcsLatency.WithLabelValues(vcdID).Add(float64(rand.Intn(10)-5) / 5.0)
-			vcsJitter.WithLabelValues(vcdID).Add(float64(rand.Intn(10)-5) / 100.0)
-			vcsThroughput.WithLabelValues(vcdID).Add(float64(rand.Intn(10)-5) * 10)
+			vcsLatency.WithLabelValues(vcdID).Add(float64(rand.Intn(11)-5) / 5.0)
+			vcsJitter.WithLabelValues(vcdID).Add(float64(rand.Intn(11)-5) / 100.0)
+			vcsThroughput.WithLabelValues(vcdID).Add(float64(rand.Intn(11)-5) * 10)
 			time.Sleep(period)
 		}
 	}()

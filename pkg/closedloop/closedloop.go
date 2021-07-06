@@ -7,8 +7,6 @@ package closedloop
 import (
 	"context"
 	"fmt"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/metrics"
@@ -18,43 +16,8 @@ import (
 
 var log = logging.GetLogger("closedloop")
 
-type Action struct {
-	Operation string  `yaml:"operation"`
-	Field     *string `yaml:"field"`
-	Value     *uint32 `yaml:"value"`
-}
-
-type Rule struct {
-	Name        string   `yaml:"name"`
-	Expr        *string  `yaml:"expr"`
-	Source      *string  `yaml:"source"`
-	Destination *string  `yaml:"destination"`
-	Actions     []Action `yaml:"actions"`
-	Debug       *bool    `yaml:"debug"`
-	Continue    *bool    `yaml:"continue"`
-}
-
-type Source struct {
-	Name     string
-	Endpoint string
-}
-
-type Destination struct {
-	Name     string
-	Endpoint string
-	Target   string
-}
-
-type Vcs struct {
-	Name  string `yaml:"name"`
-	Rules []Rule `yaml:"rules"`
-}
-
-type ClosedLoopConfig struct {
-	Sources      []Source      `yaml:"sources"`
-	Destinations []Destination `yaml:"destinations"`
-	Vcs          []Vcs         `yaml:"vcs"`
-}
+// CloseLoopControl object. Contains the configuration, as well as a
+// list of sources and a cache of the last rules pplied.
 
 type ClosedLoopControl struct {
 	Config   *ClosedLoopConfig
@@ -62,36 +25,8 @@ type ClosedLoopControl struct {
 	LastRule map[string]string
 }
 
-func (c *ClosedLoopConfig) LoadFromYamlFile(fn string) error {
-	yamlFile, err := ioutil.ReadFile(fn)
-	if err != nil {
-		return fmt.Errorf("Failed to read yaml file: %v", err)
-	}
-	err = yaml.Unmarshal(yamlFile, c)
-	if err != nil {
-		return fmt.Errorf("Failed to unmarshal yaml: %v", err)
-	}
-	return nil
-}
-
-func (c *ClosedLoopConfig) GetSourceByName(name string) (*Source, error) {
-	for _, src := range c.Sources {
-		if src.Name == name {
-			return &src, nil
-		}
-	}
-	return nil, fmt.Errorf("Failed to find source %s", name)
-}
-
-func (c *ClosedLoopConfig) GetDestinationByName(name string) (*Destination, error) {
-	for _, dst := range c.Destinations {
-		if dst.Name == name {
-			return &dst, nil
-		}
-	}
-	return nil, fmt.Errorf("Failed to find destination %s", name)
-}
-
+// Retrieve a MetricsFetcher from the cached list of metrics fetcher. If it doesn't
+// exist, then create a new one.
 func (c *ClosedLoopControl) GetFetcher(endpoint string) (*metrics.MetricsFetcher, error) {
 	mf, okay := c.Sources[endpoint]
 	if okay {
@@ -106,6 +41,7 @@ func (c *ClosedLoopControl) GetFetcher(endpoint string) (*metrics.MetricsFetcher
 	return mf, nil
 }
 
+// Evaluate a rule. If the rule matches, return its set of actions.
 func (c *ClosedLoopControl) EvaluateRule(rule *Rule) ([]Action, error) {
 	var err error
 	var source *Source
@@ -157,6 +93,8 @@ func (c *ClosedLoopControl) EvaluateRule(rule *Rule) ([]Action, error) {
 	return nil, nil
 }
 
+// Evaluate the set of rules for a VCS, stopping at the first rule that matches. If a rule
+// matches, then execute its actions.
 func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 	for _, rule := range vcs.Rules {
 		actions, err := c.EvaluateRule(&rule)
@@ -201,6 +139,7 @@ func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 	return nil
 }
 
+// Evaluate all rules for all VCSes
 func (c *ClosedLoopControl) Evaluate() error {
 	for _, vcs := range c.Config.Vcs {
 		err := c.EvaluateVcs(&vcs)
@@ -211,6 +150,7 @@ func (c *ClosedLoopControl) Evaluate() error {
 	return nil
 }
 
+// Execute a list of actions
 func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, actions []Action) error {
 	updates := []*gpb.Update{}
 	for _, action := range actions {
@@ -226,13 +166,7 @@ func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, a
 		}
 	}
 
-	vcsName := vcs.Name
-	if vcsName == "starbucks_newyork_cameras" {
-		// minor naming goof between megapatch and sdcore-exporter
-		vcsName = "starbuck-newyork-cameras"
-	}
-
-	prefixStr := fmt.Sprintf("vcs/vcs[id=%s]", vcsName)
+	prefixStr := fmt.Sprintf("vcs/vcs[id=%s]", vcs.Name)
 	prefix := migration.StringToPath(prefixStr, destination.Target)
 
 	log.Infof("Executing target=%s:%s, endpoint=%s, updates=%+v", destination.Target, prefixStr, destination.Endpoint, updates)
@@ -245,6 +179,7 @@ func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, a
 	return nil
 }
 
+// Create a new ClosedLoopControl.
 func NewClosedLoopControl(config *ClosedLoopConfig) *ClosedLoopControl {
 	clc := &ClosedLoopControl{Config: config}
 	clc.Sources = map[string]*metrics.MetricsFetcher{}

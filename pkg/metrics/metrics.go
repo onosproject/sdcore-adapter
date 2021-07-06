@@ -14,11 +14,7 @@ import (
 	promModel "github.com/prometheus/common/model"
 )
 
-type UEMetrics struct {
-	Active   int32
-	Inactive int32
-	Idle     int32
-}
+// MetricsFetcher is a wrapper around prometheus.
 
 type MetricsFetcher struct {
 	Address string
@@ -26,11 +22,13 @@ type MetricsFetcher struct {
 	v1api   promApiV1.API
 }
 
+// Create a new MetricsFetcher at the given prometheus address.
 func NewMetricsFetcher(address string) (*MetricsFetcher, error) {
 	mf := &MetricsFetcher{Address: address}
 	return mf, mf.Connect()
 }
 
+// Connect to the MetricsFetcher.
 func (m *MetricsFetcher) Connect() error {
 	var err error
 
@@ -46,6 +44,7 @@ func (m *MetricsFetcher) Connect() error {
 	return nil
 }
 
+// Execute a query.
 func (m *MetricsFetcher) GetMetrics(query string) (promModel.Value, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -64,6 +63,7 @@ func (m *MetricsFetcher) GetMetrics(query string) (promModel.Value, error) {
 	return result, nil
 }
 
+// Execute a query and return the result as a vector.
 func (m *MetricsFetcher) GetVector(query string) (promModel.Vector, error) {
 	result, err := m.GetMetrics(query)
 	if err != nil {
@@ -75,6 +75,7 @@ func (m *MetricsFetcher) GetVector(query string) (promModel.Vector, error) {
 	return v, nil
 }
 
+// Execute a query, assume the result is a vector of size one, and return it.
 func (m *MetricsFetcher) GetSingleVector(query string) (*float64, error) {
 	v, err := m.GetVector(query)
 	if err != nil {
@@ -91,6 +92,7 @@ func (m *MetricsFetcher) GetSingleVector(query string) (*float64, error) {
 	return &floatVal, nil
 }
 
+// Execute a query and return the result as a scalar.
 func (m *MetricsFetcher) GetScalar(query string) (*float64, error) {
 	result, err := m.GetMetrics(query)
 	if err != nil {
@@ -105,37 +107,4 @@ func (m *MetricsFetcher) GetScalar(query string) (*float64, error) {
 	floatVal := float64(s.Value)
 
 	return &floatVal, nil
-}
-
-func (m *MetricsFetcher) GetSliceUEMetrics(sliceName string) (*UEMetrics, error) {
-	query := fmt.Sprintf("sum by (state) (smf_pdu_session_profile{slice=\"%s\"})", sliceName)
-	result, err := m.GetMetrics(query)
-	if err != nil {
-		return nil, err
-	}
-
-	v := result.(promModel.Vector)
-
-	if len(v) == 0 {
-		return nil, nil
-	}
-
-	uem := UEMetrics{}
-
-	for _, sample := range v {
-		state, okay := sample.Metric["state"]
-		if !okay {
-			continue
-		}
-		switch state {
-		case "active":
-			uem.Active += int32(sample.Value)
-		case "inactive":
-			uem.Inactive += int32(sample.Value)
-		case "idle":
-			uem.Idle += int32(sample.Value)
-		}
-	}
-
-	return &uem, nil
 }

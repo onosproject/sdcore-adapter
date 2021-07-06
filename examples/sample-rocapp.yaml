@@ -20,7 +20,7 @@ destinations:
 vcs:
   - name: zynga-sfo-vrgames
     rules:
-      - name: zynga
+      - name: zynga-debug
         expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})
         debug: true   # print the query result to the log
         continue: true  # continue processing subsequent rules

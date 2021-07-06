@@ -14,13 +14,11 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/closedloop"
 )
 
+// Example:
 // sample-rocapp -client_key=/etc/sdcore-adapter/certs/tls.key -client_crt=/etc/sdcore-adapter/certs/tls.crt -ca_crt=/etc/sdcore-adapter/certs/tls.cacert -hostCheckDisabled
 
+// If you want to forward the prometheus, for manual inspection
 // kubectl -n micro-onos port-forward services/aether-roc-umbrella-prometheus-server --address 0.0.0.0 8180:80
-
-// smf_pdu_session_profile{state="active",slice="starbucks_newyork_cameras"}==1 ... list all UEs that are active
-// sum by (state) (smf_pdu_session_profile{slice="starbucks_newyork_cameras"})  ... coun the active, idle, inactive cameras
-//
 
 var (
 	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
@@ -38,7 +36,7 @@ func main() {
 	flag.Parse()
 
 	conf := &closedloop.ClosedLoopConfig{}
-	err := conf.LoadFromYamlFile("/etc/sample-rocapp.yaml")
+	err := conf.LoadFromYamlFile("/etc/sample-rocapp.yaml") // TODO: Config file name is hardcoded; consider adding a command-line parser
 	if err != nil {
 		panic(err)
 	}

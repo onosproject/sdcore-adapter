@@ -37,6 +37,8 @@ func main() {
 	}
 	collector.RecordSmfMetrics(2*time.Second, "zynga-sfo-vrgames", gameImsis)
 
+	collector.StartExporterAPI()
+
 	http.Handle("/metrics", promhttp.Handler())
 	if err := http.ListenAndServe(":2112", nil); err != nil {
 		log.Fatal(err)

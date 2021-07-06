@@ -1,3 +1,15 @@
+# SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+
+# This example simulates a peer-to-peer virtual reality game. As the number of
+# participants in the game increases, the amount of data to each participant increases,
+# and the ROC App will increase the downstream bandwidth.
+#
+# ROC App recipes start with a Source (Prometheus) and a Destinations (aether-config).
+# For each VCS there is a set of rules. The first rule to match will win and subsequent
+# rules will not be evaluated.
+
 sources:
   - name: default
     endpoint: http://aether-roc-umbrella-prometheus-server:80/
@@ -10,8 +22,8 @@ vcs:
     rules:
       - name: zynga
         expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})
-        debug: true
-        continue: true
+        debug: true   # print the query result to the log
+        continue: true  # continue processing subsequent rules
       - name: zynga-verylow-utilization
         expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=20
         actions:

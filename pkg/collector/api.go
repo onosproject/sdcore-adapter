@@ -16,9 +16,16 @@ import (
 // NOTE: Turning a knob currently affects all VCS, but we could address that
 // with a drop-down. There's also no mechanism to set the initial value of the
 // knobs. This is intended to be a simple interface to facilitate demos.
+//
+// If a value is nil,  then it has not been set via the API, and the collector
+// will randomize it.
 
 var (
-	PercentActiveSubscribers *float64 // Nil if unset, otherwise value set from form
+	PercentActiveSubscribers *float64
+	PercentUpThroughput      *float64
+	PercentDownThroughput    *float64
+	PercentUpLatency         *float64
+	PercentDownLatency       *float64
 )
 
 type ExporterApi struct {
@@ -40,20 +47,51 @@ func (m *ExporterApi) index(w http.ResponseWriter, r *http.Request) {
 	
 	<body>
 	<p>Percent Active Subscribers</p>
-	<input type="text" data-angleoffset=-125 data-anglearc=250 data-fgcolor="#66EE66" value="50" class="dial">
+	<input type="text" data-angleoffset=-125 data-anglearc=250 data-fgcolor="#66EE66" value="50" class="activeDial">
+	<p>Percent Upstream Throughput</p>
+	<input type="text" data-angleoffset=-125 data-anglearc=250 data-fgcolor="#66EE66" value="50" class="upThroughputDial">
+	<p>Percent Downstream Throughput</p>
+	<input type="text" data-angleoffset=-125 data-anglearc=250 data-fgcolor="#66EE66" value="50" class="downThroughputDial">
 	
 	<script>
-		$(".dial").knob({
-		'release' : function (sendpostresp) {
-			$.ajax({
-				url: "/postActiveSubscribers",
-				type: "POST",
-				data: { 
-					value: sendpostresp 
-				}		
-			});
-		}
-	});
+		$(".activeDial").knob({
+			'release' : function (sendpostresp) {
+				$.ajax({
+					url: "/updateKnob",
+					type: "POST",
+					data: {
+						knob: "active",
+						value: sendpostresp 
+					}		
+				});
+			}
+		});
+		
+		$(".upThroughputDial").knob({
+			'release' : function (sendpostresp) {
+				$.ajax({
+					url: "/updateKnob",
+					type: "POST",
+					data: {
+						knob: "upThroughput",
+						value: sendpostresp 
+					}		
+				});
+			}
+		});
+
+		$(".downThroughputDial").knob({
+			'release' : function (sendpostresp) {
+				$.ajax({
+					url: "/updateKnob",
+					type: "POST",
+					data: {
+						knob: "downThroughput",
+						value: sendpostresp 
+					}		
+				});
+			}
+		});			
 	</script>
 	
 	</body>
@@ -62,7 +100,7 @@ func (m *ExporterApi) index(w http.ResponseWriter, r *http.Request) {
 }
 
 // The Knob posts to this endpoint.
-func (m *ExporterApi) postActiveSubscribers(w http.ResponseWriter, r *http.Request) {
+func (m *ExporterApi) postUpdateKnob(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Warnf("ParseForm() err: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -72,6 +110,13 @@ func (m *ExporterApi) postActiveSubscribers(w http.ResponseWriter, r *http.Reque
 
 	value := r.FormValue("value")
 	if value == "" {
+		log.Warn("No value")
+		return
+	}
+
+	knob := r.FormValue("knob")
+	if knob == "" {
+		log.Warn("No knob")
 		return
 	}
 
@@ -82,15 +127,29 @@ func (m *ExporterApi) postActiveSubscribers(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	PercentActiveSubscribers = &f64
+	switch knob {
+	case "active":
+		PercentActiveSubscribers = &f64
+	case "upThroughput":
+		PercentUpThroughput = &f64
+	case "downThroughput":
+		PercentDownThroughput = &f64
+	case "upLatency":
+		PercentUpLatency = &f64
+	case "downLatency":
+		PercentUpThroughput = &f64
+	default:
+		log.Warnf("Unknown knob %s", knob)
+		http.Error(w, "unknown knob", http.StatusInternalServerError)
+	}
 
-	log.Infof("Set Active Subscribers to %f", *PercentActiveSubscribers)
+	log.Infof("Set Knob %s to %f", knob, value)
 }
 
 func (m *ExporterApi) handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/", m.index).Methods("GET")
-	myRouter.HandleFunc("/postActiveSubscribers", m.postActiveSubscribers).Methods("POST")
+	myRouter.HandleFunc("/updateKnob", m.postUpdateKnob).Methods("POST")
 	err := http.ListenAndServe(":8081", myRouter)
 	if err != nil {
 		log.Panicf("ExporterAPI Error %v", err)

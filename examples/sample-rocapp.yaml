@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+
+# This example simulates a peer-to-peer virtual reality game. As the number of
+# participants in the game increases, the amount of data to each participant increases,
+# and the ROC App will increase the downstream bandwidth.
+#
+# ROC App recipes start with a Source (Prometheus) and a Destinations (aether-config).
+# For each VCS there is a set of rules. The first rule to match will win and subsequent
+# rules will not be evaluated.
+
+sources:
+  - name: default
+    endpoint: http://aether-roc-umbrella-prometheus-server:80/
+destinations:
+  - name: default
+    endpoint: onos-config:5150
+    target: connectivity-service-v3
+vcs:
+  - name: zynga-sfo-vrgames
+    rules:
+      - name: zynga-debug
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})
+        debug: true   # print the query result to the log
+        continue: true  # continue processing subsequent rules
+      - name: zynga-verylow-utilization
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=20
+        actions:
+          - operation: set
+            field: downlink
+            value: 100000
+      - name: zynga-low-utilization
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=30
+        actions:
+          - operation: set
+            field: downlink
+            value: 500000
+      - name: zynga-medium-utilization
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=40
+        actions:
+          - operation: set
+            field: downlink
+            value: 750000            
+      - name: zynga-high-utilization
+        expr: sum(smf_pdu_session_profile{slice="zynga-sfo-vrgames",state="active"})<=50
+        actions:
+          - operation: set
+            field: downlink
+            value: 1000000
+      - name: zynga-veryhigh-utilization
+        actions:
+          - operation: set
+            field: downlink
+            value: 2000000

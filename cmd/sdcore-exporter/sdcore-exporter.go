@@ -19,7 +19,7 @@ func main() {
 	collector.RecordMetrics(2*time.Second, "starbucks_seattle_cameras")
 	collector.RecordMetrics(2*time.Second, "acme_chicago_robots")
 
-	collector.RecordSmfMetrics(2*time.Second, "starbuck-newyork-cameras", []string{
+	collector.RecordSmfMetrics(2*time.Second, "starbucks-newyork-cameras", []string{
 		"170029313275040",
 		"170029313275041",
 		"170029313275050",

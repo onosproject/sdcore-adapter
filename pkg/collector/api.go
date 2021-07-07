@@ -7,13 +7,26 @@ package collector
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
+	"strconv"
+)
+
+// Give mock-sdcore-exporter some knobs that can be manually turned.
+//
+// NOTE: Turning a knob currently affects all VCS, but we could address that
+// with a drop-down. There's also no mechanism to set the initial value of the
+// knobs. This is intended to be a simple interface to facilitate demos.
+
+var (
+	PercentActiveSubscribers *float64 // Nil if unset, otherwise value set from form
 )
 
 type ExporterApi struct {
 }
 
+// Serves up the index.html page that contains the knob. For such a short page, it's
+// easy enough to put the page contents inline and simplifiy distribution. If the page
+// becomes more complex, then consider putting it in a separate file.
 func (m *ExporterApi) index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `
 	<!DOCTYPE html>
@@ -36,7 +49,7 @@ func (m *ExporterApi) index(w http.ResponseWriter, r *http.Request) {
 				url: "/postActiveSubscribers",
 				type: "POST",
 				data: { 
-					foo: sendpostresp 
+					value: sendpostresp 
 				}		
 			});
 		}
@@ -48,24 +61,40 @@ func (m *ExporterApi) index(w http.ResponseWriter, r *http.Request) {
 	`)
 }
 
+// The Knob posts to this endpoint.
 func (m *ExporterApi) postActiveSubscribers(w http.ResponseWriter, r *http.Request) {
-	queryArgs := r.URL.Query()
+	if err := r.ParseForm(); err != nil {
+		log.Warnf("ParseForm() err: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Infof("Post from website: r.PostFrom = %v", r.PostForm)
 
-	/*target := queryArgs.Get("target")
-	if target == "" {
-		target = m.defaultTarget
-	}*/
+	value := r.FormValue("value")
+	if value == "" {
+		return
+	}
 
-	_ = queryArgs
+	f64, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		log.Warnf("PostForm() ParseFloat Err %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	fmt.Fprintf(w, "SUCCESS")
+	PercentActiveSubscribers = &f64
+
+	log.Infof("Set Active Subscribers to %f", *PercentActiveSubscribers)
 }
 
 func (m *ExporterApi) handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/index.html", m.index).Methods("GET")
 	myRouter.HandleFunc("/postActiveSubscribers", m.postActiveSubscribers).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8081", myRouter))
+	err := http.ListenAndServe(":8081", myRouter)
+	if err != nil {
+		log.Panicf("ExporterAPI Error %v", err)
+	}
 }
 
 func StartExporterAPI() {

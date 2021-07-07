@@ -10,7 +10,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"math/rand"
 	"time"
+
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 )
+
+var log = logging.GetLogger("collector")
 
 func RecordMetrics(period time.Duration, vcdID string) {
 	vcsLatency.WithLabelValues(vcdID).Set(21.0)
@@ -41,7 +45,23 @@ func RecordSmfMetrics(period time.Duration, vcsId string, imsiList []string) {
 				//
 				// Pick a state, set its metric to 1, leave the other metrics at 0.
 
-				stateIndex := rand.Int() % 3
+				var stateIndex int
+				if PercentActiveSubscribers == nil {
+					// Randomize
+					stateIndex = rand.Int() % 3
+				} else {
+					// Someone turned the knob in the mock-sdcore-exporter control ui.
+					thresh := float64(len(imsiList)) * (*PercentActiveSubscribers) / 100.0
+					if float64(i) <= thresh {
+						// active
+						stateIndex = 0
+					} else {
+						// inactive
+						stateIndex = 1
+
+					}
+
+				}
 				counts[stateIndex] += 1
 				for j, state := range states {
 					if j == stateIndex {

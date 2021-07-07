@@ -89,7 +89,7 @@ func (m *ExporterApi) postActiveSubscribers(w http.ResponseWriter, r *http.Reque
 
 func (m *ExporterApi) handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
-	myRouter.HandleFunc("/index.html", m.index).Methods("GET")
+	myRouter.HandleFunc("/", m.index).Methods("GET")
 	myRouter.HandleFunc("/postActiveSubscribers", m.postActiveSubscribers).Methods("POST")
 	err := http.ListenAndServe(":8081", myRouter)
 	if err != nil {

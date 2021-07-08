@@ -10,7 +10,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"math/rand"
 	"time"
+
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 )
+
+var log = logging.GetLogger("collector")
 
 func RecordMetrics(period time.Duration, vcdID string) {
 	vcsLatency.WithLabelValues(vcdID).Set(21.0)
@@ -28,7 +32,7 @@ func RecordMetrics(period time.Duration, vcdID string) {
 	}()
 }
 
-func RecordSmfMetrics(period time.Duration, vcsId string, imsiList []string) {
+func RecordUEMetrics(period time.Duration, vcsId string, imsiList []string, upThroughput float64, downThroughput float64, upLatency float64, downLatency float64) {
 	go func() {
 		states := []string{"active", "inactive", "idle"}
 		for {
@@ -41,7 +45,24 @@ func RecordSmfMetrics(period time.Duration, vcsId string, imsiList []string) {
 				//
 				// Pick a state, set its metric to 1, leave the other metrics at 0.
 
-				stateIndex := rand.Int() % 3
+				var stateIndex int
+				if PercentActiveSubscribers == nil {
+					// Randomize
+					stateIndex = rand.Int() % 3
+				} else {
+					// Someone turned the knob in the mock-sdcore-exporter control ui.
+					// PercentActiveSubscribers is from api.go
+					thresh := float64(len(imsiList)) * (*PercentActiveSubscribers) / 100.0
+					if float64(i) <= thresh {
+						// active
+						stateIndex = 0
+					} else {
+						// inactive
+						stateIndex = 1
+
+					}
+
+				}
 				counts[stateIndex] += 1
 				for j, state := range states {
 					if j == stateIndex {
@@ -50,8 +71,46 @@ func RecordSmfMetrics(period time.Duration, vcsId string, imsiList []string) {
 						smfPduSessionProfile.WithLabelValues(imsi, ip, state, "upf", vcsId).Set(0)
 					}
 				}
+
+				if stateIndex == 0 {
+					// active UE reports throughput and latency
+					if PercentUpThroughput == nil {
+						// randomize, between 75% and 100% of upThroughput argument
+						ueThroughput.WithLabelValues(imsi, vcsId, "upstream").Set(upThroughput * float64(75+rand.Intn(25)) / 100.0)
+					} else {
+						// Someone turned the knob in the mock-sdcore-exporter control ui.
+						ueThroughput.WithLabelValues(imsi, vcsId, "upstream").Set(upThroughput * (*PercentUpThroughput))
+					}
+					if PercentDownThroughput == nil {
+						// randomize, between 75% and 100% of downThroughput argument
+						ueThroughput.WithLabelValues(imsi, vcsId, "downstream").Set(downThroughput * float64(75+rand.Intn(25)) / 100.0)
+					} else {
+						// Someone turned the knob in the mock-sdcore-exporter control ui.
+						ueThroughput.WithLabelValues(imsi, vcsId, "downstream").Set(downThroughput * (*PercentDownThroughput))
+					}
+					if PercentUpLatency == nil {
+						// randomize, between 75% and 100% of latency argument
+						ueLatency.WithLabelValues(imsi, vcsId, "upstream").Set(upLatency * float64(75+rand.Intn(25)) / 100.0)
+					} else {
+						// Someone turned the knob in the mock-sdcore-exporter control ui.
+						ueLatency.WithLabelValues(imsi, vcsId, "upstream").Set(upLatency * (*PercentUpLatency))
+					}
+					if PercentDownLatency == nil {
+						// randomize, between 75% and 100% of latency argument
+						ueLatency.WithLabelValues(imsi, vcsId, "downstream").Set(downLatency * float64(75+rand.Intn(25)) / 100.0)
+					} else {
+						// Someone turned the knob in the mock-sdcore-exporter control ui.
+						ueLatency.WithLabelValues(imsi, vcsId, "downstream").Set(downLatency * (*PercentDownLatency))
+					}
+				} else {
+					// inactive UE has no throughput or latency
+					ueThroughput.WithLabelValues(imsi, vcsId, "upstream").Set(0)
+					ueThroughput.WithLabelValues(imsi, vcsId, "downstream").Set(0)
+					ueLatency.WithLabelValues(imsi, vcsId, "upstream").Set(0)
+					ueLatency.WithLabelValues(imsi, vcsId, "downstream").Set(0)
+				}
 			}
-			smfPduSessions.Set(counts[0]) // counts[0] are active UEs
+			smfPduSessions.Set(counts[0]) // counts[0] is active UEs
 			time.Sleep(period)
 		}
 	}()
@@ -70,6 +129,8 @@ var (
 		Name: "vcs_throughput",
 		Help: "VCS Throughput",
 	}, []string{"vcs_id"})
+
+	// SMF metrics are actual metrics from SD-Core
 	smfPduSessionProfile = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "smf_pdu_session_profile",
 		Help: "smf pdu session profile",
@@ -78,4 +139,14 @@ var (
 		Name: "smf_pdu_sessions",
 		Help: "smf pdu session count",
 	})
+
+	// UE throughput and latencies are hypothetical per-UE values
+	ueThroughput = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "ue_throughput",
+		Help: "ue_throughput",
+	}, []string{"id", "slice", "direction"})
+	ueLatency = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "ue_latency",
+		Help: "ue_latency",
+	}, []string{"id", "slice", "direction"})
 )

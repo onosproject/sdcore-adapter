@@ -19,7 +19,8 @@ func main() {
 	collector.RecordMetrics(2*time.Second, "starbucks_seattle_cameras")
 	collector.RecordMetrics(2*time.Second, "acme_chicago_robots")
 
-	collector.RecordSmfMetrics(2*time.Second, "starbucks-newyork-cameras", []string{
+	// period, vcs, imsis, upMbps, downMbps, upLatency, downLatency
+	collector.RecordUEMetrics(2*time.Second, "starbucks-newyork-cameras", []string{
 		"170029313275040",
 		"170029313275041",
 		"170029313275050",
@@ -28,14 +29,16 @@ func main() {
 		"170029313275053",
 		"170029313275054",
 		"170029313275055",
-	})
+	}, 100000, 1000, 10, 10)
 
 	var imsi uint64
 	gameImsis := []string{}
 	for imsi = 130029313275060; imsi <= 130029313275160; imsi++ {
 		gameImsis = append(gameImsis, strconv.FormatUint(imsi, 10))
 	}
-	collector.RecordSmfMetrics(2*time.Second, "zynga-sfo-vrgames", gameImsis)
+	collector.RecordUEMetrics(2*time.Second, "zynga-sfo-vrgames", gameImsis, 1000, 100000, 10, 10)
+
+	collector.StartExporterAPI()
 
 	http.Handle("/metrics", promhttp.Handler())
 	if err := http.ListenAndServe(":2112", nil); err != nil {

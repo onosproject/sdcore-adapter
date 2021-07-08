@@ -32,7 +32,7 @@ func RecordMetrics(period time.Duration, vcdID string) {
 	}()
 }
 
-func RecordUEMetrics(period time.Duration, vcsId string, imsiList []string, downThroughput float64, upThroughput float64, upLatency float64, downLatency float64) {
+func RecordUEMetrics(period time.Duration, vcsId string, imsiList []string, upThroughput float64, downThroughput float64, upLatency float64, downLatency float64) {
 	go func() {
 		states := []string{"active", "inactive", "idle"}
 		for {
@@ -83,10 +83,10 @@ func RecordUEMetrics(period time.Duration, vcsId string, imsiList []string, down
 					}
 					if PercentDownThroughput == nil {
 						// randomize, between 75% and 100% of downThroughput argument
-						ueThroughput.WithLabelValues(imsi, vcsId, "upstream").Set(downThroughput * float64(75+rand.Intn(25)) / 100.0)
+						ueThroughput.WithLabelValues(imsi, vcsId, "downstream").Set(downThroughput * float64(75+rand.Intn(25)) / 100.0)
 					} else {
 						// Someone turned the knob in the mock-sdcore-exporter control ui.
-						ueThroughput.WithLabelValues(imsi, vcsId, "upstream").Set(downThroughput * (*PercentDownThroughput))
+						ueThroughput.WithLabelValues(imsi, vcsId, "downstream").Set(downThroughput * (*PercentDownThroughput))
 					}
 					if PercentUpLatency == nil {
 						// randomize, between 75% and 100% of latency argument

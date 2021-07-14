@@ -27,10 +27,10 @@ func TestFormatImsi(t *testing.T) {
 	assert.Equal(t, uint64(123450789123456), imsi)
 
 	// subscriber is too long
-	imsi, err = FormatImsi("CCCNNNEEESSSSSS", 123, 456, 789, 1234567)
+	_, err = FormatImsi("CCCNNNEEESSSSSS", 123, 456, 789, 1234567)
 	assert.EqualError(t, err, "Failed to convert all Subscriber digits")
 
 	// unrecognized character
-	imsi, err = FormatImsi("CCCNNNEEESSSSSZ", 123, 456, 789, 123456)
+	_, err = FormatImsi("CCCNNNEEESSSSSZ", 123, 456, 789, 123456)
 	assert.EqualError(t, err, "Unrecognized IMSI format specifier 'Z'")
 }

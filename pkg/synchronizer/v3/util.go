@@ -4,3 +4,70 @@
 
 // Utility functions for synchronizer
 package synchronizerv3
+
+import (
+	"errors"
+	"fmt"
+
+	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+)
+
+// Format MCC, MNC, ENT, and SUB into an IMSI, according to a format specifier
+func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (uint64, error) {
+	var imsi uint64
+	var mult uint64
+	mult = 1
+	// Build the IMSI from right to left, as it makes it easy to convert and pad integers
+	for i := len(format) - 1; i >= 0; i-- {
+		switch format[i] {
+		case 'C':
+			imsi = imsi + uint64(mcc%10)*mult
+			mult *= 10
+			mcc = mcc / 10
+		case 'N':
+			imsi = imsi + uint64(mnc%10)*mult
+			mult *= 10
+			mnc = mnc / 10
+		case 'E':
+			imsi = imsi + uint64(ent%10)*mult
+			mult *= 10
+			ent = ent / 10
+		case 'S':
+			imsi = imsi + uint64(sub%10)*mult
+			mult *= 10
+			sub = sub / 10
+		case '0':
+			mult *= 10
+		default:
+			return 0, fmt.Errorf("Unrecognized IMSI format specifier '%c'", format[i])
+		}
+	}
+	// IF there are any bits left in any of the fields, then it means we
+	// had more digits than the IMSI format called for.
+	if mcc > 0 {
+		return 0, errors.New("Failed to convert all MCC digits")
+	}
+	if mnc > 0 {
+		return 0, errors.New("Failed to convert all MNC digits")
+	}
+	if ent > 0 {
+		return 0, errors.New("Failed to convert all Enterprise digits")
+	}
+	if sub > 0 {
+		return 0, errors.New("Failed to convert all Subscriber digits")
+	}
+
+	return imsi, nil
+}
+
+// Wrapper around FormatImsiDef that takes the ImsiDefinition gNMI instead of a set of arguments
+func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64, error) {
+	var format string
+	if i.Format != nil {
+		format = *i.Format
+	} else {
+		// default format from YANG
+		format = "CCCNNNEEESSSSSS"
+	}
+	return FormatImsi(format, *i.Mcc, *i.Mnc, *i.Enterprise, sub)
+}

@@ -77,3 +77,20 @@ func (s *Synchronizer) validateUpf(u *models.Upf_Upf_Upf) error {
 	}
 	return nil
 }
+
+func (s *Synchronizer) validateSiteImsiDefinition(i *models.Site_Site_Site_ImsiDefinition) error {
+	if i.Mnc == nil {
+		return fmt.Errorf("Mnc is nil")
+	}
+	if i.Mcc == nil {
+		return fmt.Errorf("Mcc is nil")
+	}
+	if i.Enterprise == nil {
+		return fmt.Errorf("Enterprise is nil")
+	}
+	// Note: If format is nil, we'll assume it is the default
+	if (i.Format != nil) && len(*i.Format) != 15 {
+		return fmt.Errorf("Format is not 15 characters")
+	}
+	return nil
+}

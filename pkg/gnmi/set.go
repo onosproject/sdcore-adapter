@@ -65,24 +65,6 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 	}, pathDeleted, nil
 }
 
-// In the JSON config tree, fields that are 64-bit uints must be represented as a
-// string instead of as an integer. Haven't found a good way to do this automatically
-// yet, so currently hardcoding the known problematic field names.
-func (s *Server) isUint64Field(path *pb.Path) bool {
-	if len(path.Elem) == 0 {
-		return false
-	}
-	lastElem := path.Elem[len(path.Elem)-1]
-	switch lastElem.Name {
-	case "imsi-range-from":
-		return true
-	case "imsi-range-to":
-		return true
-	default:
-		return false
-	}
-}
-
 // doReplaceOrUpdate validates the replace or update operation to be applied to
 // the device, modifies the json tree of the config struct, then calls the
 // callback function to apply the operation to the device hardware.
@@ -92,10 +74,11 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 	var nodeVal interface{}
 
 	// Validate the operation.
-	emptyNode, _, err := ytypes.GetOrCreateNode(s.model.schemaTreeRoot, s.model.newRootValue(), fullPath)
+	emptyNode, entry, err := ytypes.GetOrCreateNode(s.model.schemaTreeRoot, s.model.newRootValue(), fullPath)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "path %v is not found in the config structure: %v", fullPath, err)
 	}
+
 	nodeStruct, ok := emptyNode.(ygot.ValidatedGoStruct)
 	if ok {
 		if err := s.model.jsonUnmarshaler(val.GetJsonIetfVal(), nodeStruct); err != nil {
@@ -111,7 +94,12 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 			return nil, status.Error(codes.Internal, msg)
 		}
 	} else {
-		intAsString := s.isUint64Field(path)
+		// If the Yang entry is a uint64, then we need to store it as a string in the JSON Tree
+		// instead of as a uint.
+		intAsString := (entry.Type != nil) && (entry.Type.Name == "uint64")
+		if intAsString {
+			log.Infof("IntAsString %s %s", entry.Name, entry.Type.Name)
+		}
 		nodeVal, err = convertTypedValueToJsonValue(val, intAsString)
 		if err != nil {
 			return nil, err

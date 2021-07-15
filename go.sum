@@ -275,10 +275,10 @@ github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201217104
 github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201217104719-f0b4f4c16f49/go.mod h1:fB62wBWg53vLmDwyrVG/Ys8x4m94GVdBYdf7YZ9VGQs=
 github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180505-6d1bbdac02b2 h1:keDyVCFWxsurSLnrDUSz9eJVvCe5eEGTEo34qLstxmk=
 github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180505-6d1bbdac02b2/go.mod h1:jy8z05rNVgQKYsD3+MkTAjkhGLN4mj8gBEIIKIYUlyA=
-github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.6.36 h1:I8yMk7MoQEdvXWsbUvXmgkMKjB6hLPsl1B6YrqG/eTc=
-github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.6.36/go.mod h1:bH6C7xJfAbfI19WaemTKPrUlQetYF75ZTvHUFdXflpM=
-github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.6.36 h1:2d2Ab5aT/a6EvsMCYF8YTVWd3pLYKGqxwuYaA3OcNcc=
-github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.6.36/go.mod h1:jakiKtKvQ4q1w9YOPWS6o06CdQYZC5QV5DlaVwG1iTc=
+github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.6.37 h1:yE9QxneqCsB+rCU8C17m+aXIGmVTB+szjhlgl9pC+Cc=
+github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.6.37/go.mod h1:9mSHygkfasR8omH4TVBlwV7uqKrT6UuTcRWkOLYNPVw=
+github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.6.37 h1:JJkUO0PCPKgW47VJAqvyIqSDlg5nPtpc+HJn0COL/dQ=
+github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.6.37/go.mod h1:jakiKtKvQ4q1w9YOPWS6o06CdQYZC5QV5DlaVwG1iTc=
 github.com/onosproject/onos-lib-go v0.6.19 h1:9hV67s/4Qnx1DUtbr6glcOzC2XdxgeoiqZ8B4FIhHAQ=
 github.com/onosproject/onos-lib-go v0.6.19/go.mod h1:x0vnsS7xhJVIHxtRFLmBW3sm9OdKnmTkCCVo8eGy8lU=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
@@ -301,8 +301,6 @@ github.com/openconfig/ygot v0.6.0/go.mod h1:o30svNf7O0xK+R35tlx95odkDmZWS9JyWWQS
 github.com/openconfig/ygot v0.6.1-0.20200103195725-e3c44fa43926/go.mod h1:o30svNf7O0xK+R35tlx95odkDmZWS9JyWWQSmIhqwAs=
 github.com/openconfig/ygot v0.8.12/go.mod h1:Qh/F0ycMLXJlZn4cR+5iuefEMthLggO8KBq8wjXYPTY=
 github.com/openconfig/ygot v0.10.4/go.mod h1:oCQNdXnv7dWc8scTDgoFkauv1wwplJn5HspHcjlxSAQ=
-github.com/openconfig/ygot v0.10.5 h1:8RQxM/AY4bbfKAtYihWlyIEwKuLjNE1jzXI4gxPN27w=
-github.com/openconfig/ygot v0.10.5/go.mod h1:oCQNdXnv7dWc8scTDgoFkauv1wwplJn5HspHcjlxSAQ=
 github.com/openconfig/ygot v0.11.2 h1:J5HTV1BtNZoc8LHDUpgA33rhccEIds81S32G2qgIDJY=
 github.com/openconfig/ygot v0.11.2/go.mod h1:5q5fz1SDPGUwMyzbm8Ns2Krul+32euNSU89ZmrGrSK8=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=

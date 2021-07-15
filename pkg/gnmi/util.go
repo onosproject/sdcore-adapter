@@ -663,3 +663,47 @@ func convertTypedValueToJsonValue(val *pb.TypedValue, intAsString bool) (interfa
 
 	return nodeVal, nil
 }
+
+/*
+func PrintPath(prefix, path *pb.Path) {
+    if (prefix != nil) {
+		for _, e := range prefix.Elem {
+			fmt.Printf("%s.",e.Name)
+		}
+	}
+    if (path != nil) {
+		for _, e := range path.Elem {
+			fmt.Printf("%s.",e.Name)
+		}
+	}
+}
+
+func FindPathInSchemaTree(prefix, path *pb.Path, root *yang.Entry) (*yang.Entry, error)
+{
+	fmt.Printf("Search: ")
+	PrintPath(prefix, path)
+
+	cur := root
+    if (prefix != nil) {
+		for _, e := range prefix.Elem {
+			child, okay := y.Dir[e.Name]
+			if !okay {
+				fmt.Printf("Failed to find child %s in entry", e.Name)
+				y.Dump()
+			}
+			cur = child
+		}
+	}
+	if (path != nil) {
+		for _, e := range path.Elem {
+			child, okay := y.Dir[e.Name]
+			if !okay {
+				fmt.Printf("Failed to find child %s in entry", e.Name)
+				y.Dump()
+			}
+			cur = child
+		}
+	}
+	return cur
+}
+*/

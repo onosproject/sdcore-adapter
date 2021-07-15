@@ -626,19 +626,18 @@ func jsonEncoder(encoderType string, nodeStruct ygot.GoStruct) (map[string]inter
 }
 
 /*
- * JSON requires that 64-bit integer values be encoded as strings. 32-bit integer values
- * may be encoded as integers. So we'll convert the integer, look at how big it is, and
- * then output the appropriate encoding.
+ * JSON requires that 64-bit integer values be encoded as strings. We rely on the caller to
+ * let us know whether the destination needs to be converted to a string.
  */
 
-func convertTypedValueToJsonValue(val *pb.TypedValue) (interface{}, error) {
+func convertTypedValueToJsonValue(val *pb.TypedValue, intAsString bool) (interface{}, error) {
 	var err error
 	var nodeVal interface{}
 
 	switch val.Value.(type) {
 	case *pb.TypedValue_UintVal:
 		u := val.GetUintVal()
-		if u > 4294967295 {
+		if intAsString {
 			nodeVal = strconv.FormatUint(u, 10)
 			log.Infof("Coverted to string: %v", nodeVal)
 		} else {
@@ -647,7 +646,7 @@ func convertTypedValueToJsonValue(val *pb.TypedValue) (interface{}, error) {
 		}
 	case *pb.TypedValue_IntVal:
 		i := val.GetIntVal()
-		if (i < -2147483648) || (i > 2147483647) {
+		if intAsString {
 			nodeVal = strconv.FormatInt(i, 10)
 			log.Infof("Coverted to string: %v", nodeVal)
 		} else {

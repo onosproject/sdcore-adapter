@@ -56,17 +56,6 @@ func (s *Synchronizer) validateAccessPoint(ap *models.ApList_ApList_ApList_Acces
 	return nil
 }
 
-// return error if Network cannot be synchronized due to missing data
-func (s *Synchronizer) validateNetwork(n *models.Network_Network_Network) error {
-	if n.Mnc == nil {
-		return fmt.Errorf("Mnc is nil")
-	}
-	if n.Mcc == nil {
-		return fmt.Errorf("Mcc is nil")
-	}
-	return nil
-}
-
 // return error if UPF cannot be synchronized due to missing data
 func (s *Synchronizer) validateUpf(u *models.Upf_Upf_Upf) error {
 	if u.Address == nil {

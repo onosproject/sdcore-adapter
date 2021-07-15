@@ -74,10 +74,11 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 	var nodeVal interface{}
 
 	// Validate the operation.
-	emptyNode, _, err := ytypes.GetOrCreateNode(s.model.schemaTreeRoot, s.model.newRootValue(), fullPath)
+	emptyNode, entry, err := ytypes.GetOrCreateNode(s.model.schemaTreeRoot, s.model.newRootValue(), fullPath)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "path %v is not found in the config structure: %v", fullPath, err)
 	}
+
 	nodeStruct, ok := emptyNode.(ygot.ValidatedGoStruct)
 	if ok {
 		if err := s.model.jsonUnmarshaler(val.GetJsonIetfVal(), nodeStruct); err != nil {
@@ -93,7 +94,13 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 			return nil, status.Error(codes.Internal, msg)
 		}
 	} else {
-		nodeVal, err = convertTypedValueToJsonValue(val)
+		// If the Yang entry is a uint64, then we need to store it as a string in the JSON Tree
+		// instead of as a uint.
+		intAsString := (entry.Type != nil) && (entry.Type.Name == "uint64")
+		if intAsString {
+			log.Infof("IntAsString %s %s", entry.Name, entry.Type.Name)
+		}
+		nodeVal, err = convertTypedValueToJsonValue(val, intAsString)
 		if err != nil {
 			return nil, err
 		}

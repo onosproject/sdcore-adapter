@@ -65,6 +65,24 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 	}, pathDeleted, nil
 }
 
+// In the JSON config tree, fields that are 64-bit uints must be represented as a
+// string instead of as an integer. Haven't found a good way to do this automatically
+// yet, so currently hardcoding the known problematic field names.
+func (s *Server) isUint64Field(path *pb.Path) bool {
+	if len(path.Elem) == 0 {
+		return false
+	}
+	lastElem := path.Elem[len(path.Elem)-1]
+	switch lastElem.Name {
+	case "imsi-range-from":
+		return true
+	case "imsi-range-to":
+		return true
+	default:
+		return false
+	}
+}
+
 // doReplaceOrUpdate validates the replace or update operation to be applied to
 // the device, modifies the json tree of the config struct, then calls the
 // callback function to apply the operation to the device hardware.
@@ -93,7 +111,8 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 			return nil, status.Error(codes.Internal, msg)
 		}
 	} else {
-		nodeVal, err = convertTypedValueToJsonValue(val)
+		intAsString := s.isUint64Field(path)
+		nodeVal, err = convertTypedValueToJsonValue(val, intAsString)
 		if err != nil {
 			return nil, err
 		}

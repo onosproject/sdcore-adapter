@@ -180,21 +180,6 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 	return nil
 }
 
-// Lookup a network.
-func (s *Synchronizer) GetNetwork(device *models.Device, id *string) (*models.Network_Network_Network, error) {
-	if device.Network == nil {
-		return nil, fmt.Errorf("Device contains no networks")
-	}
-	if (id == nil) || (*id == "") {
-		return nil, fmt.Errorf("Network id is blank")
-	}
-	net, okay := device.Network.Network[*id]
-	if !okay {
-		return nil, fmt.Errorf("Network %s not found", *id)
-	}
-	return net, nil
-}
-
 // Lookup an IpDomain
 func (s *Synchronizer) GetIpDomain(device *models.Device, id *string) (*models.IpDomain_IpDomain_IpDomain, error) {
 	if device.IpDomain == nil {
@@ -337,19 +322,14 @@ deviceGroupLoop:
 			SiteInfo:     *dg.Site,
 		}
 
-		// Latest modeling uses Site.ImsiDefinition to format the IMSI
-		var imsiDef *models.Site_Site_Site_ImsiDefinition
-		if site.Network == nil {
-			if site.ImsiDefinition == nil {
-				log.Warnf("DeviceGroup %s site has neither Network nor ImsiDefinition", *dg.Id)
-				continue deviceGroupLoop
-			}
-			err = s.validateSiteImsiDefinition(site.ImsiDefinition)
-			if err != nil {
-				log.Warnf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.Id, err)
-				continue deviceGroupLoop
-			}
-			imsiDef = site.ImsiDefinition
+		if site.ImsiDefinition == nil {
+			log.Warnf("DeviceGroup %s site has nil ImsiDefinition", *dg.Id)
+			continue deviceGroupLoop
+		}
+		err = s.validateSiteImsiDefinition(site.ImsiDefinition)
+		if err != nil {
+			log.Warnf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.Id, err)
+			continue deviceGroupLoop
 		}
 
 		// populate the imsi list
@@ -359,33 +339,24 @@ deviceGroupLoop:
 				continue deviceGroupLoop
 			}
 			var firstImsi uint64
-			if imsiDef != nil {
-				firstImsi, err = FormatImsiDef(imsiDef, *imsiBlock.ImsiRangeFrom)
-				if err != nil {
-					log.Infof("Failed to format IMSI in dg %s: %v", *dg.Id, err)
-					continue deviceGroupLoop
-				}
-			} else {
-				// DEPRECATED
-				firstImsi = *imsiBlock.ImsiRangeFrom
+			firstImsi, err = FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeFrom)
+			if err != nil {
+				log.Infof("Failed to format IMSI in dg %s: %v", *dg.Id, err)
+				continue deviceGroupLoop
 			}
 			var lastImsi uint64
 			if imsiBlock.ImsiRangeTo == nil {
 				lastImsi = firstImsi
 			} else {
-				if imsiDef != nil {
-					lastImsi, err = FormatImsiDef(imsiDef, *imsiBlock.ImsiRangeTo)
-					if err != nil {
-						log.Infof("Failed to format IMSI in dg %s: %v", *dg.Id, err)
-						continue deviceGroupLoop
-					}
-				} else {
-					// DEPRECATED
-					lastImsi = *imsiBlock.ImsiRangeTo
+				lastImsi, err = FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeTo)
+				if err != nil {
+					log.Infof("Failed to format IMSI in dg %s: %v", *dg.Id, err)
+					continue deviceGroupLoop
 				}
+
 			}
 			for i := firstImsi; i <= lastImsi; i++ {
-				dgCore.Imsis = append(dgCore.Imsis, strconv.FormatUint(i, 10))
+				dgCore.Imsis = append(dgCore.Imsis, fmt.Sprintf("%015d", i))
 			}
 		}
 
@@ -447,36 +418,17 @@ vcsLoop:
 			continue vcsLoop
 		}
 
-		var mcc uint32
-		var mnc uint32
-		if site.Network != nil {
-			// DEPRECATED
-			net, err := s.GetNetwork(device, site.Network)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine network: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-
-			err = s.validateNetwork(net)
-			if err != nil {
-				log.Warn("Vcs %s Network Invalid: %s", *vcs.Id)
-				continue vcsLoop
-			}
-			mcc = *net.Mcc
-			mnc = *net.Mnc
-		} else {
-			if site.ImsiDefinition == nil {
-				log.Warn("Vcs %s has neither Site.Network nor Site.ImsiDefinition", *vcs.Id)
-				continue vcsLoop
-			}
-			err := s.validateSiteImsiDefinition(site.ImsiDefinition)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			mcc = *site.ImsiDefinition.Mcc
-			mnc = *site.ImsiDefinition.Mnc
+		if site.ImsiDefinition == nil {
+			log.Warn("Vcs %s has nnil Site.ImsiDefinition", *vcs.Id)
+			continue vcsLoop
 		}
+		err = s.validateSiteImsiDefinition(site.ImsiDefinition)
+		if err != nil {
+			log.Warnf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
+			continue vcsLoop
+		}
+		mcc := *site.ImsiDefinition.Mcc
+		mnc := *site.ImsiDefinition.Mnc
 
 		plmn := Plmn{
 			Mcc: strconv.FormatUint(uint64(mcc), 10),

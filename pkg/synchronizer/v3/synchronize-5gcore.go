@@ -40,8 +40,8 @@ type DeviceGroup struct {
 }
 
 type SliceId struct {
-	Sst uint32 `json:"sst"`
-	Sd  uint32 `json:"sd"`
+	Sst string `json:"sst"`
+	Sd  string `json:"sd"`
 }
 
 type Qos struct {
@@ -479,8 +479,8 @@ vcsLoop:
 		}
 
 		sliceId := SliceId{
-			Sst: *vcs.Sst,
-			Sd:  *vcs.Sd,
+			Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
+			Sd:  strconv.FormatUint(uint64(*vcs.Sd), 10),
 		}
 
 		slice := Slice{

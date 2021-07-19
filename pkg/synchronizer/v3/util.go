@@ -67,7 +67,20 @@ func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64,
 		format = *i.Format
 	} else {
 		// default format from YANG
-		format = "CCCNNNEEESSSSSS"
+		format = DEFAULT_IMSI_FORMAT
 	}
+
+	if err := validateImsiDefinition(i); err != nil {
+		return 0, err
+	}
+
 	return FormatImsi(format, *i.Mcc, *i.Mnc, *i.Enterprise, sub)
+}
+
+func ProtoStringToProtoNumber(s string) (uint32, error) {
+	n, okay := map[string]uint32{"TCP": 6, "UDP": 17}[s]
+	if !okay {
+		return 0, fmt.Errorf("Unknown protocol %s", s)
+	}
+	return n, nil
 }

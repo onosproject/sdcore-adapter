@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+// Package synchronizerv3 implements a synchronizer for Aether v3 models
 package synchronizerv3
 
 import (
@@ -46,9 +46,43 @@ var ModelData = []*gnmiproto.ModelData{
 }
 
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
-	log.Infof("Synchronize, type=%s", callbackType)
-	err := s.SynchronizeDevice(config)
+	err := s.enqueue(config, callbackType)
 	return err
+}
+
+func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
+	for {
+		// If something new has come along, then don't bother with the one we're working on
+		if s.newUpdatesPending() {
+			log.Infof("Current synchronizer update has been obsoleted")
+			return
+		}
+
+		err := s.SynchronizeDevice(update.config)
+		if err == nil {
+			// Success!
+			log.Infof("Synchronization success")
+			return
+		}
+
+		log.Infof("Synchronization error: %v", err)
+
+		// We erred. Sleep before trying again.
+		// Implements a fixed interval for now; We can go exponential should it prove to
+		// be a problem.
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func (s *Synchronizer) Loop() {
+	log.Infof("Starting synchronizer loop")
+	for {
+		update := s.dequeue()
+
+		log.Infof("Synchronize, type=%s", update.callbackType)
+
+		s.SynchronizeAndRetry(update)
+	}
 }
 
 func (s *Synchronizer) GetModels() *gnmi.Model {
@@ -86,6 +120,7 @@ func (s *Synchronizer) Start() {
 		s.postTimeout)
 
 	// TODO: Eventually we'll create a thread here that waits for config changes
+	go s.Loop()
 }
 
 func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Duration) *Synchronizer {
@@ -97,6 +132,7 @@ func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Du
 		postEnable:     postEnable,
 		postTimeout:    postTimeout,
 		pusher:         p,
+		updateChannel:  make(chan *SynchronizerUpdate),
 	}
 	return s
 }

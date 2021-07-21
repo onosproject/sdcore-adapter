@@ -296,6 +296,7 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vc
 }
 
 func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+	pushFailures := 0
 deviceGroupLoop:
 	for _, dg := range device.DeviceGroup.DeviceGroup {
 		site, err := s.GetDeviceGroupSite(device, dg)
@@ -384,13 +385,18 @@ deviceGroupLoop:
 		err = s.pusher.PushUpdate(url, data)
 		if err != nil {
 			log.Warnf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
+			pushFailures += 1
 			continue deviceGroupLoop
 		}
+	}
+	if pushFailures > 0 {
+		return fmt.Errorf("%d errors while pushing DeviceGroups", pushFailures)
 	}
 	return nil
 }
 
 func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+	pushFailures := 0
 vcsLoop:
 	for _, vcs := range device.Vcs.Vcs {
 		dgList, site, err := s.GetVcsDGAndSite(device, vcs)
@@ -563,8 +569,12 @@ vcsLoop:
 		err = s.pusher.PushUpdate(url, data)
 		if err != nil {
 			log.Warnf("Vcs %s failed to push update: %s", *vcs.Id, err)
+			pushFailures += 1
 			continue vcsLoop
 		}
+	}
+	if pushFailures > 0 {
+		return fmt.Errorf("%d errors while pushing VCS", pushFailures)
 	}
 
 	return nil

@@ -8,7 +8,9 @@ package synchronizerv3
 import (
 	"time"
 
+	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
+	"github.com/openconfig/ygot/ygot"
 )
 
 const (
@@ -20,4 +22,10 @@ type Synchronizer struct {
 	postEnable     bool
 	postTimeout    time.Duration
 	pusher         synchronizer.PusherInterface
+	updateChannel  chan *SynchronizerUpdate
+}
+
+type SynchronizerUpdate struct {
+	config       ygot.ValidatedGoStruct
+	callbackType gnmi.ConfigCallbackType
 }

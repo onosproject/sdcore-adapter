@@ -11,6 +11,10 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
+const (
+	DEFAULT_IMSI_FORMAT = "CCCNNNEEESSSSSS"
+)
+
 type Synchronizer struct {
 	outputFileName string
 	postEnable     bool

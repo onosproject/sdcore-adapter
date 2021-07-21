@@ -6,8 +6,10 @@
 package synchronizerv3
 
 import (
+	"errors"
 	"fmt"
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	"strings"
 )
 
 // Validation functions, return an error if the given struct is missing data that
@@ -16,7 +18,7 @@ import (
 // TODO: See if there is a way to do this automatically using ygot
 
 // return error if VCS cannot be synchronized due to missing data
-func (s *Synchronizer) validateVcs(vcs *models.Vcs_Vcs_Vcs) error {
+func validateVcs(vcs *models.Vcs_Vcs_Vcs) error {
 	if vcs.Sst == nil {
 		return fmt.Errorf("Sst is nil")
 	}
@@ -27,7 +29,7 @@ func (s *Synchronizer) validateVcs(vcs *models.Vcs_Vcs_Vcs) error {
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func (s *Synchronizer) validateAppEndpoint(ep *models.Application_Application_Application_Endpoint) error {
+func validateAppEndpoint(ep *models.Application_Application_Application_Endpoint) error {
 	if ep.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -38,7 +40,7 @@ func (s *Synchronizer) validateAppEndpoint(ep *models.Application_Application_Ap
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func (s *Synchronizer) validateIpDomain(ipd *models.IpDomain_IpDomain_IpDomain) error {
+func validateIpDomain(ipd *models.IpDomain_IpDomain_IpDomain) error {
 	if ipd.Subnet == nil {
 		return fmt.Errorf("Subnet is nil")
 	}
@@ -46,7 +48,7 @@ func (s *Synchronizer) validateIpDomain(ipd *models.IpDomain_IpDomain_IpDomain) 
 }
 
 // return error if AccessPoint cannot be synchronized due to missing data
-func (s *Synchronizer) validateAccessPoint(ap *models.ApList_ApList_ApList_AccessPoints) error {
+func validateAccessPoint(ap *models.ApList_ApList_ApList_AccessPoints) error {
 	if ap.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -57,7 +59,7 @@ func (s *Synchronizer) validateAccessPoint(ap *models.ApList_ApList_ApList_Acces
 }
 
 // return error if UPF cannot be synchronized due to missing data
-func (s *Synchronizer) validateUpf(u *models.Upf_Upf_Upf) error {
+func validateUpf(u *models.Upf_Upf_Upf) error {
 	if u.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -67,19 +69,29 @@ func (s *Synchronizer) validateUpf(u *models.Upf_Upf_Upf) error {
 	return nil
 }
 
-func (s *Synchronizer) validateSiteImsiDefinition(i *models.Site_Site_Site_ImsiDefinition) error {
-	if i.Mnc == nil {
-		return fmt.Errorf("Mnc is nil")
+func validateImsiDefinition(i *models.Site_Site_Site_ImsiDefinition) error {
+	var format string
+	if i.Format != nil {
+		format = *i.Format
+	} else {
+		// default format from YANG
+		format = DEFAULT_IMSI_FORMAT
 	}
-	if i.Mcc == nil {
-		return fmt.Errorf("Mcc is nil")
+
+	if (i.Mcc == nil) && (strings.Contains(format, "C")) {
+		return errors.New("Format contains C, yet MCC is nil")
 	}
-	if i.Enterprise == nil {
-		return fmt.Errorf("Enterprise is nil")
+	if (i.Mnc == nil) && (strings.Contains(format, "N")) {
+		return errors.New("Format contains N, yet MNC is nil")
 	}
+	if (i.Enterprise == nil) && (strings.Contains(format, "E")) {
+		return errors.New("Format contains E, yet Enterprise is nil")
+	}
+
 	// Note: If format is nil, we'll assume it is the default
-	if (i.Format != nil) && len(*i.Format) != 15 {
+	if len(format) != 15 {
 		return fmt.Errorf("Format is not 15 characters")
 	}
+
 	return nil
 }

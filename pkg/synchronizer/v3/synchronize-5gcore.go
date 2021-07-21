@@ -90,14 +90,6 @@ type Slice struct {
 	Applications      []Application `json:"applications-information"`
 }
 
-func ProtoStringToProtoNumber(s string) (uint32, error) {
-	n, okay := map[string]uint32{"TCP": 6, "UDP": 17}[s]
-	if !okay {
-		return 0, fmt.Errorf("Unknown protocol %s", s)
-	}
-	return n, nil
-}
-
 // NOTE: This function is nearly identical with the v2 synchronizer. Refactor?
 func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	device := config.(*models.Device)
@@ -326,7 +318,7 @@ deviceGroupLoop:
 			log.Warnf("DeviceGroup %s site has nil ImsiDefinition", *dg.Id)
 			continue deviceGroupLoop
 		}
-		err = s.validateSiteImsiDefinition(site.ImsiDefinition)
+		err = validateImsiDefinition(site.ImsiDefinition)
 		if err != nil {
 			log.Warnf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.Id, err)
 			continue deviceGroupLoop
@@ -366,7 +358,7 @@ deviceGroupLoop:
 			continue deviceGroupLoop
 		}
 
-		err = s.validateIpDomain(ipd)
+		err = validateIpDomain(ipd)
 		if err != nil {
 			log.Warnf("DeviceGroup %s invalid: %s", *dg.Id, err)
 			continue deviceGroupLoop
@@ -412,7 +404,7 @@ vcsLoop:
 			continue vcsLoop
 		}
 
-		err = s.validateVcs(vcs)
+		err = validateVcs(vcs)
 		if err != nil {
 			log.Warnf("Vcs %s is invalid: %s", err)
 			continue vcsLoop
@@ -422,7 +414,7 @@ vcsLoop:
 			log.Warn("Vcs %s has nnil Site.ImsiDefinition", *vcs.Id)
 			continue vcsLoop
 		}
-		err = s.validateSiteImsiDefinition(site.ImsiDefinition)
+		err = validateImsiDefinition(site.ImsiDefinition)
 		if err != nil {
 			log.Warnf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
 			continue vcsLoop
@@ -446,7 +438,7 @@ vcsLoop:
 				continue vcsLoop
 			}
 			for _, ap := range apList.AccessPoints {
-				err = s.validateAccessPoint(ap)
+				err = validateAccessPoint(ap)
 				if err != nil {
 					log.Warnf("AccessPointList %s invalid: %s", *apList.Id, err)
 					continue vcsLoop
@@ -467,7 +459,7 @@ vcsLoop:
 				log.Warnf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
 				continue vcsLoop
 			}
-			err = s.validateUpf(upf)
+			err = validateUpf(upf)
 			if err != nil {
 				log.Warnf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
 				continue vcsLoop
@@ -532,7 +524,7 @@ vcsLoop:
 			}
 			// there can be at most one at this point...
 			for _, endpoint := range app.Endpoint {
-				err = s.validateAppEndpoint(endpoint)
+				err = validateAppEndpoint(endpoint)
 				if err != nil {
 					log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
 					continue vcsLoop

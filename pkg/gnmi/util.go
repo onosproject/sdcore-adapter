@@ -198,14 +198,6 @@ func (s *Server) checkEncodingAndModel(encoding pb.Encoding, models []*pb.ModelD
 	return nil
 }
 
-// InternalUpdate is an experimental feature to let the server update its
-// internal states. Use it with your own risk.
-func (s *Server) InternalUpdate(fp func(config ygot.ValidatedGoStruct) error) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return fp(s.config)
-}
-
 // GetConfig returns the config store
 func (s *Server) GetConfig() (ygot.ValidatedGoStruct, error) {
 	return s.config, nil

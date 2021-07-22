@@ -58,7 +58,7 @@ func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
 			return
 		}
 
-		err := s.SynchronizeDevice(update.config)
+		err := s.synchronizeDeviceFunc(update.config)
 		if err == nil {
 			// Success!
 			log.Infof("Synchronization success")
@@ -70,7 +70,7 @@ func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
 		// We erred. Sleep before trying again.
 		// Implements a fixed interval for now; We can go exponential should it prove to
 		// be a problem.
-		time.Sleep(5 * time.Second)
+		time.Sleep(s.retryInterval)
 	}
 }
 
@@ -82,6 +82,8 @@ func (s *Synchronizer) Loop() {
 		log.Infof("Synchronize, type=%s", update.callbackType)
 
 		s.SynchronizeAndRetry(update)
+
+		s.complete()
 	}
 }
 
@@ -132,7 +134,9 @@ func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Du
 		postEnable:     postEnable,
 		postTimeout:    postTimeout,
 		pusher:         p,
-		updateChannel:  make(chan *SynchronizerUpdate),
+		updateChannel:  make(chan *SynchronizerUpdate, 1),
+		retryInterval:  5 * time.Second,
 	}
+	s.synchronizeDeviceFunc = s.SynchronizeDevice
 	return s
 }

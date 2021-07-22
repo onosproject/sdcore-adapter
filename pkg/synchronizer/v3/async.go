@@ -8,6 +8,7 @@ package synchronizerv3
 import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/openconfig/ygot/ygot"
+	"sync/atomic"
 )
 
 /*
@@ -26,6 +27,7 @@ L:
 		select {
 		case <-s.updateChannel:
 			log.Infof("Drained a pending synchronization request")
+			atomic.AddInt32(&s.busy, -1)
 		default:
 			break L
 		}
@@ -48,6 +50,9 @@ func (s *Synchronizer) enqueue(config ygot.ValidatedGoStruct, callbackType gnmi.
 		callbackType: callbackType,
 	}
 
+	// Increment our busy count
+	atomic.AddInt32(&s.busy, 1)
+
 	// We don't care about any pending synchronizations; throw away any old ones
 	// and queue the latest one.
 	s.drain()
@@ -62,6 +67,19 @@ func (s *Synchronizer) dequeue() *SynchronizerUpdate {
 	return update
 }
 
+// Call complete when the synchronizer has finished servicing a request
+func (s *Synchronizer) complete() {
+	atomic.AddInt32(&s.busy, -1)
+}
+
+// Returns true if new updates have arrived, not including the one currently
+// being serviced.
 func (s *Synchronizer) newUpdatesPending() bool {
 	return len(s.updateChannel) > 0
+}
+
+// Returns true if the synchronizer is idle; if there are no requests being
+// worked on and no pending requests.
+func (s *Synchronizer) isIdle() bool {
+	return atomic.LoadInt32(&s.busy) == 0
 }

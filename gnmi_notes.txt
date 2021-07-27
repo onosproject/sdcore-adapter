@@ -1,0 +1,5 @@
+go run ./cmd/gnmi_cli/gnmi_cli.go -capabilities --address=localhost:5150 -timeout 5s -insecure -client_crt ./pkg/certs/client1.crt -client_key ./pkg/certs/client1.key -ca_crt ./pkg/certs/onfca.crt
+
+go run ./cmd/gnmi_cli/gnmi_cli.go -set --address=localhost:5150 -proto "$(cat ../sdran-helm-charts/aether-roc-umbrella/files/configs/set.access-profile.gnmi)" -en PROTO -timeout 5s -insecure -client_crt ./pkg/certs/client1.crt -client_key ./pkg/certs/client1.key -ca_crt ./pkg/certs/onfca.crt
+
+go run ./cmd/gnmi_cli/gnmi_cli.go -get --address=localhost:5150 -proto "path:<elem:<name:'access-profile'>>" -en JSON -timeout 5s -insecure -client_crt ./pkg/certs/client1.crt -client_key ./pkg/certs/client1.key -ca_crt ./pkg/certs/onfca.crt

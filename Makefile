@@ -50,6 +50,7 @@ license_check: build-tools # @HELP examine and ensure license headers exist
 # @HELP build the go binary in the cmd/sdcore-adapter package
 build: local-aether-models
 	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter
+	go build -o build/_output/add-imsi ./cmd/add-imsi
 
 test: build deps license_check linters
 	go test -race github.com/onosproject/sdcore-adapter/pkg/...

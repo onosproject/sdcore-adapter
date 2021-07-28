@@ -60,7 +60,7 @@ func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (
 	return imsi, nil
 }
 
-// Wrapper around FormatImsiDef that takes the ImsiDefinition gNMI instead of a set of arguments
+// Wrapper around FormatImsi that takes the ImsiDefinition gNMI instead of a set of arguments
 func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64, error) {
 	var format string
 	if i.Format != nil {
@@ -75,6 +75,41 @@ func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64,
 	}
 
 	return FormatImsi(format, *i.Mcc, *i.Mnc, *i.Enterprise, sub)
+}
+
+// Mask off any leading subscriber digits
+func MaskSubscriberImsi(format string, sub uint64) (uint64, error) {
+	var imsi uint64
+	var mult uint64
+	mult = 1
+	// Build the IMSI from right to left, as it makes it easy to convert and pad integers
+	for i := len(format) - 1; i >= 0; i-- {
+		switch format[i] {
+		case 'S':
+			imsi = imsi + uint64(sub%10)*mult
+			mult *= 10
+			sub = sub / 10
+		default:
+		}
+	}
+	return imsi, nil
+}
+
+// Wrapper around MaskSubscriberImsi that takes the ImsiDefinition gNMI instead of a set of arguments
+func MaskSubscriberImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64, error) {
+	var format string
+	if i.Format != nil {
+		format = *i.Format
+	} else {
+		// default format from YANG
+		format = DEFAULT_IMSI_FORMAT
+	}
+
+	if err := validateImsiDefinition(i); err != nil {
+		return 0, err
+	}
+
+	return MaskSubscriberImsi(format, sub)
 }
 
 func ProtoStringToProtoNumber(s string) (uint32, error) {

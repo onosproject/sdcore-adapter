@@ -74,6 +74,12 @@ func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64,
 		return 0, err
 	}
 
+	//TODO for default site MCC,MNC,Ent Id values should be set to 0 instead they are returning as nil
+	// following nil check is workaround
+	if i.Mcc == nil {
+		return FormatImsi(format, 0, 0, 0, sub)
+	}
+
 	return FormatImsi(format, *i.Mcc, *i.Mnc, *i.Enterprise, sub)
 }
 

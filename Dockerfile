@@ -33,6 +33,8 @@ RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sample-rocapp ./cmd/s
 
 RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/add-imsi ./cmd/add-imsi
 
+RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/subscriber-proxy ./cmd/subscriber-proxy
+
 FROM alpine:3.11
 RUN apk add bash openssl curl libc6-compat
 
@@ -46,5 +48,6 @@ COPY --from=build /go/bin/sdcore-migrate /usr/local/bin/
 COPY --from=build /go/bin/sdcore-exporter /usr/local/bin/
 COPY --from=build /go/bin/sample-rocapp /usr/local/bin/
 COPY --from=build /go/bin/add-imsi /usr/local/bin/
+COPY --from=build /go/bin/subscriber-proxy /usr/local/bin/
 
 COPY examples/sample-rocapp.yaml /etc/

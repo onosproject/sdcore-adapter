@@ -8,6 +8,7 @@ package synchronizerv3
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 )
@@ -44,16 +45,16 @@ func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (
 	}
 	// IF there are any bits left in any of the fields, then it means we
 	// had more digits than the IMSI format called for.
-	if mcc > 0 {
+	if mcc > 0 && strings.Contains(format, "C") {
 		return 0, errors.New("Failed to convert all MCC digits")
 	}
-	if mnc > 0 {
+	if mnc > 0 && strings.Contains(format, "N") {
 		return 0, errors.New("Failed to convert all MNC digits")
 	}
-	if ent > 0 {
+	if ent > 0 && strings.Contains(format, "E") {
 		return 0, errors.New("Failed to convert all Enterprise digits")
 	}
-	if sub > 0 {
+	if sub > 0 && strings.Contains(format, "S") {
 		return 0, errors.New("Failed to convert all Subscriber digits")
 	}
 

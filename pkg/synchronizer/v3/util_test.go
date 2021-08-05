@@ -97,6 +97,17 @@ func TestFormatImsiDef(t *testing.T) {
 	}
 	_, err = FormatImsiDef(i, 123456)
 	assert.EqualError(t, err, "Format is not 15 characters")
+
+	// 15-digit IMSI is just fine
+	i = &models_v3.Site_Site_Site_ImsiDefinition{
+		Mcc:        aUint32(321),
+		Mnc:        aUint32(54),
+		Enterprise: aUint32(987),
+		Format:     aStr("SSSSSSSSSSSSSSS"),
+	}
+	imsi, err = FormatImsiDef(i, 123456789012345)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(123456789012345), imsi)
 }
 
 func TestProtoStringToProtoNumber(t *testing.T) {

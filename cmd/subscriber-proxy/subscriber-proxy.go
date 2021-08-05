@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -104,11 +103,11 @@ func PostToWebConsole(imsi string, payload []byte) (error, *http.Response) {
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
 	if err != nil {
 		log.Fatal(err.Error())
-		return errors.New(err.Error()), resp
+		return fmt.Errorf(err.Error()), resp
 	}
+	defer resp.Body.Close()
 
 	return nil, resp
 }
@@ -129,7 +128,7 @@ func UpdateImsiDeviceGroup(imsi *uint64) error {
 	if len(origJsonBytes) > 0 {
 		if err := models.Unmarshal(origJsonBytes, device); err != nil {
 			log.Fatal("Failed to unmarshal json")
-			return errors.New("Failed to unmarshal json")
+			return fmt.Errorf("Failed to unmarshal json")
 		}
 	}
 
@@ -161,17 +160,17 @@ func AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) e
 	dg, okay := device.DeviceGroup.DeviceGroup[dgroup]
 	if !okay {
 		log.Fatal("Failed to find device group %v", dgroup)
-		return errors.New(fmt.Sprintf("Failed to find device group %v", dgroup))
+		return fmt.Errorf("Failed to find device group %v", dgroup)
 	}
 	site, err := getDeviceGroupSite(device, dg)
 	if err != nil {
 		log.Fatal("Failed to find site for device group %v", *dg.Id)
-		return errors.New(fmt.Sprintf("Failed to find site for device group %v", *dg.Id))
+		return fmt.Errorf("Failed to find site for device group %v", *dg.Id)
 	}
 	maskedImsi, err := sync.MaskSubscriberImsiDef(site.ImsiDefinition, *imsi) // mask off the MCC/MNC/EntId
 	if err != nil {
 		log.Fatal("Failed to mask the subscriber: %v", err)
-		return errors.New(fmt.Sprintf("Failed to mask the subscriber: %v", err))
+		return fmt.Errorf("Failed to mask the subscriber: %v", err)
 	}
 
 	log.Infof("Masked imsi is %v", maskedImsi)
@@ -192,7 +191,7 @@ func AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) e
 	err = migration.Update(prefix, *aetherConfigTarget, *aetherConfigAddr, updates, context.Background())
 	if err != nil {
 		log.Fatalf("Error executing gNMI: %v", err)
-		return errors.New(fmt.Sprintf("Error executing gNMI: %v", err))
+		return fmt.Errorf("Error executing gNMI: %v", err)
 	}
 	return nil
 }
@@ -297,7 +296,11 @@ func main() {
 	router := gin.New()
 	router.Use(getlogger(), gin.Recovery())
 	router.POST(SubscriberAPISuffix+":ueId", getlogger(), AddSubscriberByID)
-	router.Run("0.0.0.0" + *bindPort)
+	err := router.Run("0.0.0.0" + *bindPort)
+	if err != nil {
+		log.Fatal("Failed to start the Subscriber-Proxy %v", err.Error())
+		return
+	}
 }
 
 func getlogger() gin.HandlerFunc {

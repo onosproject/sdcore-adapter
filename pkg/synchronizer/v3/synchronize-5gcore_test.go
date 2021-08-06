@@ -118,6 +118,7 @@ func BuildSampleDeviceGroup() (
 		Subnet:      aStr("1.2.3.4/24"),
 		DnsPrimary:  aStr("8.8.8.8"),
 		Mtu:         aUint32(1492),
+		Dnn:         aStr("5ginternet"),
 	}
 	imsiDef := &models_v3.Site_Site_Site_ImsiDefinition{
 		Mcc:        aUint32(123),
@@ -270,7 +271,7 @@ func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
 			"ip-domain-name": "sample-ipd",
 			"site-info": "sample-site",
 			"ip-domain-expanded": {
-			  "dnn": "Internet",
+			  "dnn": "5ginternet",
 			  "ue-ip-pool": "1.2.3.4/24",
 			  "dns-primary": "8.8.8.8",
 			  "mtu": 1492

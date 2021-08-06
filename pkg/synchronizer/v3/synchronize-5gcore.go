@@ -367,9 +367,8 @@ deviceGroupLoop:
 
 		dgCore.IpDomainName = *ipd.Id
 		ipdCore := IpDomain{
-			Dnn:  "Internet", // hardcoded
-			Pool: *ipd.Subnet,
-			// AdminStatus: synchronizer.DerefStrPtr(ipd.AdminStatus, DEFAULT_ADMINSTATUS),   Dropped from current JSON
+			Dnn:        synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
+			Pool:       *ipd.Subnet,
 			DnsPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
 			Mtu:        synchronizer.DerefUint32Ptr(ipd.Mtu, DEFAULT_MTU),
 		}

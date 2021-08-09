@@ -79,7 +79,7 @@ func AddSubscriberByID(c *gin.Context) {
 
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatal(err.Error())
+			log.Error(err.Error())
 			c.Data(http.StatusInternalServerError, "application/json", getJsonResponse(err.Error()))
 			return
 		}
@@ -104,7 +104,7 @@ func PostToWebConsole(imsi string, payload []byte) (error, *http.Response) {
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Error(err.Error())
 		return fmt.Errorf(err.Error()), resp
 	}
 	defer resp.Body.Close()
@@ -119,7 +119,7 @@ func UpdateImsiDeviceGroup(imsi *uint64) error {
 	// Get the current configuration from the ROC
 	origVal, err := migration.GetPath("", *aetherConfigTarget, *aetherConfigAddr, context.Background())
 	if err != nil {
-		log.Fatal("Failed to get the current state from onos-config: %v", err)
+		log.Error("Failed to get the current state from onos-config: %v", err)
 	}
 
 	// Convert the JSON config into a Device structure
@@ -127,7 +127,7 @@ func UpdateImsiDeviceGroup(imsi *uint64) error {
 	device := &models.Device{}
 	if len(origJsonBytes) > 0 {
 		if err := models.Unmarshal(origJsonBytes, device); err != nil {
-			log.Fatal("Failed to unmarshal json")
+			log.Error("Failed to unmarshal json")
 			return fmt.Errorf("Failed to unmarshal json")
 		}
 	}
@@ -159,17 +159,17 @@ func AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) e
 	// Now get the device group the caller wants us to add the IMSI to
 	dg, okay := device.DeviceGroup.DeviceGroup[dgroup]
 	if !okay {
-		log.Fatal("Failed to find device group %v", dgroup)
+		log.Error("Failed to find device group %v", dgroup)
 		return fmt.Errorf("Failed to find device group %v", dgroup)
 	}
 	site, err := getDeviceGroupSite(device, dg)
 	if err != nil {
-		log.Fatal("Failed to find site for device group %v", *dg.Id)
+		log.Error("Failed to find site for device group %v", *dg.Id)
 		return fmt.Errorf("Failed to find site for device group %v", *dg.Id)
 	}
 	maskedImsi, err := sync.MaskSubscriberImsiDef(site.ImsiDefinition, *imsi) // mask off the MCC/MNC/EntId
 	if err != nil {
-		log.Fatal("Failed to mask the subscriber: %v", err)
+		log.Error("Failed to mask the subscriber: %v", err)
 		return fmt.Errorf("Failed to mask the subscriber: %v", err)
 	}
 
@@ -190,7 +190,7 @@ func AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) e
 	// Apply them
 	err = migration.Update(prefix, *aetherConfigTarget, *aetherConfigAddr, updates, context.Background())
 	if err != nil {
-		log.Fatalf("Error executing gNMI: %v", err)
+		log.Errorf("Error executing gNMI: %v", err)
 		return fmt.Errorf("Error executing gNMI: %v", err)
 	}
 	return nil
@@ -266,13 +266,13 @@ func findSiteForTheImsi(device *models.Device, imsi uint64) *models.Site_Site_Si
 		//Get the prefix 9 digits
 		maskedImsi, err := sync.MaskSubscriberImsiDef(site.ImsiDefinition, imsi) // mask off the MCC/MNC/EntId
 		if err != nil {
-			log.Fatal("Failed to mask the subscriber: %v", err)
+			log.Error("Failed to mask the subscriber: %v", err)
 		}
 
 		siteImsiValue, err := sync.FormatImsi(*site.ImsiDefinition.Format, *site.ImsiDefinition.Mcc,
 			*site.ImsiDefinition.Mnc, *site.ImsiDefinition.Enterprise, maskedImsi)
 		if err != nil {
-			log.Fatal("Failed to mask the subscriber: %v", err)
+			log.Error("Failed to mask the subscriber: %v", err)
 		}
 
 		log.Info("Calculated imsiValue for this site : ", siteImsiValue)
@@ -298,7 +298,7 @@ func main() {
 	router.POST(SubscriberAPISuffix+":ueId", getlogger(), AddSubscriberByID)
 	err := router.Run("0.0.0.0" + *bindPort)
 	if err != nil {
-		log.Fatal("Failed to start the Subscriber-Proxy %v", err.Error())
+		log.Error("Failed to start the Subscriber-Proxy %v", err.Error())
 		return
 	}
 }

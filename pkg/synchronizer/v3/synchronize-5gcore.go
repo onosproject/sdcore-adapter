@@ -477,7 +477,12 @@ vcsLoop:
 
 		sliceId := SliceId{
 			Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
-			Sd:  strconv.FormatUint(uint64(*vcs.Sd), 10),
+		}
+
+		// If the SD is unset, then do not set SD in the output. If it is set,
+		// then emit it as a string of six hex digits.
+		if vcs.Sd != nil {
+			sliceId.Sd = fmt.Sprintf("%06X", *vcs.Sd)
 		}
 
 		slice := Slice{

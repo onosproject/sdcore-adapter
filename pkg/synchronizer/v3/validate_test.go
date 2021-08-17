@@ -26,11 +26,12 @@ func TestValidateVcs(t *testing.T) {
 	err = validateVcs(v)
 	assert.EqualError(t, err, "Sst is nil")
 
+	// SD is optional
 	v = &models_v3.Vcs_Vcs_Vcs{
 		Sst: aUint32(123),
 	}
 	err = validateVcs(v)
-	assert.EqualError(t, err, "Sd is nil")
+	assert.Nil(t, err)
 }
 
 func TestValidateAppEndpoint(t *testing.T) {

@@ -311,7 +311,86 @@ func TestSynchronizeVCS(t *testing.T) {
 		expected_result := `{
 			"slice-id": {
 			  "sst": "222",
-			  "sd": "111"
+			  "sd": "00006F"
+			},
+			"qos": {
+			  "uplink": 8765,
+			  "downlink": 4321,
+			  "traffic-class": "sample-traffic-class"
+			},
+			"site-device-group": [
+			  "sample-dg"
+			],
+			"site-info": {
+			  "site-name": "sample-site",
+			  "plmn": {
+				"mcc": "123",
+				"mnc": "456"
+			  },
+			  "gNodeBs": [
+				{
+				  "name": "6.7.8.9",
+				  "tac": 77
+				}
+			  ],
+			  "upf": {
+				"upf-name": "2.3.4.5",
+				"upf-port": 66
+			  }
+			},
+			"deny-applications": [],
+			"permit-applications": [
+			  "sample-app"
+			],
+			"applications-information": [
+			  {
+				"app-name": "sample-app",
+				"endpoint": "1.2.3.4/32",
+				"start-port": 123,
+				"end-port": 124,
+				"protocol": 17
+			  }
+			]
+		  }`
+
+		require.JSONEq(t, expected_result, json)
+	}
+}
+
+func TestSynchronizeVCSEmptySD(t *testing.T) {
+	m := NewMemPusher()
+	s := Synchronizer{}
+	s.SetPusher(m)
+
+	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
+	apl, app, tp, tc, upf, vcs := BuildSampleVcs()
+
+	// Set the SD to nil.
+	vcs.Sd = nil
+
+	device := models_v3.Device{
+		Enterprise:          &models_v3.Enterprise_Enterprise{Enterprise: map[string]*models_v3.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models_v3.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models_v3.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models_v3.Site_Site{Site: map[string]*models_v3.Site_Site_Site{"sample-site": site}},
+		IpDomain:            &models_v3.IpDomain_IpDomain{IpDomain: map[string]*models_v3.IpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models_v3.DeviceGroup_DeviceGroup{DeviceGroup: map[string]*models_v3.DeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
+		ApList:              &models_v3.ApList_ApList{ApList: map[string]*models_v3.ApList_ApList_ApList{*apl.Id: apl}},
+		Application:         &models_v3.Application_Application{Application: map[string]*models_v3.Application_Application_Application{*app.Id: app}},
+		Template:            &models_v3.Template_Template{Template: map[string]*models_v3.Template_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models_v3.TrafficClass_TrafficClass{TrafficClass: map[string]*models_v3.TrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		Upf:                 &models_v3.Upf_Upf{Upf: map[string]*models_v3.Upf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models_v3.Vcs_Vcs{Vcs: map[string]*models_v3.Vcs_Vcs_Vcs{*vcs.Id: vcs}},
+	}
+
+	err := s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+	json, okay := m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	assert.True(t, okay)
+	if okay {
+		expected_result := `{
+			"slice-id": {
+			  "sst": "222",
+			  "sd": ""
 			},
 			"qos": {
 			  "uplink": 8765,

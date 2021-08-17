@@ -22,9 +22,6 @@ func validateVcs(vcs *models.Vcs_Vcs_Vcs) error {
 	if vcs.Sst == nil {
 		return fmt.Errorf("Sst is nil")
 	}
-	if vcs.Sd == nil {
-		return fmt.Errorf("Sd is nil")
-	}
 	return nil
 }
 

@@ -45,11 +45,13 @@ var ModelData = []*gnmiproto.ModelData{
 	{Name: "traffic-class", Organization: "Open Networking Foundation", Version: "2021-06-02"},
 }
 
+// Synchronize the state to the underlying service.
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
 	err := s.enqueue(config, callbackType)
 	return err
 }
 
+// Automatically retry if synchronization fails
 func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
 	for {
 		// If something new has come along, then don't bother with the one we're working on
@@ -74,6 +76,7 @@ func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
 	}
 }
 
+// Run an infitite loop servicing synchronization requests.
 func (s *Synchronizer) Loop() {
 	log.Infof("Starting synchronizer loop")
 	for {
@@ -87,6 +90,7 @@ func (s *Synchronizer) Loop() {
 	}
 }
 
+// Get the list of models.
 func (s *Synchronizer) GetModels() *gnmi.Model {
 	model := gnmi.NewModel(ModelData,
 		reflect.TypeOf((*models.Device)(nil)),
@@ -99,22 +103,27 @@ func (s *Synchronizer) GetModels() *gnmi.Model {
 	return model
 }
 
+// Set the output filename. Obsolete.
 func (s *Synchronizer) SetOutputFileName(fileName string) {
 	s.outputFileName = fileName
 }
 
+// Enable or disable Posting to service
 func (s *Synchronizer) SetPostEnable(postEnable bool) {
 	s.postEnable = postEnable
 }
 
+// Set the timeout for post requests.
 func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 	s.postTimeout = postTimeout
 }
 
+// Set the Pusher function for the Synchronizer
 func (s *Synchronizer) SetPusher(pusher synchronizer.PusherInterface) {
 	s.pusher = pusher
 }
 
+// Start the synchronizer by launching the synchronizer loop inside a thread.
 func (s *Synchronizer) Start() {
 	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%s, postTimeout=%d)",
 		s.outputFileName,
@@ -125,6 +134,7 @@ func (s *Synchronizer) Start() {
 	go s.Loop()
 }
 
+// Create a new Synchronizer
 func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Duration) *Synchronizer {
 	// By default, push via REST. Test infrastructure can override this.
 	p := &RESTPusher{}

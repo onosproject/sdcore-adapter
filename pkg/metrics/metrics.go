@@ -50,7 +50,7 @@ func (m *MetricsFetcher) GetMetrics(query string) (promModel.Value, error) {
 	defer cancel()
 	result, warnings, err := m.v1api.Query(ctx, query, time.Now())
 	if err != nil {
-		return nil, fmt.Errorf("Error querying Prometheus: %v\n", err)
+		return nil, fmt.Errorf("error querying Prometheus: %v\n", err)
 	}
 	if len(warnings) > 0 {
 		fmt.Printf("Warnings: %v\n", warnings)

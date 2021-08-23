@@ -72,7 +72,7 @@ func validateImsiDefinition(i *models.Site_Site_Site_ImsiDefinition) error {
 		format = *i.Format
 	} else {
 		// default format from YANG
-		format = DEFAULT_IMSI_FORMAT
+		format = DefaultImsiFormat
 	}
 
 	if (i.Mcc == nil) && (strings.Contains(format, "C")) {

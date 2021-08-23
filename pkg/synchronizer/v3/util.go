@@ -68,7 +68,7 @@ func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64,
 		format = *i.Format
 	} else {
 		// default format from YANG
-		format = DEFAULT_IMSI_FORMAT
+		format = DefaultImsiFormat
 	}
 
 	if err := validateImsiDefinition(i); err != nil {
@@ -109,7 +109,7 @@ func MaskSubscriberImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) 
 		format = *i.Format
 	} else {
 		// default format from YANG
-		format = DEFAULT_IMSI_FORMAT
+		format = DefaultImsiFormat
 	}
 
 	if err := validateImsiDefinition(i); err != nil {

@@ -108,19 +108,19 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	// that use it. Precompute this so we can pass a list of valid Enterprises
 	// along to SynchronizeConnectivityService.
 	csEntMap := map[string]map[string]bool{}
-	for entId, ent := range device.Enterprise.Enterprise {
-		for csId := range ent.ConnectivityService {
-			m, okay := csEntMap[csId]
+	for entID, ent := range device.Enterprise.Enterprise {
+		for csID := range ent.ConnectivityService {
+			m, okay := csEntMap[csID]
 			if !okay {
 				m = map[string]bool{}
-				csEntMap[csId] = m
+				csEntMap[csID] = m
 			}
-			m[entId] = true
+			m[entID] = true
 		}
 	}
 
 	errors := []error{}
-	for csId, cs := range device.ConnectivityService.ConnectivityService {
+	for csID, cs := range device.ConnectivityService.ConnectivityService {
 		if (cs.Core_5GEndpoint == nil) || (*cs.Core_5GEndpoint == "") {
 			log.Warnf("Skipping connectivity service %s because it has no 5G Endpoint", *cs.Id)
 			continue
@@ -130,27 +130,27 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 		// Note: This could return an empty map if there is a CS that no
 		//   enterprises are linked to . In that case, we can still push models
 		//   that are not directly related to an enterprise, such as profiles.
-		m := csEntMap[csId]
+		m := csEntMap[csID]
 
 		tStart := time.Now()
-		synchronizer.KpiSynchronizationTotal.WithLabelValues(csId).Inc()
+		synchronizer.KpiSynchronizationTotal.WithLabelValues(csID).Inc()
 
 		err := s.SynchronizeConnectivityService(device, cs, m)
 		if err != nil {
-			synchronizer.KpiSynchronizationFailedTotal.WithLabelValues(csId).Inc()
+			synchronizer.KpiSynchronizationFailedTotal.WithLabelValues(csID).Inc()
 			// If there are errors, then build a list of them and continue to try
 			// to synchronize other connectivity services.
 			errors = append(errors, err)
 		} else {
-			synchronizer.KpiSynchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
+			synchronizer.KpiSynchronizationDuration.WithLabelValues(csID).Observe(time.Since(tStart).Seconds())
 		}
 	}
 
 	if len(errors) == 0 {
 		return nil
-	} else {
-		return fmt.Errorf("synchronization errors: %v", errors)
 	}
+
+	return fmt.Errorf("synchronization errors: %v", errors)
 }
 
 func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {

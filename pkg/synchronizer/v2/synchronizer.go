@@ -41,12 +41,14 @@ var ModelData = []*gnmiproto.ModelData{
 	{Name: "service-rule", Organization: "Open Networking Foundation", Version: "2021-03-04"},
 }
 
+// Synchronize the state to the underlying service.
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
 	log.Infof("Synchronize, type=%s", callbackType)
 	err := s.SynchronizeDevice(config)
 	return err
 }
 
+// Get the list of models.
 func (s *Synchronizer) GetModels() *gnmi.Model {
 	model := gnmi.NewModel(ModelData,
 		reflect.TypeOf((*models.Device)(nil)),
@@ -59,22 +61,27 @@ func (s *Synchronizer) GetModels() *gnmi.Model {
 	return model
 }
 
+// Set the output filename
 func (s *Synchronizer) SetOutputFileName(fileName string) {
 	s.outputFileName = fileName
 }
 
+// Enable or disable Posting to service
 func (s *Synchronizer) SetPostEnable(postEnable bool) {
 	s.postEnable = postEnable
 }
 
+// Set the timeout for post requests.
 func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 	s.postTimeout = postTimeout
 }
 
+// Set the Pusher function for the Synchronizer
 func (s *Synchronizer) SetPusher(pusher synchronizer.PusherInterface) {
 	// not used at this time
 }
 
+// Start the synchronizer
 func (s *Synchronizer) Start() {
 	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%s, postTimeout=%d)",
 		s.outputFileName,
@@ -84,6 +91,7 @@ func (s *Synchronizer) Start() {
 	// TODO: Eventually we'll create a thread here that waits for config changes
 }
 
+// Create a new Synchronizer
 func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Duration) *Synchronizer {
 	s := &Synchronizer{
 		outputFileName: outputFileName,

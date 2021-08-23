@@ -215,7 +215,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 			QosProfile: aStr("sample-qp"),
 			UpProfile:  aStr("sample-up"),
 			AccessProfile: map[string]*models_v2.AetherSubscriber_Subscriber_Ue_Profiles_AccessProfile{
-				"sample-acp": &models_v2.AetherSubscriber_Subscriber_Ue_Profiles_AccessProfile{
+				"sample-acp": {
 					AccessProfile: aStr("sample-acp"),
 					Allowed:       aBool(true),
 				},

@@ -97,6 +97,7 @@ func (c *ClosedLoopControl) EvaluateRule(rule *Rule) ([]Action, error) {
 // matches, then execute its actions.
 func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 	for _, rule := range vcs.Rules {
+		rule := rule // Linter: Make a shadow copy of the range variable
 		actions, err := c.EvaluateRule(&rule)
 		if err != nil {
 			return err
@@ -142,6 +143,7 @@ func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 // Evaluate all rules for all VCSes
 func (c *ClosedLoopControl) Evaluate() error {
 	for _, vcs := range c.Config.Vcs {
+		vcs := vcs // Linter: Make a shadow copy of range variable
 		err := c.EvaluateVcs(&vcs)
 		if err != nil {
 			return err

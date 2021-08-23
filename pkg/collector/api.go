@@ -32,7 +32,7 @@ type ExporterApi struct {
 }
 
 // Serves up the index.html page that contains the knob. For such a short page, it's
-// easy enough to put the page contents inline and simplifiy distribution. If the page
+// easy enough to put the page contents inline and simplify distribution. If the page
 // becomes more complex, then consider putting it in a separate file.
 func (m *ExporterApi) index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `

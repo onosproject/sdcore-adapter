@@ -24,7 +24,7 @@ const (
 	DEFAULT_PROTOCOL    = "TCP"
 )
 
-type IpDomain struct {
+type ipDomain struct {
 	Dnn  string `json:"dnn"`
 	Pool string `json:"ue-ip-pool"`
 	// AdminStatus string `json:"admin-status"`  Dropped from current JSON
@@ -32,47 +32,47 @@ type IpDomain struct {
 	Mtu        uint32 `json:"mtu"`
 }
 
-type DeviceGroup struct {
+type deviceGroup struct {
 	Imsis        []string `json:"imsis"`
 	IpDomainName string   `json:"ip-domain-name"`
 	SiteInfo     string   `json:"site-info"`
-	IpDomain     IpDomain `json:"ip-domain-expanded"`
+	IpDomain     ipDomain `json:"ip-domain-expanded"`
 }
 
-type SliceId struct {
+type sliceId struct {
 	Sst string `json:"sst"`
 	Sd  string `json:"sd"`
 }
 
-type Qos struct {
+type qos struct {
 	Uplink       uint64 `json:"uplink"`
 	Downlink     uint64 `json:"downlink"`
 	TrafficClass string `json:"traffic-class"`
 }
 
-type GNodeB struct {
+type gNodeB struct {
 	Name string `json:"name"`
 	Tac  uint32 `json:"tac"`
 }
 
-type Plmn struct {
+type plmn struct {
 	Mcc string `json:"mcc"`
 	Mnc string `json:"mnc"`
 }
 
-type Upf struct {
+type upf struct {
 	Name string `json:"upf-name"`
 	Port uint32 `json:"upf-port"`
 }
 
-type SiteInfo struct {
+type siteInfo struct {
 	SiteName string   `json:"site-name"`
-	Plmn     Plmn     `json:"plmn"`
-	GNodeBs  []GNodeB `json:"gNodeBs"`
-	Upf      Upf      `json:"upf"`
+	Plmn     plmn     `json:"plmn"`
+	GNodeBs  []gNodeB `json:"gNodeBs"`
+	Upf      upf      `json:"upf"`
 }
 
-type Application struct {
+type application struct {
 	Name      string `json:"app-name"`
 	Endpoint  string `json:"endpoint"`
 	StartPort uint32 `json:"start-port"`
@@ -80,14 +80,14 @@ type Application struct {
 	Protocol  uint32 `json:"protocol"`
 }
 
-type Slice struct {
-	Id                SliceId       `json:"slice-id"`
-	Qos               Qos           `json:"qos"`
+type slice struct {
+	Id                sliceId       `json:"slice-id"`
+	Qos               qos           `json:"qos"`
 	DeviceGroup       []string      `json:"site-device-group"`
-	SiteInfo          SiteInfo      `json:"site-info"`
+	SiteInfo          siteInfo      `json:"site-info"`
 	DenyApplication   []string      `json:"deny-applications"`
 	PermitApplication []string      `json:"permit-applications"`
-	Applications      []Application `json:"applications-information"`
+	Applications      []application `json:"applications-information"`
 }
 
 // NOTE: This function is nearly identical with the v2 synchronizer. Refactor?
@@ -310,7 +310,7 @@ deviceGroupLoop:
 			continue deviceGroupLoop
 		}
 
-		dgCore := DeviceGroup{
+		dgCore := deviceGroup{
 			IpDomainName: *dg.Id,
 			SiteInfo:     *dg.Site,
 		}
@@ -366,7 +366,7 @@ deviceGroupLoop:
 		}
 
 		dgCore.IpDomainName = *ipd.Id
-		ipdCore := IpDomain{
+		ipdCore := ipDomain{
 			Dnn:        synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
 			Pool:       *ipd.Subnet,
 			DnsPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
@@ -427,11 +427,11 @@ vcsLoop:
 		mcc := *site.ImsiDefinition.Mcc
 		mnc := *site.ImsiDefinition.Mnc
 
-		plmn := Plmn{
+		plmn := plmn{
 			Mcc: strconv.FormatUint(uint64(mcc), 10),
 			Mnc: strconv.FormatUint(uint64(mnc), 10),
 		}
-		siteInfo := SiteInfo{
+		siteInfo := siteInfo{
 			SiteName: *site.Id,
 			Plmn:     plmn,
 		}
@@ -449,7 +449,7 @@ vcsLoop:
 					continue vcsLoop
 				}
 				if *ap.Enable {
-					gNodeB := GNodeB{
+					gNodeB := gNodeB{
 						Name: *ap.Address,
 						Tac:  *ap.Tac,
 					}
@@ -459,23 +459,23 @@ vcsLoop:
 		}
 
 		if vcs.Upf != nil {
-			upf, err := s.GetUpf(device, vcs.Upf)
+			aUpf, err := s.GetUpf(device, vcs.Upf)
 			if err != nil {
 				log.Warnf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
 				continue vcsLoop
 			}
-			err = validateUpf(upf)
+			err = validateUpf(aUpf)
 			if err != nil {
 				log.Warnf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
 				continue vcsLoop
 			}
-			siteInfo.Upf = Upf{
-				Name: *upf.Address,
-				Port: *upf.Port,
+			siteInfo.Upf = upf{
+				Name: *aUpf.Address,
+				Port: *aUpf.Port,
 			}
 		}
 
-		sliceId := SliceId{
+		sliceId := sliceId{
 			Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
 		}
 
@@ -485,7 +485,7 @@ vcsLoop:
 			sliceId.Sd = fmt.Sprintf("%06X", *vcs.Sd)
 		}
 
-		slice := Slice{
+		slice := slice{
 			Id:                sliceId,
 			SiteInfo:          siteInfo,
 			PermitApplication: []string{},
@@ -524,7 +524,7 @@ vcsLoop:
 			} else {
 				slice.DenyApplication = append(slice.DenyApplication, *app.Id)
 			}
-			appCore := Application{
+			appCore := application{
 				Name: *app.Id,
 			}
 			if len(app.Endpoint) > 1 {

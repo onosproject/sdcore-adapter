@@ -631,25 +631,25 @@ func convertTypedValueToJsonValue(val *pb.TypedValue, intAsString bool) (interfa
 		u := val.GetUintVal()
 		if intAsString {
 			nodeVal = strconv.FormatUint(u, 10)
-			log.Infof("Coverted to string: %v", nodeVal)
+			log.Infof("Converted to string: %v", nodeVal)
 		} else {
 			nodeVal = u
-			log.Infof("Coverted to uint: %v", nodeVal)
+			log.Infof("Converted to uint: %v", nodeVal)
 		}
 	case *pb.TypedValue_IntVal:
 		i := val.GetIntVal()
 		if intAsString {
 			nodeVal = strconv.FormatInt(i, 10)
-			log.Infof("Coverted to string: %v", nodeVal)
+			log.Infof("Converted to string: %v", nodeVal)
 		} else {
 			nodeVal = i
-			log.Infof("Coverted to uint: %v", nodeVal)
+			log.Infof("Converted to uint: %v", nodeVal)
 		}
 	default:
 		if nodeVal, err = value.ToScalar(val); err != nil {
 			return nil, status.Errorf(codes.Internal, "cannot convert leaf node to scalar type: %v", err)
 		}
-		log.Infof("Coverted to scalar: %v", nodeVal)
+		log.Infof("Converted to scalar: %v", nodeVal)
 	}
 
 	return nodeVal, nil

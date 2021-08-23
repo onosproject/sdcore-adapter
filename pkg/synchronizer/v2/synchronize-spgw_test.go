@@ -70,7 +70,7 @@ func TestSynchronizeDeviceEmpty(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	s := Synchronizer{}
@@ -90,7 +90,7 @@ func TestSynchronizeDeviceEnterpriseAndConnectivityOnly(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
@@ -116,7 +116,7 @@ func TestSynchronizeDeviceConnectivityServiceNotFound(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"cs-missing"})
@@ -142,7 +142,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	s := Synchronizer{}
@@ -333,7 +333,7 @@ func TestSynchronizeDeviceImsiRangeOnly(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	s := Synchronizer{}
@@ -388,7 +388,7 @@ func TestSynchronizeDeviceServingPlmnOnly(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	s := Synchronizer{}
@@ -447,7 +447,7 @@ func TestSynchronizeDeviceRequestedApnOnly(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	s := Synchronizer{}
@@ -498,7 +498,7 @@ func TestSynchronizeDeviceNoKeys(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	s := Synchronizer{}
@@ -549,7 +549,7 @@ func TestSynchronizeDeviceUeNotInEnterprise(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	s := Synchronizer{}

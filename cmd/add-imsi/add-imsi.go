@@ -96,7 +96,7 @@ func main() {
 		log.Fatal("Use the -imsi, -dgroup, -target, and -aetherConfigAddr options")
 	}
 
-	// Get the current configuraiton from the ROC
+	// Get the current configuration from the ROC
 	origVal, err := migration.GetPath("", *target, *aetherConfigAddr, context.Background())
 	if err != nil {
 		log.Fatal("Failed to get the current state from onos-config: %v", err)

@@ -72,7 +72,7 @@ func TestSynchronizeDeviceEmpty(t *testing.T) {
 	assert.Nil(t, err)
 	tempFileName := f.Name()
 	defer func() {
-		os.Remove(tempFileName)
+		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
 	s := Synchronizer{}

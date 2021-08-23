@@ -101,6 +101,7 @@ func TestGet(t *testing.T) {
 	}}
 
 	for _, td := range tds {
+		td := td // Linter: make shadow copy of range variable
 		t.Run(td.desc, func(t *testing.T) {
 			runTestGet(t, s, td.textPbPath, td.wantRetCode, td.wantRespVal, td.modelData)
 		})
@@ -210,6 +211,7 @@ func TestSet(t *testing.T) {
 	}}
 
 	for _, td := range tds {
+		td := td // Linter: make shadow copy of range variable
 		t.Run(td.desc, func(t *testing.T) {
 			runTestSet(t, s, td.textPbPrefix, td.textPbUpdate, td.wantRetCode, td.modelData)
 		})

@@ -34,7 +34,7 @@ func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (
 			mult *= 10
 			ent = ent / 10
 		case 'S':
-			imsi = imsi + uint64(sub%10)*mult
+			imsi = imsi + (sub%10)*mult
 			mult *= 10
 			sub = sub / 10
 		case '0':
@@ -93,7 +93,7 @@ func MaskSubscriberImsi(format string, sub uint64) (uint64, error) {
 	for i := len(format) - 1; i >= 0; i-- {
 		switch format[i] {
 		case 'S':
-			imsi = imsi + uint64(sub%10)*mult
+			imsi = imsi + (sub%10)*mult
 			mult *= 10
 			sub = sub / 10
 		default:

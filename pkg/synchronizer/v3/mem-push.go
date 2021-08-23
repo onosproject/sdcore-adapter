@@ -9,6 +9,7 @@ package synchronizerv3
 
 import ()
 
+// Push sychronizations to an in-memory map, for ease of unit testing.
 type MemPusher struct {
 	Pushes map[string]string
 }

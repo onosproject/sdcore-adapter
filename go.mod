@@ -1,6 +1,6 @@
 module github.com/onosproject/sdcore-adapter
 
-go 1.14
+go 1.16
 
 require (
 	github.com/eapache/channels v1.1.0

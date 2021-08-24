@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+// Package synchronizerv3 implements a synchronizer for converting sdcore gnmi to json
 package synchronizerv3
 
 import (
@@ -19,27 +19,32 @@ import (
 
 // Ideally we would get these from the yang defaults
 const (
-	DEFAULT_ADMINSTATUS = "ENABLE"
-	DEFAULT_MTU         = 1492
-	DEFAULT_PROTOCOL    = "TCP"
+	// DefaultAdminStatus is the default for the AdminStatus Field
+	DefaultAdminStatus = "ENABLE"
+
+	// DefaultMTU is the default for the MTU field
+	DefaultMTU = 1492
+
+	// DefaultProtocol is the default for the Protocol field
+	DefaultProtocol = "TCP"
 )
 
 type ipDomain struct {
 	Dnn  string `json:"dnn"`
 	Pool string `json:"ue-ip-pool"`
 	// AdminStatus string `json:"admin-status"`  Dropped from current JSON
-	DnsPrimary string `json:"dns-primary"`
+	DNSPrimary string `json:"dns-primary"`
 	Mtu        uint32 `json:"mtu"`
 }
 
 type deviceGroup struct {
 	Imsis        []string `json:"imsis"`
-	IpDomainName string   `json:"ip-domain-name"`
+	IPDomainName string   `json:"ip-domain-name"`
 	SiteInfo     string   `json:"site-info"`
-	IpDomain     ipDomain `json:"ip-domain-expanded"`
+	IPDomain     ipDomain `json:"ip-domain-expanded"`
 }
 
-type sliceId struct {
+type sliceIDStruct struct {
 	Sst string `json:"sst"`
 	Sd  string `json:"sd"`
 }
@@ -81,7 +86,7 @@ type application struct {
 }
 
 type slice struct {
-	Id                sliceId       `json:"slice-id"`
+	ID                sliceIDStruct `json:"slice-id"`
 	Qos               qos           `json:"qos"`
 	DeviceGroup       []string      `json:"site-device-group"`
 	SiteInfo          siteInfo      `json:"site-info"`
@@ -90,6 +95,7 @@ type slice struct {
 	Applications      []application `json:"applications-information"`
 }
 
+// SynchronizeDevice synchronizes a device
 // NOTE: This function is nearly identical with the v2 synchronizer. Refactor?
 func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	device := config.(*models.Device)
@@ -153,6 +159,7 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	return fmt.Errorf("synchronization errors: %v", errors)
 }
 
+// SynchronizeConnectivityService synchronizes a connectivity service
 func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	log.Infof("Synchronizing Connectivity Service %s", *cs.Id)
 
@@ -172,8 +179,8 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 	return nil
 }
 
-// Lookup an IpDomain
-func (s *Synchronizer) GetIpDomain(device *models.Device, id *string) (*models.IpDomain_IpDomain_IpDomain, error) {
+// GetIPDomain looks up an IpDomain
+func (s *Synchronizer) GetIPDomain(device *models.Device, id *string) (*models.IpDomain_IpDomain_IpDomain, error) {
 	if device.IpDomain == nil {
 		return nil, fmt.Errorf("Device contains no IpDomains")
 	}
@@ -187,7 +194,7 @@ func (s *Synchronizer) GetIpDomain(device *models.Device, id *string) (*models.I
 	return ipd, nil
 }
 
-// Lookup an ApList
+// GetApList looks up an ApList
 func (s *Synchronizer) GetApList(device *models.Device, id *string) (*models.ApList_ApList_ApList, error) {
 	if device.ApList == nil {
 		return nil, fmt.Errorf("Device contains no ApLists")
@@ -202,7 +209,7 @@ func (s *Synchronizer) GetApList(device *models.Device, id *string) (*models.ApL
 	return apl, nil
 }
 
-// Lookup a UPF
+// GetUpf looks up a Upf
 func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.Upf_Upf_Upf, error) {
 	if device.Upf == nil {
 		return nil, fmt.Errorf("Device contains no Upfs")
@@ -217,7 +224,7 @@ func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.Upf_Up
 	return upf, nil
 }
 
-// Lookup an Application
+// GetApplication looks up an application
 func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*models.Application_Application_Application, error) {
 	if device.Application == nil {
 		return nil, fmt.Errorf("Device contains no Applications")
@@ -232,7 +239,7 @@ func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*model
 	return app, nil
 }
 
-// Lookup an TrafficClass
+// GetTrafficClass looks up a TrafficClass
 func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*models.TrafficClass_TrafficClass_TrafficClass, error) {
 	if device.TrafficClass == nil {
 		return nil, fmt.Errorf("Device contains no Traffic Classes")
@@ -247,21 +254,22 @@ func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*mode
 	return tc, nil
 }
 
+// GetDeviceGroupSite gets the site for a DeviceGroup
 func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no site.", *dg.Id)
+		return nil, fmt.Errorf("DeviceGroup %s has no site", *dg.Id)
 	}
 	site, okay := device.Site.Site[*dg.Site]
 	if !okay {
-		return nil, fmt.Errorf("DeviceGroup %s site %s not found.", *dg.Id, *dg.Site)
+		return nil, fmt.Errorf("DeviceGroup %s site %s not found", *dg.Id, *dg.Site)
 	}
 	if (site.Enterprise == nil) || (*site.Enterprise == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no enterprise.", *dg.Id)
+		return nil, fmt.Errorf("DeviceGroup %s has no enterprise", *dg.Id)
 	}
 	return site, nil
 }
 
-// Given a VCS, return the set of DeviceGroup attached to it, and the Site.
+// GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it, and the Site.
 func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs) ([]*models.DeviceGroup_DeviceGroup_DeviceGroup, *models.Site_Site_Site, error) {
 	dgList := []*models.DeviceGroup_DeviceGroup_DeviceGroup{}
 	for _, dgLink := range vcs.DeviceGroup {
@@ -270,21 +278,21 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vc
 		}
 		dg, okay := device.DeviceGroup.DeviceGroup[*dgLink.DeviceGroup]
 		if !okay {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s not found.", *vcs.Id, *dgLink.DeviceGroup)
+			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
 		}
 		if (dg.Site == nil) || (*dg.Site == "") {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s has no site.", *vcs.Id, *dgLink.DeviceGroup)
+			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
 		}
 
 		dgList = append(dgList, dg)
 
 		if *dgList[0].Site != *dg.Site {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites.", *vcs.Id, *dgList[0].Site, *dg.Site)
+			return nil, nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
 		}
 	}
 
 	if len(dgList) == 0 {
-		return nil, nil, fmt.Errorf("VCS %s has no deviceGroups.", *vcs.Id)
+		return nil, nil, fmt.Errorf("VCS %s has no deviceGroups", *vcs.Id)
 	}
 
 	site, err := s.GetDeviceGroupSite(device, dgList[0])
@@ -295,6 +303,7 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vc
 	return dgList, site, err
 }
 
+// SynchronizeDeviceGroups synchronizes the device groups
 func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	pushFailures := 0
 deviceGroupLoop:
@@ -311,7 +320,7 @@ deviceGroupLoop:
 		}
 
 		dgCore := deviceGroup{
-			IpDomainName: *dg.Id,
+			IPDomainName: *dg.Id,
 			SiteInfo:     *dg.Site,
 		}
 
@@ -353,26 +362,26 @@ deviceGroupLoop:
 			}
 		}
 
-		ipd, err := s.GetIpDomain(device, dg.IpDomain)
+		ipd, err := s.GetIPDomain(device, dg.IpDomain)
 		if err != nil {
 			log.Warnf("DeviceGroup %s failed to get IpDomain: %s", *dg.Id, err)
 			continue deviceGroupLoop
 		}
 
-		err = validateIpDomain(ipd)
+		err = validateIPDomain(ipd)
 		if err != nil {
 			log.Warnf("DeviceGroup %s invalid: %s", *dg.Id, err)
 			continue deviceGroupLoop
 		}
 
-		dgCore.IpDomainName = *ipd.Id
+		dgCore.IPDomainName = *ipd.Id
 		ipdCore := ipDomain{
 			Dnn:        synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
 			Pool:       *ipd.Subnet,
-			DnsPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-			Mtu:        synchronizer.DerefUint32Ptr(ipd.Mtu, DEFAULT_MTU),
+			DNSPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
+			Mtu:        synchronizer.DerefUint32Ptr(ipd.Mtu, DefaultMTU),
 		}
-		dgCore.IpDomain = ipdCore
+		dgCore.IPDomain = ipdCore
 
 		data, err := json.MarshalIndent(dgCore, "", "  ")
 		if err != nil {
@@ -384,7 +393,7 @@ deviceGroupLoop:
 		err = s.pusher.PushUpdate(url, data)
 		if err != nil {
 			log.Warnf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
-			pushFailures += 1
+			pushFailures++
 			continue deviceGroupLoop
 		}
 	}
@@ -394,6 +403,7 @@ deviceGroupLoop:
 	return nil
 }
 
+// SynchronizeVcs synchronizes the VCSes
 func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	pushFailures := 0
 vcsLoop:
@@ -475,18 +485,18 @@ vcsLoop:
 			}
 		}
 
-		sliceId := sliceId{
+		sliceID := sliceIDStruct{
 			Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
 		}
 
 		// If the SD is unset, then do not set SD in the output. If it is set,
 		// then emit it as a string of six hex digits.
 		if vcs.Sd != nil {
-			sliceId.Sd = fmt.Sprintf("%06X", *vcs.Sd)
+			sliceID.Sd = fmt.Sprintf("%06X", *vcs.Sd)
 		}
 
 		slice := slice{
-			Id:                sliceId,
+			ID:                sliceID,
 			SiteInfo:          siteInfo,
 			PermitApplication: []string{},
 			DenyApplication:   []string{},
@@ -553,7 +563,7 @@ vcsLoop:
 					appCore.EndPort = appCore.StartPort
 				}
 
-				protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DEFAULT_PROTOCOL))
+				protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DefaultProtocol))
 				if err != nil {
 					log.Warnf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
 					continue vcsLoop
@@ -573,7 +583,7 @@ vcsLoop:
 		err = s.pusher.PushUpdate(url, data)
 		if err != nil {
 			log.Warnf("Vcs %s failed to push update: %s", *vcs.Id, err)
-			pushFailures += 1
+			pushFailures++
 			continue vcsLoop
 		}
 	}

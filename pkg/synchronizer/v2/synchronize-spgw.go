@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+// Package synchronizerv2 implements a synchronizer for converting sdcore gnmi to json
 package synchronizerv2
 
 import (
@@ -59,8 +59,8 @@ type subscriberSelectionRule struct {
 
 type apnProfile struct {
 	ApnName      *string `json:"apn-name"`
-	DnsPrimary   *string `json:"dns_primary"`
-	DnsSecondary *string `json:"dns_secondary"`
+	DNSPrimary   *string `json:"dns_primary"`
+	DNSSecondary *string `json:"dns_secondary"`
 	Mtu          *uint32 `json:"mtu"`
 	GxEnabled    *bool   `json:"gx_enabled"`
 	Network      string  `json:"network"`
@@ -106,8 +106,8 @@ type serviceGroup struct {
 type service struct {
 	Qci                  *uint32  `json:"qci,omitempty"`
 	Arp                  *uint32  `json:"arp,omitempty"`
-	AMBR_UL              *uint32  `json:"AMBR_UL,omitempty"`
-	AMBR_DL              *uint32  `json:"AMBR_DL,omitempty"`
+	AMBR_UL              *uint32  `json:"AMBR_UL,omitempty"` //nolint
+	AMBR_DL              *uint32  `json:"AMBR_DL,omitempty"` //nolint
 	Rules                []string `json:"service-activation-rules"`
 	ActivateConditions   []string `json:"activate-conditions,omitempty"`
 	DeactivateConditions []string `json:"deactivate-conditions,omitempty"`
@@ -151,7 +151,7 @@ type policiesStruct struct {
 	Rules         map[string]ruleStruct   `json:"rules,omitempty"`
 }
 
-/* SD-Core JSON Config
+/* jsonConfig: SD-Core JSON Config
  *
  * All SD-Core components are able to accept the full config, though some
  * components only pay attention to certain parts of it:
@@ -161,7 +161,7 @@ type policiesStruct struct {
  * The excess can be omitted when posting for performance improvement
  *    (...and it also works around the large packet size bug)
  */
-type JsonConfig struct {
+type jsonConfig struct {
 	SubscriberSelectionRules []subscriberSelectionRule  `json:"subscriber-selection-rules,omitempty"`
 	AccessProfiles           map[string]accessProfile   `json:"access-profiles,omitempty"`
 	ApnProfiles              map[string]apnProfile      `json:"apn-profiles,omitempty"`
@@ -171,6 +171,7 @@ type JsonConfig struct {
 	Policies                 *policiesStruct            `json:"policies,omitempty"`
 }
 
+// Post to underlying service
 func (s *Synchronizer) Post(endpoint string, data []byte) error {
 	client := &http.Client{
 		Timeout: time.Second * 10,
@@ -194,6 +195,7 @@ func (s *Synchronizer) Post(endpoint string, data []byte) error {
 	return nil
 }
 
+// SynchronizeDevice synchronizes the device to the underlying service
 func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	device := config.(*models.Device)
 
@@ -211,47 +213,48 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	// that use it. Precompute this so we can pass a list of valid Enterprises
 	// along to SynchronizeConnectivityService.
 	csEntMap := map[string]map[string]bool{}
-	for entId, ent := range device.Enterprise.Enterprise {
-		for csId := range ent.ConnectivityService {
-			m, okay := csEntMap[csId]
+	for endID, ent := range device.Enterprise.Enterprise {
+		for csID := range ent.ConnectivityService {
+			m, okay := csEntMap[csID]
 			if !okay {
 				m = map[string]bool{}
-				csEntMap[csId] = m
+				csEntMap[csID] = m
 			}
-			m[entId] = true
+			m[endID] = true
 		}
 	}
 
 	errors := []error{}
-	for csId, cs := range device.ConnectivityService.ConnectivityService {
+	for csID, cs := range device.ConnectivityService.ConnectivityService {
 		// Get the list of valid Enterprises for this CS.
 		// Note: This could return an empty map if there is a CS that no
 		//   enterprises are linked to . In that case, we can still push models
 		//   that are not directly related to an enterprise, such as profiles.
-		m := csEntMap[csId]
+		m := csEntMap[csID]
 
 		tStart := time.Now()
-		synchronizer.KpiSynchronizationTotal.WithLabelValues(csId).Inc()
+		synchronizer.KpiSynchronizationTotal.WithLabelValues(csID).Inc()
 
 		err := s.SynchronizeConnectivityService(device, cs, m)
 		if err != nil {
-			synchronizer.KpiSynchronizationFailedTotal.WithLabelValues(csId).Inc()
+			synchronizer.KpiSynchronizationFailedTotal.WithLabelValues(csID).Inc()
 			// If there are errors, then build a list of them and continue to try
 			// to synchronize other connectivity services.
 			errors = append(errors, err)
 		} else {
-			synchronizer.KpiSynchronizationDuration.WithLabelValues(csId).Observe(time.Since(tStart).Seconds())
+			synchronizer.KpiSynchronizationDuration.WithLabelValues(csID).Observe(time.Since(tStart).Seconds())
 		}
 	}
 
 	if len(errors) == 0 {
 		return nil
-	} else {
-		return fmt.Errorf("synchronization errors: %v", errors)
 	}
+
+	return fmt.Errorf("synchronization errors: %v", errors)
 }
 
-func (s *Synchronizer) SynchronizePCRF(device *models.Device) (*policiesStruct, error) {
+// synchronizePCRF synchronizes the PCRF service
+func (s *Synchronizer) synchronizePCRF(device *models.Device) (*policiesStruct, error) {
 	policies := policiesStruct{}
 
 	if device.ServiceGroup != nil {
@@ -348,11 +351,12 @@ func (s *Synchronizer) SynchronizePCRF(device *models.Device) (*policiesStruct, 
 	return &policies, nil
 }
 
-type FilterDataFunc func(*JsonConfig) *JsonConfig
+// FilterDataFunc is a function for filtering json config based on type of service
+type FilterDataFunc func(*jsonConfig) *jsonConfig
 
-// Return the portion of the JsonConfig relevant to SPGWC
-func FilterConfigSPGWC(src *JsonConfig) *JsonConfig {
-	dest := JsonConfig{
+// FilterConfigSPGWC returns the portion of the JsonConfig relevant to SPGWC
+func filterConfigSPGWC(src *jsonConfig) *jsonConfig {
+	dest := jsonConfig{
 		SubscriberSelectionRules: src.SubscriberSelectionRules,
 		AccessProfiles:           src.AccessProfiles,
 		ApnProfiles:              src.ApnProfiles,
@@ -362,9 +366,9 @@ func FilterConfigSPGWC(src *JsonConfig) *JsonConfig {
 	return &dest
 }
 
-// Return the portion of the JsonConfig relevant to HSS
-func FilterConfigHSS(src *JsonConfig) *JsonConfig {
-	dest := JsonConfig{
+// FilterConfigHSS returns the portion of the JsonConfig relevant to HSS
+func filterConfigHSS(src *jsonConfig) *jsonConfig {
+	dest := jsonConfig{
 		SubscriberSelectionRules: src.SubscriberSelectionRules,
 		SecurityProfiles:         src.SecurityProfiles,
 		// HSS also seems to need these, or it will ignore the JSON
@@ -374,21 +378,22 @@ func FilterConfigHSS(src *JsonConfig) *JsonConfig {
 	return &dest
 }
 
-// Return the portion of the JsonConfig relevant to PCRF
-func FilterConfigPCRF(src *JsonConfig) *JsonConfig {
-	dest := JsonConfig{
+// FilterConfigPCRF returns the portion of the JsonConfig relevant to PCRF
+func filterConfigPCRF(src *jsonConfig) *jsonConfig {
+	dest := jsonConfig{
 		Policies: src.Policies,
 	}
 	return &dest
 }
 
-func (s *Synchronizer) PostData(name string, endpoint string, filter FilterDataFunc, jsonConfig *JsonConfig) error {
-	var filteredConfig *JsonConfig
+// PostData filters and posts the data to the service
+func (s *Synchronizer) PostData(name string, endpoint string, filter FilterDataFunc, config *jsonConfig) error {
+	var filteredConfig *jsonConfig
 	if filter == nil {
-		filteredConfig = jsonConfig
+		filteredConfig = config
 
 	} else {
-		filteredConfig = filter(jsonConfig)
+		filteredConfig = filter(config)
 	}
 
 	data, err := json.MarshalIndent(*filteredConfig, "", "  ")
@@ -407,8 +412,9 @@ func (s *Synchronizer) PostData(name string, endpoint string, filter FilterDataF
 	return nil
 }
 
+// SynchronizeConnectivityService synchronizes the connectivity service
 func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
-	jsonConfig := JsonConfig{}
+	config := jsonConfig{}
 
 	log.Infof("Synchronizing Connectivity Service %s", *cs.Id)
 
@@ -487,17 +493,17 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				}
 			}
 
-			jsonConfig.SubscriberSelectionRules = append(jsonConfig.SubscriberSelectionRules, rule)
+			config.SubscriberSelectionRules = append(config.SubscriberSelectionRules, rule)
 		}
 	}
 
 	if device.ApnProfile != nil {
-		jsonConfig.ApnProfiles = make(map[string]apnProfile)
+		config.ApnProfiles = make(map[string]apnProfile)
 		for _, apn := range device.ApnProfile.ApnProfile {
 			profile := apnProfile{
 				ApnName:      apn.ApnName,
-				DnsPrimary:   apn.DnsPrimary,
-				DnsSecondary: apn.DnsSecondary,
+				DNSPrimary:   apn.DnsPrimary,
+				DNSSecondary: apn.DnsSecondary,
 				Mtu:          apn.Mtu,
 				GxEnabled:    apn.GxEnabled,
 				Network:      "lbo", // TODO: update modeling and revise
@@ -505,24 +511,24 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				GxApn:        apn.ServiceGroup,
 			}
 
-			jsonConfig.ApnProfiles[*apn.Id] = profile
+			config.ApnProfiles[*apn.Id] = profile
 		}
 	}
 
 	if device.AccessProfile != nil {
-		jsonConfig.AccessProfiles = make(map[string]accessProfile)
+		config.AccessProfiles = make(map[string]accessProfile)
 		for _, access := range device.AccessProfile.AccessProfile {
 			profile := accessProfile{
 				Type:   access.Type,
 				Filter: access.Filter,
 			}
 
-			jsonConfig.AccessProfiles[*access.Id] = profile
+			config.AccessProfiles[*access.Id] = profile
 		}
 	}
 
 	if device.QosProfile != nil {
-		jsonConfig.QosProfiles = make(map[string]qosProfile)
+		config.QosProfiles = make(map[string]qosProfile)
 		for _, qos := range device.QosProfile.QosProfile {
 			arp := qosArp{
 				Priority:                0, // default
@@ -554,12 +560,12 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				profile.Qci = *qos.Qci
 			}
 
-			jsonConfig.QosProfiles[*qos.Id] = profile
+			config.QosProfiles[*qos.Id] = profile
 		}
 	}
 
 	if device.UpProfile != nil {
-		jsonConfig.UpProfiles = make(map[string]upProfile)
+		config.UpProfiles = make(map[string]upProfile)
 		for _, up := range device.UpProfile.UpProfile {
 			profile := upProfile{
 				UserPlane:     up.UserPlane,
@@ -568,12 +574,12 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				QosTags:       map[string]string{"tag1": "BW"},  // TODO: update modeling and revise
 			}
 
-			jsonConfig.UpProfiles[*up.Id] = profile
+			config.UpProfiles[*up.Id] = profile
 		}
 	}
 
 	if device.SecurityProfile != nil {
-		jsonConfig.SecurityProfiles = make(map[string]securityProfile)
+		config.SecurityProfiles = make(map[string]securityProfile)
 		for _, sp := range device.SecurityProfile.SecurityProfile {
 			profile := securityProfile{
 				Key: sp.Key,
@@ -581,27 +587,27 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 				Sqn: sp.Sqn,
 			}
 
-			jsonConfig.SecurityProfiles[*sp.Id] = profile
+			config.SecurityProfiles[*sp.Id] = profile
 		}
 	}
 
 	if (device.ServicePolicy != nil) || (device.ServiceRule != nil) || (device.ServiceGroup != nil) {
 		var err error
-		jsonConfig.Policies, err = s.SynchronizePCRF(device)
+		config.Policies, err = s.synchronizePCRF(device)
 		if err != nil {
 			return err
 		}
 	}
 
-	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "subscriber").Set(float64(len(jsonConfig.SubscriberSelectionRules)))
-	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "apn-profile").Set(float64(len(jsonConfig.ApnProfiles)))
-	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "access-profile").Set(float64(len(jsonConfig.AccessProfiles)))
-	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "qos-profile").Set(float64(len(jsonConfig.QosProfiles)))
-	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "up-profile").Set(float64(len(jsonConfig.UpProfiles)))
-	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "security-profile").Set(float64(len(jsonConfig.SecurityProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "subscriber").Set(float64(len(config.SubscriberSelectionRules)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "apn-profile").Set(float64(len(config.ApnProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "access-profile").Set(float64(len(config.AccessProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "qos-profile").Set(float64(len(config.QosProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "up-profile").Set(float64(len(config.UpProfiles)))
+	synchronizer.KpiSynchronizationResourceTotal.WithLabelValues(*cs.Id, "security-profile").Set(float64(len(config.SecurityProfiles)))
 
 	if s.outputFileName != "" {
-		data, err := json.MarshalIndent(jsonConfig, "", "  ")
+		data, err := json.MarshalIndent(config, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -627,21 +633,21 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 
 	if s.postEnable {
 		if cs.SpgwcEndpoint != nil {
-			err := s.PostData("SPGWC", *cs.SpgwcEndpoint, FilterConfigSPGWC, &jsonConfig)
+			err := s.PostData("SPGWC", *cs.SpgwcEndpoint, filterConfigSPGWC, &config)
 			if err != nil {
 				return err
 			}
 		}
 
 		if cs.HssEndpoint != nil {
-			err := s.PostData("HSS", *cs.HssEndpoint, FilterConfigHSS, &jsonConfig)
+			err := s.PostData("HSS", *cs.HssEndpoint, filterConfigHSS, &config)
 			if err != nil {
 				return err
 			}
 		}
 
 		if cs.PcrfEndpoint != nil {
-			err := s.PostData("PCRF", *cs.PcrfEndpoint, FilterConfigPCRF, &jsonConfig)
+			err := s.PostData("PCRF", *cs.PcrfEndpoint, filterConfigPCRF, &config)
 			if err != nil {
 				return err
 			}

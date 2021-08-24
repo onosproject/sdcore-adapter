@@ -622,7 +622,7 @@ func jsonEncoder(encoderType string, nodeStruct ygot.GoStruct) (map[string]inter
  * let us know whether the destination needs to be converted to a string.
  */
 
-func convertTypedValueToJsonValue(val *pb.TypedValue, intAsString bool) (interface{}, error) {
+func convertTypedValueToJSONValue(val *pb.TypedValue, intAsString bool) (interface{}, error) {
 	var err error
 	var nodeVal interface{}
 

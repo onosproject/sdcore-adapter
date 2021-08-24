@@ -79,7 +79,7 @@ func readCerts(q client.Query) error {
 	return nil
 }
 
-// Add an authorization header to a context
+// WithAuthorization adds an authorization header to a context
 func WithAuthorization(ctx context.Context, auth string) context.Context {
 	return context.WithValue(ctx, authContextKey, auth)
 }

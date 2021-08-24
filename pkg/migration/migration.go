@@ -18,6 +18,7 @@ import (
 
 var log = logging.GetLogger("migration")
 
+// AddMigrationStep adds a migration step to the list
 func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, toVersion string, toModels *gnmi.Model, migrationFunc MigrationFunction) {
 	step := MigrationStep{
 		FromVersion:   fromVersion,
@@ -30,14 +31,9 @@ func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, 
 	m.steps = append(m.steps, &step)
 }
 
-/*
- * BuildStepList
- *
- * Build a list of migration steps that starts with "fromVersion" and ends with "toVersion". Steps
- * must form a contiguous list of migrations -- each step must yield the migration that is used
- * by the following migration.
- */
-
+// BuildStepList builds a list of migration steps that starts with "fromVersion" and ends with "toVersion".
+// Steps must form a contiguous list of migrations -- each step must yield the migration that is used
+// by the following migration.
 func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]*MigrationStep, error) {
 	steps := []*MigrationStep{}
 	currentVersion := fromVersion
@@ -68,16 +64,17 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]*Migra
 	return steps, nil
 }
 
+// RunStep runs a migration step
 func (m *Migrator) RunStep(step *MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
 	// fetch the old models
-	srcVal, err := GetPath("", fromTarget, m.AetherConfigAddr, context.Background())
+	srcVal, err := GetPath(context.Background(), "", fromTarget, m.AetherConfigAddr)
 	if err != nil {
 		return nil, err
 	}
 	// TODO: handle srcVal == nil
 
 	// fetch the new models
-	destVal, err := GetPath("", toTarget, m.AetherConfigAddr, context.Background())
+	destVal, err := GetPath(context.Background(), "", toTarget, m.AetherConfigAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -92,10 +89,11 @@ func (m *Migrator) RunStep(step *MigrationStep, fromTarget string, toTarget stri
 	return actions, nil
 }
 
+// ExecuteActions executes a list of actions
 func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string, toTarget string) error {
 	// do the updates in forward order
 	for _, action := range actions {
-		err := Update(action.UpdatePrefix, toTarget, m.AetherConfigAddr, action.Updates, context.Background())
+		err := Update(context.Background(), action.UpdatePrefix, toTarget, m.AetherConfigAddr, action.Updates)
 		if err != nil {
 			return err
 		}
@@ -104,7 +102,7 @@ func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string
 	// now do the deletes in reverse order
 	for i := len(actions) - 1; i >= 0; i-- {
 		action := actions[i]
-		err := Delete(action.DeletePrefix, fromTarget, m.AetherConfigAddr, action.Deletes, context.Background())
+		err := Delete(context.Background(), action.DeletePrefix, fromTarget, m.AetherConfigAddr, action.Deletes)
 		if err != nil {
 			return err
 		}
@@ -112,6 +110,7 @@ func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string
 	return nil
 }
 
+// Migrate performs migration from one version to another
 func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget string, toVersion string) error {
 	steps, err := m.BuildStepList(fromVersion, toVersion)
 	if err != nil {
@@ -133,6 +132,7 @@ func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget strin
 	return nil
 }
 
+// NewMigrator creates a new migrator
 func NewMigrator(aetherConfigAddr string) *Migrator {
 	m := &Migrator{
 		AetherConfigAddr: aetherConfigAddr,

@@ -9,7 +9,8 @@ import (
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-func NewTarget(model *gnmi.Model, config []byte, callback gnmi.ConfigCallback) (*target, error) {
+// NewTarget creates a new target
+func NewTarget(model *gnmi.Model, config []byte, callback gnmi.ConfigCallback) (*target, error) { //nolint
 	s, err := gnmi.NewServer(model, config, callback)
 	if err != nil {
 		return nil, err

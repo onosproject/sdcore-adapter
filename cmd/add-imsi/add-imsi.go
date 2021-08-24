@@ -32,14 +32,14 @@ var log = logging.GetLogger("add-imsi")
 
 func getDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no site.", *dg.Id)
+		return nil, fmt.Errorf("DeviceGroup %s has no site", *dg.Id)
 	}
 	site, okay := device.Site.Site[*dg.Site]
 	if !okay {
-		return nil, fmt.Errorf("DeviceGroup %s site %s not found.", *dg.Id, *dg.Site)
+		return nil, fmt.Errorf("DeviceGroup %s site %s not found", *dg.Id, *dg.Site)
 	}
 	if (site.Enterprise == nil) || (*site.Enterprise == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no enterprise.", *dg.Id)
+		return nil, fmt.Errorf("DeviceGroup %s has no enterprise", *dg.Id)
 	}
 	return site, nil
 }
@@ -97,16 +97,16 @@ func main() {
 	}
 
 	// Get the current configuration from the ROC
-	origVal, err := migration.GetPath("", *target, *aetherConfigAddr, context.Background())
+	origVal, err := migration.GetPath(context.Background(), "", *target, *aetherConfigAddr)
 	if err != nil {
 		log.Fatal("Failed to get the current state from onos-config: %v", err)
 	}
 
 	// Convert the JSON config into a Device structure
-	origJsonBytes := origVal.GetJsonVal()
+	origJSONBytes := origVal.GetJsonVal()
 	device := &models.Device{}
-	if len(origJsonBytes) > 0 {
-		if err := models.Unmarshal(origJsonBytes, device); err != nil {
+	if len(origJSONBytes) > 0 {
+		if err := models.Unmarshal(origJSONBytes, device); err != nil {
 			log.Fatal("Failed to unmarshal json")
 		}
 	}
@@ -147,7 +147,7 @@ func main() {
 	updates = migration.AddUpdate(updates, migration.UpdateUInt64("imsi-range-from", *target, &maskedImsi))
 
 	// Apply them
-	err = migration.Update(prefix, *target, *aetherConfigAddr, updates, context.Background())
+	err = migration.Update(context.Background(), prefix, *target, *aetherConfigAddr, updates)
 	if err != nil {
 		log.Fatalf("Error executing gNMI: %v", err)
 	}

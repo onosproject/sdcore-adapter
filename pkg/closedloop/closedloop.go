@@ -16,24 +16,23 @@ import (
 
 var log = logging.GetLogger("closedloop")
 
-// CloseLoopControl object. Contains the configuration, as well as a
+// ClosedLoopControl contains the configuration, as well as a
 // list of sources and a cache of the last rules pplied.
-
-type ClosedLoopControl struct {
+type ClosedLoopControl struct { //nolint
 	Config   *ClosedLoopConfig
-	Sources  map[string]*metrics.MetricsFetcher
+	Sources  map[string]*metrics.Fetcher
 	LastRule map[string]string
 }
 
-// Retrieve a MetricsFetcher from the cached list of metrics fetcher. If it doesn't
+// GetFetcher retrieves a Fetcher from the cached list of metrics fetcher. If it doesn't
 // exist, then create a new one.
-func (c *ClosedLoopControl) GetFetcher(endpoint string) (*metrics.MetricsFetcher, error) {
+func (c *ClosedLoopControl) GetFetcher(endpoint string) (*metrics.Fetcher, error) {
 	mf, okay := c.Sources[endpoint]
 	if okay {
 		return mf, nil
 	}
 
-	mf, err := metrics.NewMetricsFetcher(endpoint)
+	mf, err := metrics.NewFetcher(endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +40,7 @@ func (c *ClosedLoopControl) GetFetcher(endpoint string) (*metrics.MetricsFetcher
 	return mf, nil
 }
 
-// Evaluate a rule. If the rule matches, return its set of actions.
+// EvaluateRule evaluates a rule. If the rule matches, return its set of actions.
 func (c *ClosedLoopControl) EvaluateRule(rule *Rule) ([]Action, error) {
 	var err error
 	var source *Source
@@ -93,8 +92,8 @@ func (c *ClosedLoopControl) EvaluateRule(rule *Rule) ([]Action, error) {
 	return nil, nil
 }
 
-// Evaluate the set of rules for a VCS, stopping at the first rule that matches. If a rule
-// matches, then execute its actions.
+// EvaluateVcs evaluates the set of rules for a VCS, stopping at the first rule that matches. If a
+// rule matches, then execute its actions.
 func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 	for _, rule := range vcs.Rules {
 		rule := rule // Linter: Make a shadow copy of the range variable
@@ -140,7 +139,7 @@ func (c *ClosedLoopControl) EvaluateVcs(vcs *Vcs) error {
 	return nil
 }
 
-// Evaluate all rules for all VCSes
+// Evaluate evaluates all rules for all VCSes
 func (c *ClosedLoopControl) Evaluate() error {
 	for _, vcs := range c.Config.Vcs {
 		vcs := vcs // Linter: Make a shadow copy of range variable
@@ -152,7 +151,7 @@ func (c *ClosedLoopControl) Evaluate() error {
 	return nil
 }
 
-// Execute a list of actions
+// ExecuteActions executes a list of actions
 func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, actions []Action) error {
 	updates := []*gpb.Update{}
 	for _, action := range actions {
@@ -173,7 +172,7 @@ func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, a
 
 	log.Infof("Executing target=%s:%s, endpoint=%s, updates=%+v", destination.Target, prefixStr, destination.Endpoint, updates)
 
-	err := migration.Update(prefix, destination.Target, destination.Endpoint, updates, context.Background())
+	err := migration.Update(context.Background(), prefix, destination.Target, destination.Endpoint, updates)
 	if err != nil {
 		return fmt.Errorf("Error executing actions: %v", err)
 	}
@@ -181,10 +180,10 @@ func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, a
 	return nil
 }
 
-// Create a new ClosedLoopControl.
+// NewClosedLoopControl creates a new ClosedLoopControl.
 func NewClosedLoopControl(config *ClosedLoopConfig) *ClosedLoopControl {
 	clc := &ClosedLoopControl{Config: config}
-	clc.Sources = map[string]*metrics.MetricsFetcher{}
+	clc.Sources = map[string]*metrics.Fetcher{}
 	clc.LastRule = map[string]string{}
 	return clc
 }

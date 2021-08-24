@@ -30,7 +30,7 @@ var (
 func mockSynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	time.Sleep(mockSynchronizeDeviceDelay)
 	if mockSynchronizeDeviceFailCount > 0 {
-		mockSynchronizeDeviceFailCount -= 1
+		mockSynchronizeDeviceFailCount--
 		mockSynchronizeDeviceFails = append(mockSynchronizeDeviceFails, config)
 		return errors.New("Mock error")
 	}

@@ -36,9 +36,9 @@ func aUint64(u uint64) *uint64 {
 func MakeEnterprise(desc string, displayName string, id string, cs []string) *models_v2.Enterprise_Enterprise_Enterprise {
 	csList := map[string]*models_v2.Enterprise_Enterprise_Enterprise_ConnectivityService{}
 
-	for _, csId := range cs {
-		csList[csId] = &models_v2.Enterprise_Enterprise_Enterprise_ConnectivityService{
-			ConnectivityService: aStr(csId),
+	for _, csID := range cs {
+		csList[csID] = &models_v2.Enterprise_Enterprise_Enterprise_ConnectivityService{
+			ConnectivityService: aStr(csID),
 			Enabled:             aBool(true),
 		}
 	}
@@ -245,7 +245,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 	assert.Nil(t, err)
 
 	// define the expected json here
-	expected_result := `{
+	expectedResult := `{
   "subscriber-selection-rules": [
     {
       "priority": 1,
@@ -324,7 +324,7 @@ func TestSynchronizeDevicePopulated(t *testing.T) {
 
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)
-	assert.Equal(t, expected_result, string(content))
+	assert.Equal(t, expectedResult, string(content))
 }
 
 func TestSynchronizeDeviceImsiRangeOnly(t *testing.T) {
@@ -363,7 +363,7 @@ func TestSynchronizeDeviceImsiRangeOnly(t *testing.T) {
 	assert.Nil(t, err)
 
 	// define the expected json here
-	expected_result := `{
+	expectedResult := `{
   "subscriber-selection-rules": [
     {
       "priority": 1,
@@ -379,7 +379,7 @@ func TestSynchronizeDeviceImsiRangeOnly(t *testing.T) {
 
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)
-	assert.Equal(t, expected_result, string(content))
+	assert.Equal(t, expectedResult, string(content))
 }
 
 func TestSynchronizeDeviceServingPlmnOnly(t *testing.T) {
@@ -421,7 +421,7 @@ func TestSynchronizeDeviceServingPlmnOnly(t *testing.T) {
 	assert.Nil(t, err)
 
 	// define the expected json here
-	expected_result := `{
+	expectedResult := `{
   "subscriber-selection-rules": [
     {
       "priority": 1,
@@ -438,7 +438,7 @@ func TestSynchronizeDeviceServingPlmnOnly(t *testing.T) {
 
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)
-	assert.Equal(t, expected_result, string(content))
+	assert.Equal(t, expectedResult, string(content))
 }
 
 func TestSynchronizeDeviceRequestedApnOnly(t *testing.T) {
@@ -476,7 +476,7 @@ func TestSynchronizeDeviceRequestedApnOnly(t *testing.T) {
 	assert.Nil(t, err)
 
 	// define the expected json here
-	expected_result := `{
+	expectedResult := `{
   "subscriber-selection-rules": [
     {
       "priority": 1,
@@ -489,7 +489,7 @@ func TestSynchronizeDeviceRequestedApnOnly(t *testing.T) {
 
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)
-	assert.Equal(t, expected_result, string(content))
+	assert.Equal(t, expectedResult, string(content))
 }
 
 func TestSynchronizeDeviceNoKeys(t *testing.T) {
@@ -526,7 +526,7 @@ func TestSynchronizeDeviceNoKeys(t *testing.T) {
 	assert.Nil(t, err)
 
 	// define the expected json here
-	expected_result := `{
+	expectedResult := `{
   "subscriber-selection-rules": [
     {
       "priority": 1,
@@ -539,7 +539,7 @@ func TestSynchronizeDeviceNoKeys(t *testing.T) {
 
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)
-	assert.Equal(t, expected_result, string(content))
+	assert.Equal(t, expectedResult, string(content))
 }
 
 // If the subscriber is not attached to the enterprise, then we should not output it
@@ -578,9 +578,9 @@ func TestSynchronizeDeviceUeNotInEnterprise(t *testing.T) {
 	assert.Nil(t, err)
 
 	// define the expected json here
-	expected_result := `{}`
+	expectedResult := `{}`
 
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)
-	assert.Equal(t, expected_result, string(content))
+	assert.Equal(t, expectedResult, string(content))
 }

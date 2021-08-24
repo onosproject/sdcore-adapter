@@ -24,6 +24,7 @@ import (
 
 var log = logging.GetLogger("migration.steps")
 
+// MigrateV1V2ApnProfile migrates APN Profile from V1 to V2
 func MigrateV1V2ApnProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
@@ -39,6 +40,7 @@ func MigrateV1V2ApnProfile(step *migration.MigrationStep, fromTarget string, toT
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
+// MigrateV1V2QosProfile migrates QOS Profile from V1 to V2
 func MigrateV1V2QosProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
@@ -53,6 +55,7 @@ func MigrateV1V2QosProfile(step *migration.MigrationStep, fromTarget string, toT
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
+// MigrateV1V2UpProfile migrates UP Profile from V1 to V2
 func MigrateV1V2UpProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
@@ -65,6 +68,7 @@ func MigrateV1V2UpProfile(step *migration.MigrationStep, fromTarget string, toTa
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
+// MigrateV1V2AccessProfile migrates Access Profile from V1 to V2
 func MigrateV1V2AccessProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
@@ -77,7 +81,7 @@ func MigrateV1V2AccessProfile(step *migration.MigrationStep, fromTarget string, 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// Parse a V1 UEID and return the first and last IMSIs in the range
+// ParseV1UEID parses a V1 UEID and return the first and last IMSIs in the range
 func ParseV1UEID(s string) (uint64, uint64, error) {
 	// TODO: Bug in onos-config causes strings that are all digits to be
 	// converted into integers. I've been using the workaround of substituting
@@ -98,17 +102,17 @@ func ParseV1UEID(s string) (uint64, uint64, error) {
 		}
 
 		return from, to, nil
-	} else {
-		imsi, err := strconv.ParseUint(s, 0, 64)
-		if err != nil {
-			return 0, 0, err
-		}
-
-		return imsi, imsi, nil
 	}
+
+	imsi, err := strconv.ParseUint(s, 0, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return imsi, imsi, nil
 }
 
-// Given a V1 UE, check and see if the V2 models already contain a UE
+// FindExistingUE given a V1 UE, checks and see if the V2 models already contain a UE
 // that matches the keys. If so, then return the UUID of the V2 model.
 func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber_Subscriber_Ue) (string, error) {
 	if destDevice.Subscriber == nil {
@@ -142,6 +146,7 @@ func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber
 	return "", nil
 }
 
+// MigrateV1V2Subscriber migrates Subscriber from V1 to V2
 func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toTarget string, ue *models_v1.AetherSubscriber_Subscriber_Ue, destDevice *models_v2.Device) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateUInt32("priority", toTarget, ue.Priority))
@@ -176,43 +181,43 @@ func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toT
 	 * object has not been previously migrated, and we generate a new uuid for the new v2 object.
 	 */
 
-	ueUuid, err := FindExistingUE(destDevice, ue)
+	ueUUID, err := FindExistingUE(destDevice, ue)
 	if err != nil {
 		return nil, err
 	}
-	if ueUuid == "" {
-		ueUuid = uuid.New().String()
+	if ueUUID == "" {
+		ueUUID = uuid.New().String()
 	}
 
-	prefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[id=%s]", ueUuid), toTarget)
+	prefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[id=%s]", ueUUID), toTarget)
 
 	deletePrefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[ueid=%s]", *ue.Ueid), fromTarget)
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePrefix}}, nil
 }
 
-// Safely dereference a *string for printing
+// StrDeref safely dereference a *string for printing
 func StrDeref(s *string) string {
 	if s == nil {
 		return "nil"
-	} else {
-		return *s
 	}
+	return *s
 }
 
+// MigrateV1V2 migrates device from V1 to V2
 func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
-	srcJsonBytes := srcVal.GetJsonVal()
+	srcJSONBytes := srcVal.GetJsonVal()
 	srcDevice := &models_v1.Device{}
-	if len(srcJsonBytes) > 0 {
-		if err := step.FromModels.Unmarshal(srcJsonBytes, srcDevice); err != nil {
+	if len(srcJSONBytes) > 0 {
+		if err := step.FromModels.Unmarshal(srcJSONBytes, srcDevice); err != nil {
 			return nil, err
 		}
 	}
 
-	destJsonBytes := destVal.GetJsonVal()
+	destJSONBytes := destVal.GetJsonVal()
 	destDevice := &models_v2.Device{}
-	if len(destJsonBytes) > 0 {
-		if err := step.ToModels.Unmarshal(destJsonBytes, destDevice); err != nil {
+	if len(destJSONBytes) > 0 {
+		if err := step.ToModels.Unmarshal(destJSONBytes, destDevice); err != nil {
 			return nil, err
 		}
 	}

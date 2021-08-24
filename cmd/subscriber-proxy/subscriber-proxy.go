@@ -28,7 +28,7 @@ var (
 	postTimeout        = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
 	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v3", "Target to use when pulling from aether-config")
 
-	baseWebConsoleUrl = flag.String("webconsole_url", "http://webui.omec.svc.cluster.local:5000", "base url for webui service address")
+	baseWebConsoleURL = flag.String("webconsole_url", "http://webui.omec.svc.cluster.local:5000", "base url for webui service address")
 	aetherConfigAddr  = flag.String("onos_config_url", "onos-config.micro-onos.svc.cluster.local:5150", "url of onos-config")
 )
 
@@ -37,27 +37,27 @@ type response struct {
 }
 
 var log = logging.GetLogger("subscriber-proxy")
-var SubscriberAPISuffix = "/api/subscriber/"
+var subscriberAPISuffix = "/api/subscriber/"
 
-// Add subscriber by IMSI(ueId)
-func AddSubscriberByID(c *gin.Context) {
+// Add subscriber by IMSI(ueID)
+func addSubscriberByID(c *gin.Context) {
 
 	log.Info("Received One Subscriber Data")
-	ueId := c.Param("ueId")
+	ueID := c.Param("ueId")
 	var payload []byte
 	if c.Request.Body != nil {
 		payload, _ = ioutil.ReadAll(c.Request.Body)
 	}
 
-	if !strings.HasPrefix(ueId, "imsi-") {
+	if !strings.HasPrefix(ueID, "imsi-") {
 		log.Error("Ue Id format is invalid ")
 		c.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
-	log.Infof("Received subscriber id : %s ", ueId)
+	log.Infof("Received subscriber id : %s ", ueID)
 
-	split := strings.Split(ueId, "-")
+	split := strings.Split(ueID, "-")
 	imsiValue, err := strconv.ParseUint(split[1], 10, 64)
 	if err != nil {
 		log.Error(err.Error())
@@ -65,13 +65,13 @@ func AddSubscriberByID(c *gin.Context) {
 	}
 	err = UpdateImsiDeviceGroup(&imsiValue)
 	if err != nil {
-		c.Data(http.StatusInternalServerError, "application/json", getJsonResponse(err.Error()))
+		c.Data(http.StatusInternalServerError, "application/json", getJSONResponse(err.Error()))
 		return
 	}
 
-	err, resp := PostToWebConsole(ueId, payload)
+	resp, err := PostToWebConsole(ueID, payload)
 	if err != nil {
-		c.Data(resp.StatusCode, "application/json", getJsonResponse(err.Error()))
+		c.Data(resp.StatusCode, "application/json", getJSONResponse(err.Error()))
 		return
 	}
 
@@ -80,23 +80,23 @@ func AddSubscriberByID(c *gin.Context) {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Error(err.Error())
-			c.Data(http.StatusInternalServerError, "application/json", getJsonResponse(err.Error()))
+			c.Data(http.StatusInternalServerError, "application/json", getJSONResponse(err.Error()))
 			return
 		}
-		c.Data(resp.StatusCode, "application/json", getJsonResponse(string(bodyBytes)))
+		c.Data(resp.StatusCode, "application/json", getJSONResponse(string(bodyBytes)))
 		return
 	}
 
 	c.JSON(resp.StatusCode, gin.H{"status": "success"})
 }
 
-// Call webui API for subscriber provision on the SD-Core
-func PostToWebConsole(imsi string, payload []byte) (error, *http.Response) {
+// PostToWebConsole posts all webui API for subscriber provision on the SD-Core
+func PostToWebConsole(imsi string, payload []byte) (*http.Response, error) {
 	log.Info("Calling WebUI API...")
 	client := &http.Client{
 		Timeout: *postTimeout,
 	}
-	req, err := http.NewRequest("POST", *baseWebConsoleUrl+SubscriberAPISuffix+imsi, bytes.NewBuffer(payload))
+	req, err := http.NewRequest("POST", *baseWebConsoleURL+subscriberAPISuffix+imsi, bytes.NewBuffer(payload))
 	if err != nil {
 		log.Info("Error while connecting webui ", err.Error())
 	}
@@ -105,28 +105,28 @@ func PostToWebConsole(imsi string, payload []byte) (error, *http.Response) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error(err.Error())
-		return fmt.Errorf(err.Error()), resp
+		return resp, fmt.Errorf(err.Error())
 	}
 	defer resp.Body.Close()
 
-	return nil, resp
+	return resp, nil
 }
 
-//
+// UpdateImsiDeviceGroup updates the imsis within a device group
 func UpdateImsiDeviceGroup(imsi *uint64) error {
 	log.Info("Calling UpdateImsiDeviceGroup...")
 
 	// Get the current configuration from the ROC
-	origVal, err := migration.GetPath("", *aetherConfigTarget, *aetherConfigAddr, context.Background())
+	origVal, err := migration.GetPath(context.Background(), "", *aetherConfigTarget, *aetherConfigAddr)
 	if err != nil {
 		log.Error("Failed to get the current state from onos-config: %v", err)
 	}
 
 	// Convert the JSON config into a Device structure
-	origJsonBytes := origVal.GetJsonVal()
+	origJSONBytes := origVal.GetJsonVal()
 	device := &models.Device{}
-	if len(origJsonBytes) > 0 {
-		if err := models.Unmarshal(origJsonBytes, device); err != nil {
+	if len(origJSONBytes) > 0 {
+		if err := models.Unmarshal(origJSONBytes, device); err != nil {
 			log.Error("Failed to unmarshal json")
 			return fmt.Errorf("Failed to unmarshal json")
 		}
@@ -152,7 +152,7 @@ func UpdateImsiDeviceGroup(imsi *uint64) error {
 	return AddImsiToDefaultGroup(device, dgroup, imsi)
 }
 
-//Add Imsi to default group expect the group already exists
+// AddImsiToDefaultGroup adds Imsi to default group expect the group already exists
 func AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) error {
 	log.Infof("AddImsiToDefaultGroup Name : %s", dgroup)
 
@@ -188,7 +188,7 @@ func AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) e
 	updates = migration.AddUpdate(updates, migration.UpdateUInt64("imsi-range-from", *aetherConfigTarget, &maskedImsi))
 
 	// Apply them
-	err = migration.Update(prefix, *aetherConfigTarget, *aetherConfigAddr, updates, context.Background())
+	err = migration.Update(context.Background(), prefix, *aetherConfigTarget, *aetherConfigAddr, updates)
 	if err != nil {
 		log.Errorf("Error executing gNMI: %v", err)
 		return fmt.Errorf("Error executing gNMI: %v", err)
@@ -199,14 +199,14 @@ func AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) e
 //Get site for the device group
 func getDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no site.", *dg.Id)
+		return nil, fmt.Errorf("DeviceGroup %s has no site", *dg.Id)
 	}
 	site, okay := device.Site.Site[*dg.Site]
 	if !okay {
-		return nil, fmt.Errorf("DeviceGroup %s site %s not found.", *dg.Id, *dg.Site)
+		return nil, fmt.Errorf("DeviceGroup %s site %s not found", *dg.Id, *dg.Site)
 	}
 	if (site.Enterprise == nil) || (*site.Enterprise == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no enterprise.", *dg.Id)
+		return nil, fmt.Errorf("DeviceGroup %s has no enterprise", *dg.Id)
 	}
 	return site, nil
 }
@@ -295,7 +295,7 @@ func main() {
 	flag.Parse()
 	router := gin.New()
 	router.Use(getlogger(), gin.Recovery())
-	router.POST(SubscriberAPISuffix+":ueId", getlogger(), AddSubscriberByID)
+	router.POST(subscriberAPISuffix+":ueID", getlogger(), addSubscriberByID)
 	err := router.Run("0.0.0.0" + *bindPort)
 	if err != nil {
 		log.Error("Failed to start the Subscriber-Proxy %v", err.Error())
@@ -321,7 +321,7 @@ func getlogger() gin.HandlerFunc {
 	}
 }
 
-func getJsonResponse(msg string) []byte {
+func getJSONResponse(msg string) []byte {
 	var responseData response
 	responseData.Status = msg
 	jsonData, err := json.Marshal(responseData)

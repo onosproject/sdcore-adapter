@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Utility functions for synchronizer
+// Package synchronizerv3 implements declarations and utilities for the v3 synchronizer.
 package synchronizerv3
 
 import (
@@ -13,7 +13,7 @@ import (
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 )
 
-// Format MCC, MNC, ENT, and SUB into an IMSI, according to a format specifier
+// FormatImsi formats MCC, MNC, ENT, and SUB into an IMSI, according to a format specifier
 func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (uint64, error) {
 	var imsi uint64
 	var mult uint64
@@ -61,7 +61,7 @@ func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (
 	return imsi, nil
 }
 
-// Wrapper around FormatImsi that takes the ImsiDefinition gNMI instead of a set of arguments
+// FormatImsiDef is a wrapper around FormatImsi that takes the ImsiDefinition gNMI instead of a set of arguments
 func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64, error) {
 	var format string
 	if i.Format != nil {
@@ -84,7 +84,7 @@ func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64,
 	return FormatImsi(format, *i.Mcc, *i.Mnc, *i.Enterprise, sub)
 }
 
-// Mask off any leading subscriber digits
+// MaskSubscriberImsi masks off any leading subscriber digits
 func MaskSubscriberImsi(format string, sub uint64) (uint64, error) {
 	var imsi uint64
 	var mult uint64
@@ -102,7 +102,7 @@ func MaskSubscriberImsi(format string, sub uint64) (uint64, error) {
 	return imsi, nil
 }
 
-// Wrapper around MaskSubscriberImsi that takes the ImsiDefinition gNMI instead of a set of arguments
+// MaskSubscriberImsiDef is a wrapper around MaskSubscriberImsi that takes the ImsiDefinition gNMI instead of a set of arguments
 func MaskSubscriberImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64, error) {
 	var format string
 	if i.Format != nil {
@@ -119,6 +119,7 @@ func MaskSubscriberImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) 
 	return MaskSubscriberImsi(format, sub)
 }
 
+// ProtoStringToProtoNumber converts a protocol name to a number
 func ProtoStringToProtoNumber(s string) (uint32, error) {
 	n, okay := map[string]uint32{"TCP": 6, "UDP": 17}[s]
 	if !okay {

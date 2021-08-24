@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+// Package synchronizerv2 implements the v2 synchronizer
 package synchronizerv2
 
 import (
@@ -19,14 +19,13 @@ import (
 
 var log = logging.GetLogger("synchronizer")
 
-/* ModelData: List of Models returned by gNMI Capabilities for this adapter.
- *
- * This data was formerly in the config-models repository, but is no longer authoritatively
- * stored there due to those models being moved to helm charts used with the onos operator.
- *
- * NOTE: It's unclear how useful this is -- the actual yang contents of the models are
- *   not returned by capabilities, only the names of the models.
- */
+// ModelData is a list of Models returned by gNMI Capabilities for this adapter.
+//
+// This data was formerly in the config-models repository, but is no longer authoritatively
+// stored there due to those models being moved to helm charts used with the onos operator.
+//
+// NOTE: It's unclear how useful this is -- the actual yang contents of the models are
+//   not returned by capabilities, only the names of the models.
 var ModelData = []*gnmiproto.ModelData{
 	{Name: "access-profile", Organization: "Open Networking Foundation", Version: "2020-10-22"},
 	{Name: "aether-subscriber", Organization: "Open Networking Foundation", Version: "2020-10-22"},
@@ -41,14 +40,14 @@ var ModelData = []*gnmiproto.ModelData{
 	{Name: "service-rule", Organization: "Open Networking Foundation", Version: "2021-03-04"},
 }
 
-// Synchronize the state to the underlying service.
+// Synchronize synchronizes the state to the underlying service.
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
 	log.Infof("Synchronize, type=%s", callbackType)
 	err := s.SynchronizeDevice(config)
 	return err
 }
 
-// Get the list of models.
+// GetModels gets the list of models.
 func (s *Synchronizer) GetModels() *gnmi.Model {
 	model := gnmi.NewModel(ModelData,
 		reflect.TypeOf((*models.Device)(nil)),
@@ -61,27 +60,27 @@ func (s *Synchronizer) GetModels() *gnmi.Model {
 	return model
 }
 
-// Set the output filename
+// SetOutputFileName sets the output filename
 func (s *Synchronizer) SetOutputFileName(fileName string) {
 	s.outputFileName = fileName
 }
 
-// Enable or disable Posting to service
+// SetPostEnable enables or disables Posting to service
 func (s *Synchronizer) SetPostEnable(postEnable bool) {
 	s.postEnable = postEnable
 }
 
-// Set the timeout for post requests.
+// SetPostTimeout sets the timeout for post requests.
 func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 	s.postTimeout = postTimeout
 }
 
-// Set the Pusher function for the Synchronizer
+// SetPusher sets the Pusher function for the Synchronizer
 func (s *Synchronizer) SetPusher(pusher synchronizer.PusherInterface) {
 	// not used at this time
 }
 
-// Start the synchronizer
+// Start starts the synchronizer
 func (s *Synchronizer) Start() {
 	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%s, postTimeout=%d)",
 		s.outputFileName,
@@ -91,7 +90,7 @@ func (s *Synchronizer) Start() {
 	// TODO: Eventually we'll create a thread here that waits for config changes
 }
 
-// Create a new Synchronizer
+// NewSynchronizer creates a new Synchronizer
 func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Duration) *Synchronizer {
 	s := &Synchronizer{
 		outputFileName: outputFileName,

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Utility functions for synchronizer
+// Package synchronizer is basic declarations and utilities for the synchronizer
 package synchronizer
 
 import (
@@ -12,7 +12,8 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-type SynchronizerInterface interface {
+// SynchronizerInterface defines the interface that all synchronizers should have.
+type SynchronizerInterface interface { //nolint
 	Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error
 	GetModels() *gnmi.Model
 	SetOutputFileName(fileName string)
@@ -22,6 +23,7 @@ type SynchronizerInterface interface {
 	Start()
 }
 
+// PusherInterface is an interface to a pusher, which pushes json to underlying services.
 type PusherInterface interface {
 	PushUpdate(endpoint string, data []byte) error
 }

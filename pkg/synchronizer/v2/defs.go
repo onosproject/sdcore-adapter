@@ -2,13 +2,14 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+// Package synchronizerv2 implements the v2 synchronizer
 package synchronizerv2
 
 import (
 	"time"
 )
 
+// Synchronizer is a version 2 Synchronizer.
 type Synchronizer struct {
 	outputFileName string
 	postEnable     bool

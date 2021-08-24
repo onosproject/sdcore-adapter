@@ -7,17 +7,19 @@
 
 package synchronizerv3
 
-// Push sychronizations to an in-memory map, for ease of unit testing.
+// MemPusher pushes sychronizations to an in-memory map, for ease of unit testing.
 type MemPusher struct {
 	Pushes map[string]string
 }
 
+// NewMemPusher creates a new MemPusher
 func NewMemPusher() *MemPusher {
 	return &MemPusher{
 		Pushes: map[string]string{},
 	}
 }
 
+// PushUpdate pushes an update, storing it in memory
 func (p *MemPusher) PushUpdate(endpoint string, data []byte) error {
 	p.Pushes[endpoint] = string(data)
 	return nil

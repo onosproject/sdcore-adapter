@@ -37,9 +37,9 @@ func aUint64(u uint64) *uint64 {
 func MakeEnterprise(desc string, displayName string, id string, cs []string) *models_v3.Enterprise_Enterprise_Enterprise {
 	csList := map[string]*models_v3.Enterprise_Enterprise_Enterprise_ConnectivityService{}
 
-	for _, csId := range cs {
-		csList[csId] = &models_v3.Enterprise_Enterprise_Enterprise_ConnectivityService{
-			ConnectivityService: aStr(csId),
+	for _, csID := range cs {
+		csList[csID] = &models_v3.Enterprise_Enterprise_Enterprise_ConnectivityService{
+			ConnectivityService: aStr(csID),
 			Enabled:             aBool(true),
 		}
 	}
@@ -264,7 +264,7 @@ func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
 	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
-		expected_result := `{
+		expectedResult := `{
 			"imsis": [
 			  "123456789000001"
 			],
@@ -277,7 +277,7 @@ func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
 			  "mtu": 1492
 			}
 		  }`
-		require.JSONEq(t, expected_result, json)
+		require.JSONEq(t, expectedResult, json)
 	}
 }
 
@@ -308,7 +308,7 @@ func TestSynchronizeVCS(t *testing.T) {
 	json, okay := m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
-		expected_result := `{
+		expectedResult := `{
 			"slice-id": {
 			  "sst": "222",
 			  "sd": "00006F"
@@ -353,7 +353,7 @@ func TestSynchronizeVCS(t *testing.T) {
 			]
 		  }`
 
-		require.JSONEq(t, expected_result, json)
+		require.JSONEq(t, expectedResult, json)
 	}
 }
 
@@ -387,7 +387,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 	json, okay := m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
-		expected_result := `{
+		expectedResult := `{
 			"slice-id": {
 			  "sst": "222",
 			  "sd": ""
@@ -432,6 +432,6 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 			]
 		  }`
 
-		require.JSONEq(t, expected_result, json)
+		require.JSONEq(t, expectedResult, json)
 	}
 }

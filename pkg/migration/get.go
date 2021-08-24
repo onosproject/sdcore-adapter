@@ -15,6 +15,7 @@ import (
 	"github.com/openconfig/gnmi/client"
 	gclient "github.com/openconfig/gnmi/client/gnmi"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"time"
 )
 
 // MockGetFunction can be used to mock a gNMI Get Operation for unit testing.
@@ -30,7 +31,7 @@ func ExecuteGet(ctx context.Context, r *gpb.GetRequest, addr string) (*gpb.GetRe
 		return MockGet(r)
 	}
 
-	q := client.Query{TLS: &tls.Config{}}
+	q := client.Query{TLS: &tls.Config{}, Timeout: 5 * time.Second}
 
 	err := readCerts(q)
 	if err != nil {

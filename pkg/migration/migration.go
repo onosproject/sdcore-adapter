@@ -139,3 +139,12 @@ func NewMigrator(aetherConfigAddr string) *Migrator {
 	}
 	return m
 }
+
+// SupportedVersions - list the versions supported
+func (m *Migrator) SupportedVersions() []string {
+	stepsSupported := make([]string, 0)
+	for _, s := range m.steps {
+		stepsSupported = append(stepsSupported, fmt.Sprintf("%s to %s", s.FromVersion, s.ToVersion))
+	}
+	return stepsSupported
+}

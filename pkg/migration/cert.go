@@ -14,6 +14,7 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
+	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/openconfig/gnmi/client"
 	"google.golang.org/grpc/metadata"
 	"io/ioutil"
@@ -60,6 +61,12 @@ func readCerts(q client.Query) error {
 		log.Debugf("Successfully read and configured caCert %s", *caCert)
 
 		q.TLS.RootCAs = certPool
+	} else {
+		var err error
+		q.TLS.RootCAs, err = certs.GetCertPoolDefault()
+		if err != nil {
+			return err
+		}
 	}
 
 	if *clientCert != "" || *clientKey != "" {
@@ -73,6 +80,14 @@ func readCerts(q client.Query) error {
 
 		log.Debugf("Successfully read and configured clientCert %s and clientKey %s", *clientCert, *clientKey)
 
+		q.TLS.Certificates = []tls.Certificate{certificate}
+	} else {
+		// Load default Certificates
+		certificate, err := tls.X509KeyPair([]byte(certs.DefaultClientCrt), []byte(certs.DefaultClientKey))
+		if err != nil {
+			return err
+		}
+		log.Debugf("Loaded default clientCert and clientKey", *clientCert, *clientKey)
 		q.TLS.Certificates = []tls.Certificate{certificate}
 	}
 

@@ -55,16 +55,16 @@ func TestValidateAppEndpoint(t *testing.T) {
 	assert.EqualError(t, err, "PortStart is nil")
 }
 
-func TestValidateIpDomain(t *testing.T) {
+func TestValidateIPDomain(t *testing.T) {
 	i := &models_v3.IpDomain_IpDomain_IpDomain{
 		Subnet: aStr("1.2.3.4/24"),
 	}
-	err := validateIpDomain(i)
+	err := validateIPDomain(i)
 	assert.Nil(t, err)
 
 	// Missing subnet
 	i = &models_v3.IpDomain_IpDomain_IpDomain{}
-	err = validateIpDomain(i)
+	err = validateIPDomain(i)
 	assert.EqualError(t, err, "Subnet is nil")
 }
 

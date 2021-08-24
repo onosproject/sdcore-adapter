@@ -46,6 +46,7 @@ func NewServer(model *Model, config []byte, callback ConfigCallback) (*Server, e
 	return s, nil
 }
 
+// ExecuteCallbacks executes the callbacks for the synchronizer
 func (s *Server) ExecuteCallbacks(reason ConfigCallbackType) error {
 	if s.callback != nil {
 		if err := s.callback(s.config, reason); err != nil {
@@ -55,6 +56,7 @@ func (s *Server) ExecuteCallbacks(reason ConfigCallbackType) error {
 	return nil
 }
 
+// GetJSON returns the JSON value of the config tree
 func (s *Server) GetJSON() ([]byte, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -70,6 +72,7 @@ func (s *Server) GetJSON() ([]byte, error) {
 	return data, nil
 }
 
+// PutJSON sets the config tree from a json value
 func (s *Server) PutJSON(b []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
+// Package synchronizerv3 implements the version 3 synchronizer.
 package synchronizerv3
 
 import (
@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	DEFAULT_IMSI_FORMAT = "CCCNNNEEESSSSSS"
+	// DefaultImsiFormat is the default format for an IMSI string
+	DefaultImsiFormat = "CCCNNNEEESSSSSS"
 )
 
+// Synchronizer is a Version 3 synchronizer.
 type Synchronizer struct {
 	outputFileName string
 	postEnable     bool
@@ -34,6 +36,7 @@ type Synchronizer struct {
 	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) error
 }
 
+// SynchronizerUpdate holds the configuration for a particular synchronization request
 type SynchronizerUpdate struct {
 	config       ygot.ValidatedGoStruct
 	callbackType gnmi.ConfigCallbackType

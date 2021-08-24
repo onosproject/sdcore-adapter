@@ -17,11 +17,14 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+// MockGetFunction can be used to mock a gNMI Get Operation for unit testing.
 type MockGetFunction func(*gpb.GetRequest) (*gpb.GetResponse, error)
 
+// MockGet can be set to a mocking function to mock ExecuteGet.
 var MockGet MockGetFunction
 
-func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetResponse, error) {
+// ExecuteGet executes gNMI Get request against the server named by addr.
+func ExecuteGet(ctx context.Context, r *gpb.GetRequest, addr string) (*gpb.GetResponse, error) {
 	// for ease of unit testing
 	if MockGet != nil {
 		return MockGet(r)
@@ -55,13 +58,14 @@ func ExecuteGet(r *gpb.GetRequest, addr string, ctx context.Context) (*gpb.GetRe
 	return response, nil
 }
 
-func GetPath(path string, target string, addr string, ctx context.Context) (*gpb.TypedValue, error) {
+// GetPath executes a gNMI Get Operation using the named path and target.
+func GetPath(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
 	req := &gpb.GetRequest{
 		Path:     []*gpb.Path{StringToPath(path, target)},
 		Encoding: gpb.Encoding_JSON,
 	}
 
-	resp, err := ExecuteGet(req, addr, ctx)
+	resp, err := ExecuteGet(ctx, req, addr)
 	if err != nil {
 		return nil, err
 	}

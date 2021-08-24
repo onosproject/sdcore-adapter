@@ -127,7 +127,7 @@ func main() {
 	if *aetherConfigAddr != "" {
 		log.Infof("Fetching initial state from %s, target %s", *aetherConfigAddr, *aetherConfigTarget)
 		// The migration library has the functions for fetching from onos-config
-		srcVal, err := migration.GetPath("", *aetherConfigTarget, *aetherConfigAddr, context.Background())
+		srcVal, err := migration.GetPath(context.Background(), "", *aetherConfigTarget, *aetherConfigAddr)
 		if err != nil {
 			log.Fatalf("Error fetching initial data from onos-config: %s", err.Error())
 			return

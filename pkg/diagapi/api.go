@@ -39,19 +39,21 @@ import (
 
 var log = logging.GetLogger("diagapi")
 
+// TargetInterface is an interface to a gNMI Target
 type TargetInterface interface {
 	ExecuteCallbacks(reason gnmi.ConfigCallbackType) error
 	GetJSON() ([]byte, error)
 	PutJSON([]byte) error
 }
 
-type DiagnosticApi struct {
+// DiagnosticAPI is an api for performing diagnostic operations on the synchronizer
+type DiagnosticAPI struct {
 	targetServer            TargetInterface
 	defaultTarget           string
 	defaultAetherConfigAddr string
 }
 
-func (m *DiagnosticApi) reSync(w http.ResponseWriter, r *http.Request) {
+func (m *DiagnosticAPI) reSync(w http.ResponseWriter, r *http.Request) {
 	// TODO: tell the target server to synchronize
 	_ = r
 	err := m.targetServer.ExecuteCallbacks(gnmi.Forced)
@@ -62,7 +64,7 @@ func (m *DiagnosticApi) reSync(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "SUCCESS")
 }
 
-func (m *DiagnosticApi) getCache(w http.ResponseWriter, r *http.Request) {
+func (m *DiagnosticAPI) getCache(w http.ResponseWriter, r *http.Request) {
 	_ = r
 	jsonDump, err := m.targetServer.GetJSON()
 	if err != nil {
@@ -77,7 +79,7 @@ func (m *DiagnosticApi) getCache(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (m *DiagnosticApi) deleteCache(w http.ResponseWriter, r *http.Request) {
+func (m *DiagnosticAPI) deleteCache(w http.ResponseWriter, r *http.Request) {
 	reqBody := []byte("{}")
 	err := m.targetServer.PutJSON(reqBody)
 	if err != nil {
@@ -87,7 +89,7 @@ func (m *DiagnosticApi) deleteCache(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "SUCCESS")
 }
 
-func (m *DiagnosticApi) postCache(w http.ResponseWriter, r *http.Request) {
+func (m *DiagnosticAPI) postCache(w http.ResponseWriter, r *http.Request) {
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -102,7 +104,7 @@ func (m *DiagnosticApi) postCache(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "SUCCESS")
 }
 
-func (m *DiagnosticApi) pullFromOnosConfig(w http.ResponseWriter, r *http.Request) {
+func (m *DiagnosticAPI) pullFromOnosConfig(w http.ResponseWriter, r *http.Request) {
 	queryArgs := r.URL.Query()
 
 	target := queryArgs.Get("target")
@@ -122,15 +124,15 @@ func (m *DiagnosticApi) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 		ctx = migration.WithAuthorization(ctx, auth)
 	}
 
-	srcVal, err := migration.GetPath("", target, aetherConfigAddr, ctx)
+	srcVal, err := migration.GetPath(ctx, "", target, aetherConfigAddr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	srcJsonBytes := srcVal.GetJsonVal()
+	srcJSONBytes := srcVal.GetJsonVal()
 
-	err = m.targetServer.PutJSON(srcJsonBytes)
+	err = m.targetServer.PutJSON(srcJSONBytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -138,7 +140,7 @@ func (m *DiagnosticApi) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 	fmt.Fprintf(w, "SUCCESS")
 }
 
-func (m *DiagnosticApi) handleRequests() {
+func (m *DiagnosticAPI) handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/synchronize", m.reSync).Methods("POST")
 	myRouter.HandleFunc("/cache", m.getCache).Methods("GET")
@@ -148,10 +150,11 @@ func (m *DiagnosticApi) handleRequests() {
 	log.Fatal(http.ListenAndServe(":8080", myRouter))
 }
 
+// StartDiagnosticAPI starts the Diagnostic API, serving requests
 func StartDiagnosticAPI(targetServer TargetInterface,
 	defaultAetherConfigAddr string,
 	defaultTarget string) {
-	m := DiagnosticApi{targetServer: targetServer,
+	m := DiagnosticAPI{targetServer: targetServer,
 		defaultAetherConfigAddr: defaultAetherConfigAddr,
 		defaultTarget:           defaultTarget}
 	go m.handleRequests()

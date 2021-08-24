@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-// Given a string foo[k=v], return (foo, &k, &v)
+// SplitKey given a string foo[k=v], return (foo, &k, &v)
 // If the string does not contain a key, return (foo, nil, nil)
 func SplitKey(name string) (*string, *string, *string) {
 	parts := strings.Split(name, "[")
@@ -30,14 +30,13 @@ func SplitKey(name string) (*string, *string, *string) {
 	parts = strings.Split(keyValue, "=")
 	if len(parts) < 2 {
 		return &name, nil, nil
-	} else {
-		key := parts[0]
-		value := parts[1]
-		return &name, &key, &value
 	}
+	key := parts[0]
+	value := parts[1]
+	return &name, &key, &value
 }
 
-// convert a string for the format x/y/z[k=v] into a gdb.Path
+// StringToPath converts a string for the format x/y/z[k=v] into a gdb.Path
 func StringToPath(s string, target string) *gpb.Path {
 	elems := []*gpb.PathElem{}
 
@@ -70,7 +69,7 @@ func StringToPath(s string, target string) *gpb.Path {
 	}
 }
 
-// Create a gpb.Update for a string value
+// UpdateString creates a gpb.Update for a string value
 func UpdateString(path string, target string, val *string) *gpb.Update {
 	if val == nil {
 		return nil
@@ -82,7 +81,7 @@ func UpdateString(path string, target string, val *string) *gpb.Update {
 	}
 }
 
-// Create a gpb.Update for a uint32 value
+// UpdateUInt32 creates a gpb.Update for a uint32 value
 func UpdateUInt32(path string, target string, val *uint32) *gpb.Update {
 	if val == nil {
 		return nil
@@ -94,7 +93,7 @@ func UpdateUInt32(path string, target string, val *uint32) *gpb.Update {
 	}
 }
 
-// Create a gpb.Update for a uint64 value
+// UpdateUInt64 creates a gpb.Update for a uint64 value
 func UpdateUInt64(path string, target string, val *uint64) *gpb.Update {
 	if val == nil {
 		return nil
@@ -106,7 +105,7 @@ func UpdateUInt64(path string, target string, val *uint64) *gpb.Update {
 	}
 }
 
-// Create a gpb.Update for a bool value
+// UpdateBool creates a gpb.Update for a bool value
 func UpdateBool(path string, target string, val *bool) *gpb.Update {
 	if val == nil {
 		return nil
@@ -118,7 +117,7 @@ func UpdateBool(path string, target string, val *bool) *gpb.Update {
 	}
 }
 
-// Add a gpb.Update to a list of updates, only if the gpb.Update is not
+// AddUpdate adds a gpb.Update to a list of updates, only if the gpb.Update is not
 // nil.
 func AddUpdate(updates []*gpb.Update, update *gpb.Update) []*gpb.Update {
 	if update != nil {
@@ -127,7 +126,7 @@ func AddUpdate(updates []*gpb.Update, update *gpb.Update) []*gpb.Update {
 	return updates
 }
 
-// Given a list of Updates, create a corresponding list of deletes
+// DeleteFromUpdates given a list of Updates, create a corresponding list of deletes
 func DeleteFromUpdates(updates []*gpb.Update, target string) []*gpb.Path {
 	deletePaths := []*gpb.Path{}
 	for _, update := range updates {
@@ -139,13 +138,12 @@ func DeleteFromUpdates(updates []*gpb.Update, target string) []*gpb.Path {
 	return deletePaths
 }
 
-// If a context includes a particular key, then use it, otherwise use the default
+// OverrideFromContext if a context includes a particular key, then use it, otherwise use the default
 func OverrideFromContext(ctx context.Context, key interface{}, defaultValue interface{}) interface{} {
 	if contextVal := ctx.Value(key); contextVal != nil {
 		// Use the key from the context, if available
 		return contextVal
-	} else {
-		// Revert to the default, otherwise
-		return defaultValue
 	}
+	// Revert to the default, otherwise
+	return defaultValue
 }

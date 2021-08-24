@@ -19,14 +19,13 @@ import (
 
 var log = logging.GetLogger("synchronizer")
 
-/* ModelData: List of Models returned by gNMI Capabilities for this adapter.
- *
- * This data was formerly in the config-models repository, but is no longer authoritatively
- * stored there due to those models being moved to helm charts used with the onos operator.
- *
- * NOTE: It's unclear how useful this is -- the actual yang contents of the models are
- *   not returned by capabilities, only the names of the models.
- */
+// ModelData is a list of Models returned by gNMI Capabilities for this adapter.
+//
+// This data was formerly in the config-models repository, but is no longer authoritatively
+// stored there due to those models being moved to helm charts used with the onos operator.
+//
+// NOTE: It's unclear how useful this is -- the actual yang contents of the models are
+//       not returned by capabilities, only the names of the models.
 var ModelData = []*gnmiproto.ModelData{
 	{Name: "connectivity-service", Organization: "Open Networking Foundation", Version: "2021-06-02"},
 	{Name: "enterprise", Organization: "Open Networking Foundation", Version: "2021-06-02"},
@@ -45,11 +44,13 @@ var ModelData = []*gnmiproto.ModelData{
 	{Name: "traffic-class", Organization: "Open Networking Foundation", Version: "2021-06-02"},
 }
 
+// Synchronize synchronizes the state to the underlying service.
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
 	err := s.enqueue(config, callbackType)
 	return err
 }
 
+// SynchronizeAndRetry automatically retries if synchronization fails
 func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
 	for {
 		// If something new has come along, then don't bother with the one we're working on
@@ -74,6 +75,7 @@ func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
 	}
 }
 
+// Loop runs an infitite loop servicing synchronization requests.
 func (s *Synchronizer) Loop() {
 	log.Infof("Starting synchronizer loop")
 	for {
@@ -87,6 +89,7 @@ func (s *Synchronizer) Loop() {
 	}
 }
 
+// GetModels gets the list of models.
 func (s *Synchronizer) GetModels() *gnmi.Model {
 	model := gnmi.NewModel(ModelData,
 		reflect.TypeOf((*models.Device)(nil)),
@@ -99,22 +102,27 @@ func (s *Synchronizer) GetModels() *gnmi.Model {
 	return model
 }
 
+// SetOutputFileName sets the output filename. Obsolete.
 func (s *Synchronizer) SetOutputFileName(fileName string) {
 	s.outputFileName = fileName
 }
 
+// SetPostEnable enables or disables Posting to service
 func (s *Synchronizer) SetPostEnable(postEnable bool) {
 	s.postEnable = postEnable
 }
 
+// SetPostTimeout sets the timeout for post requests.
 func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 	s.postTimeout = postTimeout
 }
 
+// SetPusher sets the Pusher function for the Synchronizer
 func (s *Synchronizer) SetPusher(pusher synchronizer.PusherInterface) {
 	s.pusher = pusher
 }
 
+// Start the synchronizer by launching the synchronizer loop inside a thread.
 func (s *Synchronizer) Start() {
 	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%s, postTimeout=%d)",
 		s.outputFileName,
@@ -125,6 +133,7 @@ func (s *Synchronizer) Start() {
 	go s.Loop()
 }
 
+// NewSynchronizer creates a new Synchronizer
 func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Duration) *Synchronizer {
 	// By default, push via REST. Test infrastructure can override this.
 	p := &RESTPusher{}

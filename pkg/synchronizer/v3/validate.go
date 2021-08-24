@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+// Package synchronizerv3 implements declarations and utilities for the v3 synchronizer.
 package synchronizerv3
 
 import (
@@ -37,7 +37,7 @@ func validateAppEndpoint(ep *models.Application_Application_Application_Endpoint
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func validateIpDomain(ipd *models.IpDomain_IpDomain_IpDomain) error {
+func validateIPDomain(ipd *models.IpDomain_IpDomain_IpDomain) error {
 	if ipd.Subnet == nil {
 		return fmt.Errorf("Subnet is nil")
 	}
@@ -72,7 +72,7 @@ func validateImsiDefinition(i *models.Site_Site_Site_ImsiDefinition) error {
 		format = *i.Format
 	} else {
 		// default format from YANG
-		format = DEFAULT_IMSI_FORMAT
+		format = DefaultImsiFormat
 	}
 
 	if (i.Mcc == nil) && (strings.Contains(format, "C")) {

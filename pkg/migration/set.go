@@ -17,11 +17,14 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+// MockSetFunction is a function that can be used for mocking ExecuteSet in unit tests.
 type MockSetFunction func(*gpb.SetRequest) (*gpb.SetResponse, error)
 
+// MockSet is a variable that will enable mocking of ExecuteSet.
 var MockSet MockSetFunction
 
-func ExecuteSet(r *gpb.SetRequest, addr string, ctx context.Context) (*gpb.SetResponse, error) {
+// ExecuteSet executes a gNMI set request
+func ExecuteSet(ctx context.Context, r *gpb.SetRequest, addr string) (*gpb.SetResponse, error) {
 	// for ease of unit testing
 	if MockSet != nil {
 		return MockSet(r)
@@ -55,13 +58,14 @@ func ExecuteSet(r *gpb.SetRequest, addr string, ctx context.Context) (*gpb.SetRe
 	return response, nil
 }
 
-func Update(prefix *gpb.Path, target string, addr string, updates []*gpb.Update, ctx context.Context) error {
+// Update performs a gNMI Update Set operation
+func Update(ctx context.Context, prefix *gpb.Path, target string, addr string, updates []*gpb.Update) error {
 	req := &gpb.SetRequest{
 		Prefix: prefix,
 		Update: updates,
 	}
 
-	resp, err := ExecuteSet(req, addr, ctx)
+	resp, err := ExecuteSet(ctx, req, addr)
 	if err != nil {
 		return err
 	}
@@ -71,13 +75,14 @@ func Update(prefix *gpb.Path, target string, addr string, updates []*gpb.Update,
 	return nil
 }
 
-func Delete(prefix *gpb.Path, target string, addr string, deletes []*gpb.Path, ctx context.Context) error {
+// Delete performs a gNMI Delete set operation
+func Delete(ctx context.Context, prefix *gpb.Path, target string, addr string, deletes []*gpb.Path) error {
 	req := &gpb.SetRequest{
 		Prefix: prefix,
 		Delete: deletes,
 	}
 
-	resp, err := ExecuteSet(req, addr, ctx)
+	resp, err := ExecuteSet(ctx, req, addr)
 	if err != nil {
 		return err
 	}

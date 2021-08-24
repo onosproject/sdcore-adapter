@@ -14,12 +14,20 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// ConfigCallbackType is a type of configuration operation with enumerated values
 type ConfigCallbackType int
 
 const (
+	// Initial is a callback for initial configuration
 	Initial ConfigCallbackType = iota
+
+	// Apply is a callback for an Apply
 	Apply
+
+	// Rollback is a callback for a Rollback
 	Rollback
+
+	// Forced is a callback when forced by the user
 	Forced
 )
 

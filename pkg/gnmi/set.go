@@ -100,7 +100,7 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 		if intAsString {
 			log.Infof("IntAsString %s %s", entry.Name, entry.Type.Name)
 		}
-		nodeVal, err = convertTypedValueToJsonValue(val, intAsString)
+		nodeVal, err = convertTypedValueToJSONValue(val, intAsString)
 		if err != nil {
 			return nil, err
 		}

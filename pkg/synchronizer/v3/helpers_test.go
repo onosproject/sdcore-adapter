@@ -21,7 +21,7 @@ func (m *mockConfig) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (m *mockConfig) IsYANGGoStruct()                         {}
 
 var (
-	mockSynchronizeDeviceCalls     []ygot.ValidatedGoStruct // list of calls to MockSynchronizeDevice that succeded
+	mockSynchronizeDeviceCalls     []ygot.ValidatedGoStruct // list of calls to MockSynchronizeDevice that succeeded
 	mockSynchronizeDeviceFails     []ygot.ValidatedGoStruct // list of calls to MockSynchronizeDevice that failed
 	mockSynchronizeDeviceFailCount int                      // Cause MockSynchronizeDevice to fail the specified number of times
 	mockSynchronizeDeviceDelay     time.Duration            // Cause MockSynchronizeDevice to take some time
@@ -30,7 +30,7 @@ var (
 func mockSynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	time.Sleep(mockSynchronizeDeviceDelay)
 	if mockSynchronizeDeviceFailCount > 0 {
-		mockSynchronizeDeviceFailCount -= 1
+		mockSynchronizeDeviceFailCount--
 		mockSynchronizeDeviceFails = append(mockSynchronizeDeviceFails, config)
 		return errors.New("Mock error")
 	}

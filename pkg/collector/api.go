@@ -21,20 +21,30 @@ import (
 // will randomize it.
 
 var (
+	// PercentActiveSubscribers sets the percentage of active subscribers
 	PercentActiveSubscribers *float64
-	PercentUpThroughput      *float64
-	PercentDownThroughput    *float64
-	PercentUpLatency         *float64
-	PercentDownLatency       *float64
+
+	// PercentUpThroughput sets the percentage of upstream throughput
+	PercentUpThroughput *float64
+
+	// PercentDownThroughput sets the percentage of downstream throughput
+	PercentDownThroughput *float64
+
+	// PercentUpLatency sets the percentage of upstream latency
+	PercentUpLatency *float64
+
+	// PercentDownLatency sets the percentage of downstream latency
+	PercentDownLatency *float64
 )
 
-type ExporterApi struct {
+// ExporterAPI is an API for remote configuring the mock pusher.
+type ExporterAPI struct {
 }
 
 // Serves up the index.html page that contains the knob. For such a short page, it's
-// easy enough to put the page contents inline and simplifiy distribution. If the page
+// easy enough to put the page contents inline and simplify distribution. If the page
 // becomes more complex, then consider putting it in a separate file.
-func (m *ExporterApi) index(w http.ResponseWriter, r *http.Request) {
+func (m *ExporterAPI) index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `
 	<!DOCTYPE html>
 	<html lang="en">
@@ -100,7 +110,7 @@ func (m *ExporterApi) index(w http.ResponseWriter, r *http.Request) {
 }
 
 // The Knob posts to this endpoint.
-func (m *ExporterApi) postUpdateKnob(w http.ResponseWriter, r *http.Request) {
+func (m *ExporterAPI) postUpdateKnob(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Warnf("ParseForm() err: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -146,7 +156,7 @@ func (m *ExporterApi) postUpdateKnob(w http.ResponseWriter, r *http.Request) {
 	log.Infof("Set Knob %s to %f", knob, value)
 }
 
-func (m *ExporterApi) handleRequests() {
+func (m *ExporterAPI) handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/", m.index).Methods("GET")
 	myRouter.HandleFunc("/updateKnob", m.postUpdateKnob).Methods("POST")
@@ -156,7 +166,8 @@ func (m *ExporterApi) handleRequests() {
 	}
 }
 
+// StartExporterAPI starts the exporter API, serving requests.
 func StartExporterAPI() {
-	m := ExporterApi{}
+	m := ExporterAPI{}
 	go m.handleRequests()
 }

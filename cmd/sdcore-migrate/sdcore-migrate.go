@@ -14,11 +14,16 @@ package main
 
 import (
 	"flag"
+	"strings"
 
 	models_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
 	modelplugin_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/modelplugin"
 	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 	modelplugin_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
+	modelsv21 "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
+	modelpluginv21 "github.com/onosproject/config-models/modelplugin/aether-2.1.0/modelplugin"
+	modelsv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	modelpluginv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/modelplugin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
@@ -32,7 +37,7 @@ var (
 	toTarget         = flag.String("to-target", "", "target device to migrate to")
 	fromVersion      = flag.String("from-version", "", "modeling version to migrate from")
 	toVersion        = flag.String("to-version", "", "modeling version to migrate to")
-	aetherConfigAddr = flag.String("aether-config", "", "address of aether-config")
+	aetherConfigAddr = flag.String("aether-config", "", "address of aether-config e.g. onos-config:5150")
 )
 
 var log = logging.GetLogger("sdcore-migrate")
@@ -56,9 +61,38 @@ func main() {
 		map[string]map[int64]ygot.EnumDefinition{},
 	)
 
+	v21Models := gnmi.NewModel(modelpluginv21.ModelData,
+		reflect.TypeOf((*modelsv21.Device)(nil)),
+		modelsv21.SchemaTree["Device"],
+		modelsv21.Unmarshal,
+		//models.ΛEnum  // NOTE: There is no Enum in the aether models? So use a blank map.
+		map[string]map[int64]ygot.EnumDefinition{},
+	)
+
+	v3Models := gnmi.NewModel(modelpluginv3.ModelData,
+		reflect.TypeOf((*modelsv3.Device)(nil)),
+		modelsv3.SchemaTree["Device"],
+		modelsv3.Unmarshal,
+		//models.ΛEnum  // NOTE: There is no Enum in the aether models? So use a blank map.
+		map[string]map[int64]ygot.EnumDefinition{},
+	)
+
 	// Initialize the migration engine and register migration steps.
 	mig := migration.NewMigrator(*aetherConfigAddr)
 	mig.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models, steps.MigrateV1V2)
+	mig.AddMigrationStep("2.1.0", v21Models, "3.0.0", v3Models, steps.MigrateV21V3)
+
+	if *fromVersion == "" {
+		log.Fatalf("--from-version not specified. Supports: %s", strings.Join(mig.SupportedVersions(), ", "))
+	} else if *toVersion == "" {
+		log.Fatalf("--to-version not specified. Supports: %s", strings.Join(mig.SupportedVersions(), ", "))
+	} else if *aetherConfigAddr == "" {
+		log.Fatal("--aether-config not specified")
+	} else if *fromTarget == "" {
+		log.Fatal("--from-target not specified")
+	} else if *toTarget == "" {
+		log.Fatal("--to-target not specified")
+	}
 
 	// Perform the migration
 	err := mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion)

@@ -15,6 +15,7 @@ import (
 	"github.com/openconfig/gnmi/client"
 	gclient "github.com/openconfig/gnmi/client/gnmi"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"time"
 )
 
 // MockSetFunction is a function that can be used for mocking ExecuteSet in unit tests.
@@ -30,7 +31,7 @@ func ExecuteSet(ctx context.Context, r *gpb.SetRequest, addr string) (*gpb.SetRe
 		return MockSet(r)
 	}
 
-	q := client.Query{TLS: &tls.Config{}}
+	q := client.Query{TLS: &tls.Config{}, Timeout: 5 * time.Second}
 
 	err := readCerts(q)
 	if err != nil {
@@ -65,14 +66,8 @@ func Update(ctx context.Context, prefix *gpb.Path, target string, addr string, u
 		Update: updates,
 	}
 
-	resp, err := ExecuteSet(ctx, req, addr)
-	if err != nil {
-		return err
-	}
-
-	_ = resp
-
-	return nil
+	_, err := ExecuteSet(ctx, req, addr)
+	return err
 }
 
 // Delete performs a gNMI Delete set operation
@@ -82,12 +77,6 @@ func Delete(ctx context.Context, prefix *gpb.Path, target string, addr string, d
 		Delete: deletes,
 	}
 
-	resp, err := ExecuteSet(ctx, req, addr)
-	if err != nil {
-		return err
-	}
-
-	_ = resp
-
-	return nil
+	_, err := ExecuteSet(ctx, req, addr)
+	return err
 }

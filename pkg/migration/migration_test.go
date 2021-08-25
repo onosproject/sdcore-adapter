@@ -9,6 +9,7 @@ import (
 	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/stretchr/testify/assert"
@@ -67,10 +68,10 @@ func MigrationTestMockSet(req *gpb.SetRequest) (*gpb.SetResponse, error) {
 
 // Create a mock action that updates a leaf, and then deletes the source model.
 func MakeMockAction(fromTarget string, toTarget string, updatePrefixStr string, updatePathStr string, val string) *MigrationActions {
-	updatePrefix := StringToPath(updatePrefixStr, toTarget)
-	update := UpdateString(updatePathStr, toTarget, &val)
+	updatePrefix := gnmiclient.StringToPath(updatePrefixStr, toTarget)
+	update := gnmiclient.UpdateString(updatePathStr, toTarget, &val)
 	updates := []*gpb.Update{update}
-	deletePath := StringToPath(updatePrefixStr, fromTarget)
+	deletePath := gnmiclient.StringToPath(updatePrefixStr, fromTarget)
 	deletes := []*gpb.Path{deletePath}
 	return &MigrationActions{UpdatePrefix: updatePrefix, Updates: updates, Deletes: deletes}
 }
@@ -206,12 +207,12 @@ func TestExecuteActions(t *testing.T) {
 		})
 	m := NewMigrator(gnmiClient)
 
-	updatePrefix := StringToPath("/root", "v2-device")
+	updatePrefix := gnmiclient.StringToPath("/root", "v2-device")
 	val := "somevalue"
-	update := UpdateString("/path/to/leaf", "v2-device", &val)
+	update := gnmiclient.UpdateString("/path/to/leaf", "v2-device", &val)
 	updates := []*gpb.Update{update}
 
-	deletePath := StringToPath("/root", "v1-device")
+	deletePath := gnmiclient.StringToPath("/root", "v1-device")
 
 	action := &MigrationActions{UpdatePrefix: updatePrefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}
 	actions := []*MigrationActions{action}

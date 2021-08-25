@@ -23,6 +23,7 @@ import (
 	modelsv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	modelpluginv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/modelplugin"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration/steps"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
@@ -46,7 +47,7 @@ var log = logging.GetLogger("sdcore-migrate")
 func main() {
 	flag.Parse()
 
-	gnmiClient, err := migration.NewGnmi(*aetherConfigAddr, time.Second*5)
+	gnmiClient, err := gnmiclient.NewGnmi(*aetherConfigAddr, time.Second*5)
 	if err != nil {
 		log.Fatalf("Error opening gNMI client %s", err.Error())
 	}

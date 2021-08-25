@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/sdcore-adapter/pkg/migration"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"io/ioutil"
@@ -117,7 +117,7 @@ func UpdateImsiDeviceGroup(imsi *uint64) error {
 	log.Info("Calling UpdateImsiDeviceGroup...")
 
 	// Get the current configuration from the ROC
-	origVal, err := migration.GetPath(context.Background(), "", *aetherConfigTarget, *aetherConfigAddr)
+	origVal, err := gnmiclient.GetPath(context.Background(), "", *aetherConfigTarget, *aetherConfigAddr)
 	if err != nil {
 		log.Error("Failed to get the current state from onos-config: %v", err)
 	}
@@ -181,14 +181,14 @@ func AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) e
 	rangeName := fmt.Sprintf("auto-%d", *imsi)
 
 	// Generate a prefix into the gNMI configuration tree
-	prefix := migration.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsis[name=%s]", dgroup, rangeName), *aetherConfigTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsis[name=%s]", dgroup, rangeName), *aetherConfigTarget)
 
 	// Build up a list of gNMI updates to apply
 	updates := []*gpb.Update{}
-	updates = migration.AddUpdate(updates, migration.UpdateUInt64("imsi-range-from", *aetherConfigTarget, &maskedImsi))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("imsi-range-from", *aetherConfigTarget, &maskedImsi))
 
 	// Apply them
-	err = migration.Update(context.Background(), prefix, *aetherConfigTarget, *aetherConfigAddr, updates)
+	err = gnmiclient.Update(context.Background(), prefix, *aetherConfigTarget, *aetherConfigAddr, updates)
 	if err != nil {
 		log.Errorf("Error executing gNMI: %v", err)
 		return fmt.Errorf("Error executing gNMI: %v", err)

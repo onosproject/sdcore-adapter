@@ -6,7 +6,7 @@
  * Library functions to facilitate gNMI set operations.
  */
 
-package migration
+package gnmiclient
 
 import (
 	"context"

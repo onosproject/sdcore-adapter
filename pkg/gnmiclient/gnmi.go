@@ -2,20 +2,23 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-package migration
+package gnmiclient
 
 import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/openconfig/gnmi/client"
 	gclient "github.com/openconfig/gnmi/client/gnmi"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"time"
 )
 
+var log = logging.GetLogger("gnmiclient")
+
 // GnmiInterface - abstract definition of the Gnmi interface
-//go:generate mockgen -destination=../test/mocks/mock_gnmi.go -package=mocks github.com/onosproject/sdcore-adapter/pkg/migration GnmiInterface
+//go:generate mockgen -destination=test/mocks/mock_gnmi.go -package=mocks github.com/onosproject/sdcore-adapter/pkg/gnmiclient GnmiInterface
 type GnmiInterface interface {
 	// GetPath - gNMI Get
 	GetPath(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error)

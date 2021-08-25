@@ -6,7 +6,7 @@
  * Various utility functions for migration.
  */
 
-package migration
+package gnmiclient
 
 import (
 	"context"

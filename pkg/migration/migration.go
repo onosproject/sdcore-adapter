@@ -12,11 +12,9 @@ package migration
 import (
 	"context"
 	"fmt"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 )
-
-var log = logging.GetLogger("migration")
 
 // AddMigrationStep adds a migration step to the list
 func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, toVersion string, toModels *gnmi.Model, migrationFunc MigrationFunction) {
@@ -133,7 +131,7 @@ func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget strin
 }
 
 // NewMigrator creates a new migrator
-func NewMigrator(gnmiClient GnmiInterface) *Migrator {
+func NewMigrator(gnmiClient gnmiclient.GnmiInterface) *Migrator {
 	m := &Migrator{
 		AetherConfigAddr: "",
 		Gnmi:             gnmiClient,

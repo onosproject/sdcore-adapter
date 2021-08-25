@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-package migration
+package gnmiclient
 
 import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"

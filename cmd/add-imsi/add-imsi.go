@@ -8,11 +8,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"os"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -97,7 +97,7 @@ func main() {
 	}
 
 	// Get the current configuration from the ROC
-	origVal, err := migration.GetPath(context.Background(), "", *target, *aetherConfigAddr)
+	origVal, err := gnmiclient.GetPath(context.Background(), "", *target, *aetherConfigAddr)
 	if err != nil {
 		log.Fatal("Failed to get the current state from onos-config: %v", err)
 	}
@@ -140,14 +140,14 @@ func main() {
 	rangeName := fmt.Sprintf("auto-%d", *imsi)
 
 	// Generate a prefix into the gNMI configuration tree
-	prefix := migration.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsis[name=%s]", *dgroup, rangeName), *target)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsis[name=%s]", *dgroup, rangeName), *target)
 
 	// Build up a list of gNMI updates to apply
 	updates := []*gpb.Update{}
-	updates = migration.AddUpdate(updates, migration.UpdateUInt64("imsi-range-from", *target, &maskedImsi))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("imsi-range-from", *target, &maskedImsi))
 
 	// Apply them
-	err = migration.Update(context.Background(), prefix, *target, *aetherConfigAddr, updates)
+	err = gnmiclient.Update(context.Background(), prefix, *target, *aetherConfigAddr, updates)
 	if err != nil {
 		log.Fatalf("Error executing gNMI: %v", err)
 	}

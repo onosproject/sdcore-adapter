@@ -5,17 +5,26 @@
 package migration
 
 import (
+	"context"
 	"errors"
+	"github.com/golang/mock/gomock"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
+	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
+// Deprecated. Use local variable instead
 var V1SetRequests []*gpb.SetRequest
+
+// Deprecated. Use local variable instead
 var V2SetRequests []*gpb.SetRequest
 
 // Mock a gNMI Get Request, providing a mocked v1 device.
+// Deprecated. Use local EXPECT() instead
 func MigrationTestMockGet(req *gpb.GetRequest) (*gpb.GetResponse, error) {
 	if len(req.Path) == 0 {
 		return nil, errors.New("Get: No Path")
@@ -35,6 +44,7 @@ func MigrationTestMockGet(req *gpb.GetRequest) (*gpb.GetResponse, error) {
 
 // Mock a gNMI Set Reqeust, storing the sets in V1SetRequests or V2SetRequests
 // for further examination.
+// Deprecated. Use local EXPECT() instead
 func MigrationTestMockSet(req *gpb.SetRequest) (*gpb.SetResponse, error) {
 	var path *gpb.Path
 	if req.Prefix != nil {
@@ -58,10 +68,10 @@ func MigrationTestMockSet(req *gpb.SetRequest) (*gpb.SetResponse, error) {
 
 // Create a mock action that updates a leaf, and then deletes the source model.
 func MakeMockAction(fromTarget string, toTarget string, updatePrefixStr string, updatePathStr string, val string) *MigrationActions {
-	updatePrefix := StringToPath(updatePrefixStr, toTarget)
-	update := UpdateString(updatePathStr, toTarget, &val)
+	updatePrefix := gnmiclient.StringToPath(updatePrefixStr, toTarget)
+	update := gnmiclient.UpdateString(updatePathStr, toTarget, &val)
 	updates := []*gpb.Update{update}
-	deletePath := StringToPath(updatePrefixStr, fromTarget)
+	deletePath := gnmiclient.StringToPath(updatePrefixStr, fromTarget)
 	deletes := []*gpb.Path{deletePath}
 	return &MigrationActions{UpdatePrefix: updatePrefix, Updates: updates, Deletes: deletes}
 }
@@ -88,7 +98,10 @@ func MigrateV5V6(step *MigrationStep, fromTarget string, toTarget string, srcVal
 }
 
 func TestAddMigrationStep(t *testing.T) {
-	m := NewMigrator("aether-config.aether.org")
+	ctrl := gomock.NewController(t)
+	gnmiClient := mocks.NewMockGnmiInterface(ctrl)
+
+	m := NewMigrator(gnmiClient)
 
 	v1Models := &gnmi.Model{}
 	v2Models := &gnmi.Model{}
@@ -108,7 +121,7 @@ func TestAddMigrationStep(t *testing.T) {
 }
 
 func TestBuildStepList(t *testing.T) {
-	m := NewMigrator("aether-config.aether.org")
+	m := NewMigrator(nil)
 
 	v1Models := &gnmi.Model{}
 	v2Models := &gnmi.Model{}
@@ -119,35 +132,44 @@ func TestBuildStepList(t *testing.T) {
 	m.AddMigrationStep("5.0.0", v1Models, "6.0.0", v2Models, MigrateV5V6)
 
 	// transitive closure of three steps
-	stepList, err := m.BuildStepList("1.0.0", "4.0.0")
+	stepList, err := m.buildStepList("1.0.0", "4.0.0")
 	assert.Nil(t, err)
 	assert.Len(t, stepList, 3)
 
 	// transitive closure of two steps
-	stepList, err = m.BuildStepList("1.0.0", "3.0.0")
+	stepList, err = m.buildStepList("1.0.0", "3.0.0")
 	assert.Nil(t, err)
 	assert.Len(t, stepList, 2)
 
 	// starting in the middle
-	stepList, err = m.BuildStepList("2.0.0", "4.0.0")
+	stepList, err = m.buildStepList("2.0.0", "4.0.0")
 	assert.Nil(t, err)
 	assert.Len(t, stepList, 2)
 
 	// the first version doesn't exist
-	_, err = m.BuildStepList("1.0.11", "2.0.0")
+	_, err = m.buildStepList("1.0.11", "2.0.0")
 	assert.EqualError(t, err, "Unable to find a step that started with version 1.0.11")
 
 	// the last version doesn't exist
-	_, err = m.BuildStepList("1.0.0", "2.0.22")
+	_, err = m.buildStepList("1.0.0", "2.0.22")
 	assert.EqualError(t, err, "Unable to find a step that ended with version 2.0.22")
 
 	// transitive closure has a hole
-	_, err = m.BuildStepList("1.0.0", "6.0.0")
+	_, err = m.buildStepList("1.0.0", "6.0.0")
 	assert.EqualError(t, err, "Unable to find a step that ended with version 6.0.0")
 }
 
 func TestRunStep(t *testing.T) {
-	m := NewMigrator("aether-config.aether.org")
+	ctrl := gomock.NewController(t)
+	gnmiClient := mocks.NewMockGnmiInterface(ctrl)
+	gnmiClient.EXPECT().Address().Return("testaddress").Times(2)
+	gnmiClient.EXPECT().GetPath(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
+			return &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{StringVal: "{}"},
+			}, nil
+		}).Times(2)
+	m := NewMigrator(gnmiClient)
 
 	v1Models := &gnmi.Model{}
 	v2Models := &gnmi.Model{}
@@ -155,13 +177,7 @@ func TestRunStep(t *testing.T) {
 	m.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models, MigrateV1V2)
 	// TODO: We're going to need to mock the gNMI get and set
 
-	// Setup the mocks for gNMI get and set
-	MockGet = MigrationTestMockGet
-	MockSet = MigrationTestMockSet
-	V1SetRequests = []*gpb.SetRequest{}
-	V2SetRequests = []*gpb.SetRequest{}
-
-	actions, err := m.RunStep(m.steps[0], "v1-device", "v2-device")
+	actions, err := m.runStep(m.steps[0], "v1-device", "v2-device")
 	assert.Nil(t, err)
 
 	// The step should have added an update request
@@ -170,61 +186,112 @@ func TestRunStep(t *testing.T) {
 }
 
 func TestExecuteActions(t *testing.T) {
-	m := NewMigrator("aether-config.aether.org")
+	ctrl := gomock.NewController(t)
+	gnmiClient := mocks.NewMockGnmiInterface(ctrl)
+	gnmiClient.EXPECT().Address().Return("testaddress").AnyTimes()
+	// Setup the mocks for gNMI get and set
+	var v1SetRequests []*gpb.SetRequest
+	var v2SetRequests []*gpb.SetRequest
 
-	updatePrefix := StringToPath("/root", "v2-device")
+	gnmiClient.EXPECT().Update(gomock.Any(), gomock.Any(), "v2-device", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, prefix *gpb.Path, target string, addr string, updates []*gpb.Update) error {
+			v2SetRequests = append(v2SetRequests, &gpb.SetRequest{
+				Update: updates,
+			})
+			return nil
+		})
+	gnmiClient.EXPECT().Delete(gomock.Any(), gomock.Any(), "v1-device", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, prefix *gpb.Path, target string, addr string, deletes []*gpb.Path) error {
+			v1SetRequests = append(v1SetRequests, &gpb.SetRequest{Delete: deletes})
+			return nil
+		})
+	m := NewMigrator(gnmiClient)
+
+	updatePrefix := gnmiclient.StringToPath("/root", "v2-device")
 	val := "somevalue"
-	update := UpdateString("/path/to/leaf", "v2-device", &val)
+	update := gnmiclient.UpdateString("/path/to/leaf", "v2-device", &val)
 	updates := []*gpb.Update{update}
 
-	deletePath := StringToPath("/root", "v1-device")
+	deletePath := gnmiclient.StringToPath("/root", "v1-device")
 
 	action := &MigrationActions{UpdatePrefix: updatePrefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}
 	actions := []*MigrationActions{action}
 
-	// Setup the mocks for gNMI get and set
-	MockGet = MigrationTestMockGet
-	MockSet = MigrationTestMockSet
-	V1SetRequests = []*gpb.SetRequest{}
-	V2SetRequests = []*gpb.SetRequest{}
-
-	err := m.ExecuteActions(actions, "v1-device", "v2-device")
+	err := m.executeActions(actions, "v1-device", "v2-device")
 	assert.Nil(t, err)
 
 	// one delete of the v1 model
-	assert.Len(t, V1SetRequests, 1)
+	assert.Len(t, v1SetRequests, 1)
+	assert.Len(t, v1SetRequests[0].GetDelete(), 1)
+	assert.Len(t, v1SetRequests[0].GetUpdate(), 0)
+	assert.Equal(t, `elem:{name:"root"} target:"v1-device"`,
+		strings.ReplaceAll(v1SetRequests[0].GetDelete()[0].String(), "  ", " "))
 
 	// one create of the v2 model
-	assert.Len(t, V2SetRequests, 1)
+	assert.Len(t, v2SetRequests, 1)
+	assert.Len(t, v2SetRequests[0].GetDelete(), 0)
+	assert.Len(t, v2SetRequests[0].GetUpdate(), 1)
+	assert.Equal(t, `path:{elem:{name:"path"} elem:{name:"to"} elem:{name:"leaf"} target:"v2-device"} val:{string_val:"somevalue"}`,
+		strings.ReplaceAll(v2SetRequests[0].GetUpdate()[0].String(), "  ", " "))
 }
 
 func TestMigrate(t *testing.T) {
-	m := NewMigrator("aether-config.aether.org")
+	ctrl := gomock.NewController(t)
+	gnmiClient := mocks.NewMockGnmiInterface(ctrl)
+	gnmiClient.EXPECT().Address().Return("testaddress").AnyTimes()
+	gnmiClient.EXPECT().GetPath(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
+			return &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{StringVal: "{}"},
+			}, nil
+		}).Times(2)
+	// Setup the mocks for gNMI get and set
+	var v1SetRequests []*gpb.SetRequest
+	var v2SetRequests []*gpb.SetRequest
+	gnmiClient.EXPECT().Update(gomock.Any(), gomock.Any(), "v2-device", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, prefix *gpb.Path, target string, addr string, updates []*gpb.Update) error {
+			v2SetRequests = append(v2SetRequests, &gpb.SetRequest{
+				Update: updates,
+			})
+			return nil
+		})
+	gnmiClient.EXPECT().Delete(gomock.Any(), gomock.Any(), "v1-device", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, prefix *gpb.Path, target string, addr string, deletes []*gpb.Path) error {
+			v1SetRequests = append(v1SetRequests, &gpb.SetRequest{Delete: deletes})
+			return nil
+		})
+	m := NewMigrator(gnmiClient)
 
 	v1Models := &gnmi.Model{}
 	v2Models := &gnmi.Model{}
 
 	m.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models, MigrateV1V2)
 
-	// Setup the mocks for gNMI get and set
-	MockGet = MigrationTestMockGet
-	MockSet = MigrationTestMockSet
-	V1SetRequests = []*gpb.SetRequest{}
-	V2SetRequests = []*gpb.SetRequest{}
-
 	// Should cause the V1->V2 migration step to be executed.
 	err := m.Migrate("v1-device", "1.0.0", "v2-device", "2.0.0")
 	assert.Nil(t, err)
 
 	// one delete of the v1 model
-	assert.Len(t, V1SetRequests, 1)
+	assert.Len(t, v1SetRequests, 1)
+	assert.Len(t, v1SetRequests[0].GetDelete(), 1)
+	assert.Len(t, v1SetRequests[0].GetUpdate(), 0)
+	assert.Equal(t, `elem:{name:"prefix"} target:"v1-device"`,
+		strings.ReplaceAll(v1SetRequests[0].GetDelete()[0].String(), "  ", " "))
 
 	// one create of the v2 model
-	assert.Len(t, V2SetRequests, 1)
+	assert.Len(t, v2SetRequests, 1)
+	assert.Len(t, v2SetRequests[0].GetDelete(), 0)
+	assert.Len(t, v2SetRequests[0].GetUpdate(), 1)
+	assert.Equal(t, `path:{elem:{name:"path"} elem:{name:"to"} elem:{name:"name"} target:"v2-device"} val:{string_val:"value"}`,
+		strings.ReplaceAll(v2SetRequests[0].GetUpdate()[0].String(), "  ", " "))
 }
 
 func TestNewMigrator(t *testing.T) {
-	m := NewMigrator("aether-config.aether.org")
+	ctrl := gomock.NewController(t)
+	gnmiClient := mocks.NewMockGnmiInterface(ctrl)
+	gnmiClient.EXPECT().Address().Return("aether-config.aether.org").AnyTimes()
+
+	m := NewMigrator(gnmiClient)
 	assert.NotNil(t, m)
-	assert.Equal(t, "aether-config.aether.org", m.AetherConfigAddr)
+	assert.Equal(t, "aether-config.aether.org", m.Gnmi.Address())
 }

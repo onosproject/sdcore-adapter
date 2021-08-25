@@ -6,7 +6,7 @@
  * Various certificate-related functions that configure the gNMI client used by migration.
  */
 
-package migration
+package gnmiclient
 
 import (
 	"context"

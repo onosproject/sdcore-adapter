@@ -8,6 +8,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -18,7 +19,6 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
-	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	synchronizerv2 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v2"
 	synchronizerv3 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
@@ -127,7 +127,7 @@ func main() {
 	if *aetherConfigAddr != "" {
 		log.Infof("Fetching initial state from %s, target %s", *aetherConfigAddr, *aetherConfigTarget)
 		// The migration library has the functions for fetching from onos-config
-		srcVal, err := migration.GetPath(context.Background(), "", *aetherConfigTarget, *aetherConfigAddr)
+		srcVal, err := gnmiclient.GetPath(context.Background(), "", *aetherConfigTarget, *aetherConfigAddr)
 		if err != nil {
 			log.Fatalf("Error fetching initial data from onos-config: %s", err.Error())
 			return

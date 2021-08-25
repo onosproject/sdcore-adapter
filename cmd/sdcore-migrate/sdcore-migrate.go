@@ -14,8 +14,6 @@ package main
 
 import (
 	"flag"
-	"strings"
-
 	models_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
 	modelplugin_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/modelplugin"
 	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
@@ -24,12 +22,16 @@ import (
 	modelpluginv21 "github.com/onosproject/config-models/modelplugin/aether-2.1.0/modelplugin"
 	modelsv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	modelpluginv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/modelplugin"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
-	"github.com/onosproject/sdcore-adapter/pkg/migration"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration/steps"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
+	"strings"
+	"time"
+
+	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/sdcore-adapter/pkg/migration"
 )
 
 var (
@@ -44,6 +46,12 @@ var log = logging.GetLogger("sdcore-migrate")
 
 func main() {
 	flag.Parse()
+
+	gnmiClient, err := gnmiclient.NewGnmi(*aetherConfigAddr, time.Second*5)
+	if err != nil {
+		log.Fatalf("Error opening gNMI client %s", err.Error())
+	}
+	defer gnmiClient.CloseClient()
 
 	v1Models := gnmi.NewModel(modelplugin_v1.ModelData,
 		reflect.TypeOf((*models_v1.Device)(nil)),
@@ -78,7 +86,7 @@ func main() {
 	)
 
 	// Initialize the migration engine and register migration steps.
-	mig := migration.NewMigrator(*aetherConfigAddr)
+	mig := migration.NewMigrator(gnmiClient)
 	mig.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models, steps.MigrateV1V2)
 	mig.AddMigrationStep("2.1.0", v21Models, "3.0.0", v3Models, steps.MigrateV21V3)
 
@@ -95,8 +103,7 @@ func main() {
 	}
 
 	// Perform the migration
-	err := mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion)
-	if err != nil {
-		log.Errorf("%v", err)
+	if err = mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion); err != nil {
+		log.Fatal("Migration failed. %s", err.Error())
 	}
 }

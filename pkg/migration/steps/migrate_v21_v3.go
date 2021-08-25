@@ -14,9 +14,13 @@ import (
 	modelsv21 "github.com/onosproject/config-models/modelplugin/aether-2.1.0/aether_2_1_0"
 	modelsv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
+
+var log = logging.GetLogger("migration.steps")
 
 // MigrateV21V3 - top level migration entry
 func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
@@ -39,7 +43,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 	allActions := make([]*migration.MigrationActions, 0)
 	if srcDevice.AccessProfile != nil {
 		for _, profile := range srcDevice.AccessProfile.AccessProfile {
-			log.Infof("Migrating Access Profile %s", StrDeref(profile.Id))
+			log.Infof("Migrating Access Profile %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3AccessProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -51,7 +55,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.Subscriber != nil {
 		for _, profile := range srcDevice.Subscriber.Ue {
-			log.Infof("Migrating Subscriber Ue %s", StrDeref(profile.Id))
+			log.Infof("Migrating Subscriber Ue %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3Subscriber(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -63,7 +67,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.ApnProfile != nil {
 		for _, profile := range srcDevice.ApnProfile.ApnProfile {
-			log.Infof("Migrating APN Profile %s", StrDeref(profile.Id))
+			log.Infof("Migrating APN Profile %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3ApnProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -75,7 +79,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.QosProfile != nil {
 		for _, profile := range srcDevice.QosProfile.QosProfile {
-			log.Infof("Migrating QOS Profile %s", StrDeref(profile.Id))
+			log.Infof("Migrating QOS Profile %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3QosProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -87,7 +91,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.SecurityProfile != nil {
 		for _, profile := range srcDevice.SecurityProfile.SecurityProfile {
-			log.Infof("Migrating Security Profile %s", StrDeref(profile.Id))
+			log.Infof("Migrating Security Profile %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3SecurityProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -99,7 +103,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.ServiceGroup != nil {
 		for _, profile := range srcDevice.ServiceGroup.ServiceGroup {
-			log.Infof("Migrating Service Group %s", StrDeref(profile.Id))
+			log.Infof("Migrating Service Group %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3ServiceGroup(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -111,7 +115,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.ServicePolicy != nil {
 		for _, profile := range srcDevice.ServicePolicy.ServicePolicy {
-			log.Infof("Migrating Service Policy %s", StrDeref(profile.Id))
+			log.Infof("Migrating Service Policy %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3ServicePolicy(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -123,7 +127,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.ServiceRule != nil {
 		for _, profile := range srcDevice.ServiceRule.ServiceRule {
-			log.Infof("Migrating Service Rule %s", StrDeref(profile.Id))
+			log.Infof("Migrating Service Rule %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3ServiceRule(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -135,7 +139,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.UpProfile != nil {
 		for _, profile := range srcDevice.UpProfile.UpProfile {
-			log.Infof("Migrating Up Profile %s", StrDeref(profile.Id))
+			log.Infof("Migrating Up Profile %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3UpProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -147,7 +151,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.ConnectivityService != nil {
 		for _, profile := range srcDevice.ConnectivityService.ConnectivityService {
-			log.Infof("Migrating Connectivity Service %s", StrDeref(profile.Id))
+			log.Infof("Migrating Connectivity Service %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3ConnectivityService(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())
@@ -159,7 +163,7 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 
 	if srcDevice.Enterprise != nil {
 		for _, profile := range srcDevice.Enterprise.Enterprise {
-			log.Infof("Migrating Enterprise %s", StrDeref(profile.Id))
+			log.Infof("Migrating Enterprise %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := migrateV21V3Enterprise(step, fromTarget, toTarget, profile)
 			if err != nil {
 				log.Warn(err.Error())

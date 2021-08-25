@@ -7,10 +7,10 @@ package closedloop
 import (
 	"context"
 	"fmt"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/metrics"
-	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -161,18 +161,18 @@ func (c *ClosedLoopControl) ExecuteActions(vcs *Vcs, destination *Destination, a
 				return fmt.Errorf("Set action must contain a non-nil Field")
 			}
 
-			updates = migration.AddUpdate(updates, migration.UpdateUInt32(*action.Field, destination.Target, action.Value))
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32(*action.Field, destination.Target, action.Value))
 		default:
 			return fmt.Errorf("Unknown action operation %s", action.Operation)
 		}
 	}
 
 	prefixStr := fmt.Sprintf("vcs/vcs[id=%s]", vcs.Name)
-	prefix := migration.StringToPath(prefixStr, destination.Target)
+	prefix := gnmiclient.StringToPath(prefixStr, destination.Target)
 
 	log.Infof("Executing target=%s:%s, endpoint=%s, updates=%+v", destination.Target, prefixStr, destination.Endpoint, updates)
 
-	err := migration.Update(context.Background(), prefix, destination.Target, destination.Endpoint, updates)
+	err := gnmiclient.Update(context.Background(), prefix, destination.Target, destination.Endpoint, updates)
 	if err != nil {
 		return fmt.Errorf("Error executing actions: %v", err)
 	}

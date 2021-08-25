@@ -12,11 +12,9 @@ package migration
 import (
 	"context"
 	"fmt"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 )
-
-var log = logging.GetLogger("migration")
 
 // AddMigrationStep adds a migration step to the list
 func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, toVersion string, toModels *gnmi.Model, migrationFunc MigrationFunction) {
@@ -31,10 +29,10 @@ func (m *Migrator) AddMigrationStep(fromVersion string, fromModels *gnmi.Model, 
 	m.steps = append(m.steps, &step)
 }
 
-// BuildStepList builds a list of migration steps that starts with "fromVersion" and ends with "toVersion".
+// buildStepList builds a list of migration steps that starts with "fromVersion" and ends with "toVersion".
 // Steps must form a contiguous list of migrations -- each step must yield the migration that is used
 // by the following migration.
-func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]*MigrationStep, error) {
+func (m *Migrator) buildStepList(fromVersion string, toVersion string) ([]*MigrationStep, error) {
 	steps := []*MigrationStep{}
 	currentVersion := fromVersion
 
@@ -64,17 +62,17 @@ func (m *Migrator) BuildStepList(fromVersion string, toVersion string) ([]*Migra
 	return steps, nil
 }
 
-// RunStep runs a migration step
-func (m *Migrator) RunStep(step *MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
+// runStep runs a migration step
+func (m *Migrator) runStep(step *MigrationStep, fromTarget string, toTarget string) ([]*MigrationActions, error) {
 	// fetch the old models
-	srcVal, err := GetPath(context.Background(), "", fromTarget, m.AetherConfigAddr)
+	srcVal, err := m.Gnmi.GetPath(context.Background(), "", fromTarget, m.Gnmi.Address())
 	if err != nil {
 		return nil, err
 	}
 	// TODO: handle srcVal == nil
 
 	// fetch the new models
-	destVal, err := GetPath(context.Background(), "", toTarget, m.AetherConfigAddr)
+	destVal, err := m.Gnmi.GetPath(context.Background(), "", toTarget, m.Gnmi.Address())
 	if err != nil {
 		return nil, err
 	}
@@ -89,11 +87,11 @@ func (m *Migrator) RunStep(step *MigrationStep, fromTarget string, toTarget stri
 	return actions, nil
 }
 
-// ExecuteActions executes a list of actions
-func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string, toTarget string) error {
+// executeActions executes a list of actions
+func (m *Migrator) executeActions(actions []*MigrationActions, fromTarget string, toTarget string) error {
 	// do the updates in forward order
 	for _, action := range actions {
-		err := Update(context.Background(), action.UpdatePrefix, toTarget, m.AetherConfigAddr, action.Updates)
+		err := m.Gnmi.Update(context.Background(), action.UpdatePrefix, toTarget, m.Gnmi.Address(), action.Updates)
 		if err != nil {
 			return err
 		}
@@ -102,7 +100,7 @@ func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string
 	// now do the deletes in reverse order
 	for i := len(actions) - 1; i >= 0; i-- {
 		action := actions[i]
-		err := Delete(context.Background(), action.DeletePrefix, fromTarget, m.AetherConfigAddr, action.Deletes)
+		err := m.Gnmi.Delete(context.Background(), action.DeletePrefix, fromTarget, m.Gnmi.Address(), action.Deletes)
 		if err != nil {
 			return err
 		}
@@ -112,18 +110,18 @@ func (m *Migrator) ExecuteActions(actions []*MigrationActions, fromTarget string
 
 // Migrate performs migration from one version to another
 func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget string, toVersion string) error {
-	steps, err := m.BuildStepList(fromVersion, toVersion)
+	steps, err := m.buildStepList(fromVersion, toVersion)
 	if err != nil {
 		return err
 	}
 
 	for _, step := range steps {
-		actions, err := m.RunStep(step, fromTarget, toTarget)
+		actions, err := m.runStep(step, fromTarget, toTarget)
 		if err != nil {
 			return err
 		}
 
-		err = m.ExecuteActions(actions, fromTarget, toTarget)
+		err = m.executeActions(actions, fromTarget, toTarget)
 		if err != nil {
 			return err
 		}
@@ -133,10 +131,12 @@ func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget strin
 }
 
 // NewMigrator creates a new migrator
-func NewMigrator(aetherConfigAddr string) *Migrator {
+func NewMigrator(gnmiClient gnmiclient.GnmiInterface) *Migrator {
 	m := &Migrator{
-		AetherConfigAddr: aetherConfigAddr,
+		AetherConfigAddr: "",
+		Gnmi:             gnmiClient,
 	}
+
 	return m
 }
 

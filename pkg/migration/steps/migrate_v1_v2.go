@@ -15,16 +15,14 @@ import (
 	"github.com/google/uuid"
 	models_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
 	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"strconv"
 	"strings"
 )
 
-var log = logging.GetLogger("migration.steps")
-
 // MigrateV1V2ApnProfile migrates APN Profile from V1 to V2
+// Deprecated. - V1 model is obsolete
 func MigrateV1V2ApnProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
@@ -40,8 +38,9 @@ func MigrateV1V2ApnProfile(step *migration.MigrationStep, fromTarget string, toT
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// MigrateV1V2QosProfile migrates QOS Profile from V1 to V2
-func MigrateV1V2QosProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) (*migration.MigrationActions, error) {
+// migrateV1V2QosProfile migrates QOS Profile from V1 to V2
+// Deprecated. - V1 model is obsolete
+func migrateV1V2QosProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	if profile.ApnAmbr != nil {
@@ -55,8 +54,9 @@ func MigrateV1V2QosProfile(step *migration.MigrationStep, fromTarget string, toT
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// MigrateV1V2UpProfile migrates UP Profile from V1 to V2
-func MigrateV1V2UpProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) (*migration.MigrationActions, error) {
+// migrateV1V2UpProfile migrates UP Profile from V1 to V2
+// Deprecated. - V1 model is obsolete
+func migrateV1V2UpProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateString("user-plane", toTarget, profile.UserPlane))
@@ -68,8 +68,9 @@ func MigrateV1V2UpProfile(step *migration.MigrationStep, fromTarget string, toTa
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// MigrateV1V2AccessProfile migrates Access Profile from V1 to V2
-func MigrateV1V2AccessProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) (*migration.MigrationActions, error) {
+// migrateV1V2AccessProfile migrates Access Profile from V1 to V2
+// Deprecated. - V1 model is obsolete
+func migrateV1V2AccessProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
 	updates = migration.AddUpdate(updates, migration.UpdateString("type", toTarget, profile.Type))
@@ -81,8 +82,9 @@ func MigrateV1V2AccessProfile(step *migration.MigrationStep, fromTarget string, 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// ParseV1UEID parses a V1 UEID and return the first and last IMSIs in the range
-func ParseV1UEID(s string) (uint64, uint64, error) {
+// parseV1UEID parses a V1 UEID and return the first and last IMSIs in the range
+// Deprecated. - V1 model is obsolete
+func parseV1UEID(s string) (uint64, uint64, error) {
 	// TODO: Bug in onos-config causes strings that are all digits to be
 	// converted into integers. I've been using the workaround of substituting
 	// an "e" for the first "3" in the IMSI.
@@ -112,9 +114,10 @@ func ParseV1UEID(s string) (uint64, uint64, error) {
 	return imsi, imsi, nil
 }
 
-// FindExistingUE given a V1 UE, checks and see if the V2 models already contain a UE
+// findExistingUE given a V1 UE, checks and see if the V2 models already contain a UE
 // that matches the keys. If so, then return the UUID of the V2 model.
-func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber_Subscriber_Ue) (string, error) {
+// Deprecated. - V1 model is obsolete
+func findExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber_Subscriber_Ue) (string, error) {
 	if destDevice.Subscriber == nil {
 		// there is nothing to search
 		return "", nil
@@ -126,7 +129,7 @@ func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber
 		return "", nil
 	}
 
-	first, last, err := ParseV1UEID(*ue.Ueid)
+	first, last, err := parseV1UEID(*ue.Ueid)
 	if err != nil {
 		return "", err
 	}
@@ -146,8 +149,9 @@ func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber
 	return "", nil
 }
 
-// MigrateV1V2Subscriber migrates Subscriber from V1 to V2
-func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toTarget string, ue *models_v1.AetherSubscriber_Subscriber_Ue, destDevice *models_v2.Device) (*migration.MigrationActions, error) {
+// migrateV1V2Subscriber migrates Subscriber from V1 to V2
+// Deprecated. - V1 model is obsolete
+func migrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toTarget string, ue *models_v1.AetherSubscriber_Subscriber_Ue, destDevice *models_v2.Device) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
 	updates = migration.AddUpdate(updates, migration.UpdateUInt32("priority", toTarget, ue.Priority))
 	updates = migration.AddUpdate(updates, migration.UpdateBool("enabled", toTarget, ue.Enabled))
@@ -162,7 +166,7 @@ func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toT
 		updates = migration.AddUpdate(updates, migration.UpdateUInt32("serving-plmn/tac", toTarget, ue.ServingPlmn.Tac))
 	}
 	if ue.Ueid != nil {
-		first, last, err := ParseV1UEID(*ue.Ueid)
+		first, last, err := parseV1UEID(*ue.Ueid)
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +185,7 @@ func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toT
 	 * object has not been previously migrated, and we generate a new uuid for the new v2 object.
 	 */
 
-	ueUUID, err := FindExistingUE(destDevice, ue)
+	ueUUID, err := findExistingUE(destDevice, ue)
 	if err != nil {
 		return nil, err
 	}
@@ -196,15 +200,8 @@ func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toT
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePrefix}}, nil
 }
 
-// StrDeref safely dereference a *string for printing
-func StrDeref(s *string) string {
-	if s == nil {
-		return "nil"
-	}
-	return *s
-}
-
 // MigrateV1V2 migrates device from V1 to V2
+// Deprecated. - V1 model is obsolete
 func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
 	srcJSONBytes := srcVal.GetJsonVal()
 	srcDevice := &models_v1.Device{}
@@ -226,7 +223,7 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.ApnProfile != nil {
 		for _, profile := range srcDevice.ApnProfile.ApnProfile {
-			log.Infof("Migrating APN Profile %s", StrDeref(profile.Id))
+			log.Infof("Migrating APN Profile %s", migration.StrDeref(profile.Id))
 			actions, err := MigrateV1V2ApnProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
@@ -237,8 +234,8 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.QosProfile != nil {
 		for _, profile := range srcDevice.QosProfile.QosProfile {
-			log.Infof("Migrating QOS Profile %s", StrDeref(profile.Id))
-			actions, err := MigrateV1V2QosProfile(step, fromTarget, toTarget, profile)
+			log.Infof("Migrating QOS Profile %s", migration.StrDeref(profile.Id))
+			actions, err := migrateV1V2QosProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
 			}
@@ -248,8 +245,8 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.UpProfile != nil {
 		for _, profile := range srcDevice.UpProfile.UpProfile {
-			log.Infof("Migrating UP Profile %s", StrDeref(profile.Id))
-			actions, err := MigrateV1V2UpProfile(step, fromTarget, toTarget, profile)
+			log.Infof("Migrating UP Profile %s", migration.StrDeref(profile.Id))
+			actions, err := migrateV1V2UpProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
 			}
@@ -259,8 +256,8 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.AccessProfile != nil {
 		for _, profile := range srcDevice.AccessProfile.AccessProfile {
-			log.Infof("Migrating Access Profile %s", StrDeref(profile.Id))
-			actions, err := MigrateV1V2AccessProfile(step, fromTarget, toTarget, profile)
+			log.Infof("Migrating Access Profile %s", migration.StrDeref(profile.Id))
+			actions, err := migrateV1V2AccessProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
 			}
@@ -270,8 +267,8 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.Subscriber != nil {
 		for _, ue := range srcDevice.Subscriber.Ue {
-			log.Infof("Migrating Subscriber UE %s", StrDeref(ue.Ueid))
-			actions, err := MigrateV1V2Subscriber(step, fromTarget, toTarget, ue, destDevice)
+			log.Infof("Migrating Subscriber UE %s", migration.StrDeref(ue.Ueid))
+			actions, err := migrateV1V2Subscriber(step, fromTarget, toTarget, ue, destDevice)
 			if err != nil {
 				return nil, err
 			}

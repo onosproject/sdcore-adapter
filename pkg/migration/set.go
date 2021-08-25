@@ -18,14 +18,16 @@ import (
 	"time"
 )
 
-// MockSetFunction is a function that can be used for mocking ExecuteSet in unit tests.
+// MockSetFunction is a function that can be used for mocking executeSet in unit tests.
+// Deprecated. Use MockGnmiInterface instead
 type MockSetFunction func(*gpb.SetRequest) (*gpb.SetResponse, error)
 
-// MockSet is a variable that will enable mocking of ExecuteSet.
+// MockSet is a variable that will enable mocking of executeSet.
+// Deprecated. Use MockGnmiInterface instead
 var MockSet MockSetFunction
 
-// ExecuteSet executes a gNMI set request
-func ExecuteSet(ctx context.Context, r *gpb.SetRequest, addr string) (*gpb.SetResponse, error) {
+// executeSet executes a gNMI set request
+func executeSet(ctx context.Context, r *gpb.SetRequest, addr string) (*gpb.SetResponse, error) {
 	// for ease of unit testing
 	if MockSet != nil {
 		return MockSet(r)
@@ -60,23 +62,25 @@ func ExecuteSet(ctx context.Context, r *gpb.SetRequest, addr string) (*gpb.SetRe
 }
 
 // Update performs a gNMI Update Set operation
+// Deprecated. Use GnmiInterface instead
 func Update(ctx context.Context, prefix *gpb.Path, target string, addr string, updates []*gpb.Update) error {
 	req := &gpb.SetRequest{
 		Prefix: prefix,
 		Update: updates,
 	}
 
-	_, err := ExecuteSet(ctx, req, addr)
+	_, err := executeSet(ctx, req, addr)
 	return err
 }
 
 // Delete performs a gNMI Delete set operation
+// Deprecated. Use GnmiInterface instead
 func Delete(ctx context.Context, prefix *gpb.Path, target string, addr string, deletes []*gpb.Path) error {
 	req := &gpb.SetRequest{
 		Prefix: prefix,
 		Delete: deletes,
 	}
 
-	_, err := ExecuteSet(ctx, req, addr)
+	_, err := executeSet(ctx, req, addr)
 	return err
 }

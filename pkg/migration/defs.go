@@ -41,6 +41,8 @@ type MigrationActions struct { //nolint
 
 // Migrator is the Migration Service.
 type Migrator struct {
-	steps            []*MigrationStep
+	steps []*MigrationStep
+	// Deprecated. use the address of the Gnmi instead
 	AetherConfigAddr string
+	Gnmi             GnmiInterface
 }

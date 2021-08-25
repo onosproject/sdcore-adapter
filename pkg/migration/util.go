@@ -14,9 +14,9 @@ import (
 	"strings"
 )
 
-// SplitKey given a string foo[k=v], return (foo, &k, &v)
+// splitKey given a string foo[k=v], return (foo, &k, &v)
 // If the string does not contain a key, return (foo, nil, nil)
-func SplitKey(name string) (*string, *string, *string) {
+func splitKey(name string) (*string, *string, *string) {
 	parts := strings.Split(name, "[")
 	name = parts[0]
 	if name == "" {
@@ -46,7 +46,7 @@ func StringToPath(s string, target string) *gpb.Path {
 		if len(name) > 0 {
 			var keys map[string]string
 
-			name, key, value := SplitKey(name)
+			name, key, value := splitKey(name)
 			if name == nil {
 				// the term was empty
 				continue
@@ -146,4 +146,12 @@ func OverrideFromContext(ctx context.Context, key interface{}, defaultValue inte
 	}
 	// Revert to the default, otherwise
 	return defaultValue
+}
+
+// StrDeref safely dereference a *string for printing
+func StrDeref(s *string) string {
+	if s == nil {
+		return "nil"
+	}
+	return *s
 }

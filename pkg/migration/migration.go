@@ -12,6 +12,7 @@ package migration
 import (
 	"context"
 	"fmt"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 )
@@ -91,6 +92,13 @@ func (m *Migrator) runStep(step *MigrationStep, fromTarget string, toTarget stri
 func (m *Migrator) executeActions(actions []*MigrationActions, fromTarget string, toTarget string) error {
 	// do the updates in forward order
 	for _, action := range actions {
+		if len(action.Updates) == 0 {
+			if len(action.Deletes) == 0 {
+				return errors.NewInternal("action has neither Updates nor Deletes",
+					action.UpdatePrefix.String(), action.DeletePrefix.String())
+			}
+			continue
+		}
 		err := m.Gnmi.Update(context.Background(), action.UpdatePrefix, toTarget, m.Gnmi.Address(), action.Updates)
 		if err != nil {
 			return err
@@ -100,6 +108,9 @@ func (m *Migrator) executeActions(actions []*MigrationActions, fromTarget string
 	// now do the deletes in reverse order
 	for i := len(actions) - 1; i >= 0; i-- {
 		action := actions[i]
+		if len(action.Deletes) == 0 {
+			continue
+		}
 		err := m.Gnmi.Delete(context.Background(), action.DeletePrefix, fromTarget, m.Gnmi.Address(), action.Deletes)
 		if err != nil {
 			return err

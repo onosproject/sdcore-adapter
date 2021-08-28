@@ -163,9 +163,9 @@
     "connectivity-service": [
       {
         "description": "Connectivity service endpoints",
-        "display-name": "Connectivity Service v1",
+        "display-name": "4G Connectivity Service",
         "hss-endpoint": "http://hss.omec:8080/v1/config",
-        "id": "connectivity-service-v1",
+        "id": "cs-4g",
         "spgwc-endpoint": "http://spgwc.omec:8080/v1/config"
       }
     ]
@@ -175,89 +175,89 @@
       {
         "connectivity-service": [
           {
-            "connectivity-service": "connectivity-service-v1",
+            "connectivity-service": "cs-4g",
             "enabled": true
           }
         ],
-        "description": "Aether - Ciena",
-        "display-name": "Aether - Ciena",
+        "description": "aether-ciena-description",
+        "display-name": "aether-ciena-display-name",
         "id": "aether-ciena"
       },
       {
         "connectivity-service": [
           {
-            "connectivity-service": "connectivity-service-v1",
+            "connectivity-service": "cs-4g",
             "enabled": true
           }
         ],
-        "description": "Aether - Intel",
-        "display-name": "Aether - Intel",
+        "description": "aether-intel-description",
+        "display-name": "aether-intel-display-name",
         "id": "aether-intel"
       },
       {
         "connectivity-service": [
           {
-            "connectivity-service": "connectivity-service-v1",
+            "connectivity-service": "cs-4g",
             "enabled": true
           }
         ],
-        "description": "Aether - NTT",
-        "display-name": "Aether - NTT",
+        "description": "aether-ntt-description",
+        "display-name": "aether-ntt-display-name",
         "id": "aether-ntt"
       },
       {
         "connectivity-service": [
           {
-            "connectivity-service": "connectivity-service-v1",
+            "connectivity-service": "cs-4g",
             "enabled": true
           }
         ],
-        "description": "Aether - Open Networking Foundation",
-        "display-name": "Aether - ONF",
+        "description": "aether-onf-description",
+        "display-name": "aether-onf-display-name",
         "id": "aether-onf"
       },
       {
         "connectivity-service": [
           {
-            "connectivity-service": "connectivity-service-v1",
+            "connectivity-service": "cs-4g",
             "enabled": true
           }
         ],
-        "description": "Aether - Telefonica",
-        "display-name": "Aether - Telefonica",
+        "description": "aether-tef-description",
+        "display-name": "aether-tef-display-name",
         "id": "aether-tef"
       },
       {
         "connectivity-service": [
           {
-            "connectivity-service": "connectivity-service-v1",
+            "connectivity-service": "cs-4g",
             "enabled": true
           }
         ],
-        "description": "Pronto - Cornell",
-        "display-name": "Pronto - Cornell",
+        "description": "pronto-cornell-description",
+        "display-name": "pronto-cornell-display-name",
         "id": "pronto-cornell"
       },
       {
         "connectivity-service": [
           {
-            "connectivity-service": "connectivity-service-v1",
+            "connectivity-service": "cs-4g",
             "enabled": true
           }
         ],
-        "description": "Pronto - Princeton",
-        "display-name": "Pronto - Princeton",
+        "description": "pronto-princeton-description",
+        "display-name": "pronto-princeton-display-name",
         "id": "pronto-princeton"
       },
       {
         "connectivity-service": [
           {
-            "connectivity-service": "connectivity-service-v1",
-            "enabled": true
+            "connectivity-service": "cs-4g",
+            "enabled": false
           }
         ],
-        "description": "Pronto - Stanford",
-        "display-name": "Pronto - Stanford",
+        "description": "pronto-stanford-description",
+        "display-name": "pronto-stanford-display-name",
         "id": "pronto-stanford"
       }
     ]
@@ -291,8 +291,7 @@
         },
         "description": "consectetur irure",
         "display-name": "ipsum mo",
-        "id": "sed",
-        "qci": 81
+        "id": "sed"
       },
       {
         "apn-ambr": {
@@ -724,8 +723,6 @@
         "enabled": true,
         "enterprise": "aether-tef",
         "id": "0debf047-8416-4539-9abf-02a0d7e7f9a3",
-        "imsi-range-from": "722070000002441",
-        "imsi-range-to": "722070000002450",
         "priority": 5,
         "profiles": {
           "access-profile": [
@@ -761,7 +758,7 @@
         "description": "User plane profile for Cornell1",
         "display-name": "Cornell1",
         "id": "cornell1",
-        "user-plane": "pfcp-agent.omec.svc.prd.cornell1.aetherproject.net"
+        "user-plane": "pfcp-agent.omec.svc.prd.cornell1.aetherproject.net:1234"
       },
       {
         "access-control": "none",

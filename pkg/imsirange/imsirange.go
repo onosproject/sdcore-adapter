@@ -108,6 +108,7 @@ deviceGroupLoop:
 					log.Errorf(err.Error())
 					return err
 				}
+				log.Infof("Adding %v", newRanges[i])
 			}
 
 		}

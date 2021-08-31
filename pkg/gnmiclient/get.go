@@ -6,7 +6,7 @@
  * Library functions to facilitate gNMI get operations.
  */
 
-package migration
+package gnmiclient
 
 import (
 	"context"
@@ -15,22 +15,25 @@ import (
 	"github.com/openconfig/gnmi/client"
 	gclient "github.com/openconfig/gnmi/client/gnmi"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"time"
 )
 
 // MockGetFunction can be used to mock a gNMI Get Operation for unit testing.
+// Deprecated. Use MockGnmiInterface instead
 type MockGetFunction func(*gpb.GetRequest) (*gpb.GetResponse, error)
 
-// MockGet can be set to a mocking function to mock ExecuteGet.
+// MockGet can be set to a mocking function to mock executeGet.
+// Deprecated. Use MockGnmiInterface instead
 var MockGet MockGetFunction
 
-// ExecuteGet executes gNMI Get request against the server named by addr.
-func ExecuteGet(ctx context.Context, r *gpb.GetRequest, addr string) (*gpb.GetResponse, error) {
+// executeGet executes gNMI Get request against the server named by addr.
+func executeGet(ctx context.Context, r *gpb.GetRequest, addr string) (*gpb.GetResponse, error) {
 	// for ease of unit testing
 	if MockGet != nil {
 		return MockGet(r)
 	}
 
-	q := client.Query{TLS: &tls.Config{}}
+	q := client.Query{TLS: &tls.Config{}, Timeout: 5 * time.Second}
 
 	err := readCerts(q)
 	if err != nil {
@@ -59,13 +62,14 @@ func ExecuteGet(ctx context.Context, r *gpb.GetRequest, addr string) (*gpb.GetRe
 }
 
 // GetPath executes a gNMI Get Operation using the named path and target.
+// Deprecated. Use GnmiInterface instead
 func GetPath(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
 	req := &gpb.GetRequest{
 		Path:     []*gpb.Path{StringToPath(path, target)},
 		Encoding: gpb.Encoding_JSON,
 	}
 
-	resp, err := ExecuteGet(ctx, req, addr)
+	resp, err := executeGet(ctx, req, addr)
 	if err != nil {
 		return nil, err
 	}

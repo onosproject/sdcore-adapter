@@ -28,13 +28,13 @@ package diagapi
 import (
 	"context"
 	"fmt"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
-	"github.com/onosproject/sdcore-adapter/pkg/migration"
 )
 
 var log = logging.GetLogger("diagapi")
@@ -121,10 +121,10 @@ func (m *DiagnosticAPI) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 
 	ctx := context.Background()
 	if auth := r.Header.Get("Authorization"); auth != "" {
-		ctx = migration.WithAuthorization(ctx, auth)
+		ctx = gnmiclient.WithAuthorization(ctx, auth)
 	}
 
-	srcVal, err := migration.GetPath(ctx, "", target, aetherConfigAddr)
+	srcVal, err := gnmiclient.GetPath(ctx, "", target, aetherConfigAddr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

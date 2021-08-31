@@ -1,0 +1,524 @@
+{
+  "ap-list": {
+    "ap-list": [
+      {
+        "access-points": [
+          {
+            "address": "ap1.seattle.starbucks.com",
+            "enable": true,
+            "tac": 654
+          },
+          {
+            "address": "ap2.seattle.starbucks.com",
+            "enable": true,
+            "tac": 87475
+          }
+        ],
+        "description": "Seattle APs",
+        "display-name": "Seattle",
+        "enterprise": "starbucks",
+        "id": "starbucks-seattle-aps"
+      },
+      {
+        "access-points": [
+          {
+            "address": "ap2.chicago.acme.com",
+            "enable": true,
+            "tac": 8002
+          }
+        ],
+        "description": "Chicago APs",
+        "display-name": "Chicago",
+        "enterprise": "acme",
+        "id": "acme-chicago-aps"
+      },
+      {
+        "access-points": [
+          {
+            "address": "ap2.newyork.starbucks.com",
+            "enable": true,
+            "tac": 8002
+          }
+        ],
+        "description": "New York APs",
+        "display-name": "New York",
+        "enterprise": "starbucks",
+        "id": "starbucks-newyork-aps"
+      }
+    ]
+  },
+  "application": {
+    "application": [
+      {
+        "description": "Data Acquisition",
+        "display-name": "DA",
+        "endpoint": [
+          {
+            "address": "da.acme.com",
+            "name": "da",
+            "port-end": 7588,
+            "port-start": 7585,
+            "protocol": "TCP"
+          }
+        ],
+        "enterprise": "acme",
+        "id": "acme-dataacquisition"
+      },
+      {
+        "description": "Network Video Recorder",
+        "display-name": "NVR",
+        "endpoint": [
+          {
+            "address": "nvr.starbucks.com",
+            "name": "rtsp",
+            "port-end": 3330,
+            "port-start": 3316,
+            "protocol": "UDP"
+          }
+        ],
+        "enterprise": "starbucks",
+        "id": "starbucks-nvr"
+      }
+    ]
+  },
+  "connectivity-service": {
+    "connectivity-service": [
+      {
+        "core-5g-endpoint": "http://aether-roc-umbrella-sdcore-test-dummy/v1/config/5g",
+        "description": "5G Test",
+        "display-name": "ROC 5G Test Connectivity Service",
+        "id": "cs5gtest"
+      },
+      {
+        "description": "ROC 4G Test Connectivity Service",
+        "display-name": "4G Test",
+        "hss-endpoint": "http://aether-roc-umbrella-sdcore-test-dummy/v1/config/imsis",
+        "id": "cs4gtest",
+        "pcrf-endpoint": "http://aether-roc-umbrella-sdcore-test-dummy/v1/config/policies",
+        "spgwc-endpoint": "http://aether-roc-umbrella-sdcore-test-dummy/v1/config"
+      },
+      {
+        "description": "this is a test",
+        "id": "repre"
+      }
+    ]
+  },
+  "device-group": {
+    "device-group": [
+      {
+        "display-name": "ACME Default",
+        "id": "acme-chicago-default",
+        "ip-domain": "acme-chicago",
+        "site": "acme-chicago"
+      },
+      {
+        "display-name": "ACME Robots",
+        "id": "acme-chicago-robots",
+        "imsis": [
+          {
+            "imsi-range-to": "3",
+            "name": "production"
+          },
+          {
+            "imsi-range-from": "10",
+            "imsi-range-to": "12",
+            "name": "warehouse"
+          }
+        ],
+        "ip-domain": "acme-chicago",
+        "site": "acme-chicago"
+      },
+      {
+        "display-name": "Global Default Device Group",
+        "id": "defaultent-defaultsite-default",
+        "ip-domain": "defaultent-defaultip",
+        "site": "defaultent-defaultsite"
+      },
+      {
+        "display-name": "New York Cameras",
+        "id": "starbucks-newyork-cameras",
+        "imsis": [
+          {
+            "imsi-range-from": "40",
+            "imsi-range-to": "41",
+            "name": "front"
+          },
+          {
+            "imsi-range-from": "50",
+            "imsi-range-to": "55",
+            "name": "store"
+          }
+        ],
+        "ip-domain": "starbucks-newyork",
+        "site": "starbucks-newyork"
+      },
+      {
+        "display-name": "New York Default",
+        "id": "starbucks-newyork-default",
+        "ip-domain": "starbucks-newyork",
+        "site": "starbucks-newyork"
+      },
+      {
+        "display-name": "New York POS",
+        "id": "starbucks-newyork-pos",
+        "imsis": [
+          {
+            "imsi-range-from": "70",
+            "imsi-range-to": "73",
+            "name": "store"
+          },
+          {
+            "imsi-range-from": "60",
+            "imsi-range-to": "61",
+            "name": "tills"
+          }
+        ],
+        "ip-domain": "starbucks-newyork",
+        "site": "starbucks-newyork"
+      },
+      {
+        "display-name": "Seattle Cameras",
+        "id": "starbucks-seattle-cameras",
+        "imsis": [
+          {
+            "imsi-range-to": "3",
+            "name": "counters"
+          },
+          {
+            "imsi-range-from": "10",
+            "imsi-range-to": "14",
+            "name": "store"
+          }
+        ],
+        "ip-domain": "starbucks-seattle",
+        "site": "starbucks-seattle"
+      },
+      {
+        "display-name": "Seattle Default",
+        "id": "starbucks-seattle-default",
+        "ip-domain": "starbucks-seattle",
+        "site": "starbucks-seattle"
+      },
+      {
+        "display-name": "Seattle POS",
+        "id": "starbucks-seattle-pos",
+        "imsis": [
+          {
+            "imsi-range-from": "30",
+            "imsi-range-to": "34",
+            "name": "store"
+          },
+          {
+            "imsi-range-from": "20",
+            "imsi-range-to": "22",
+            "name": "tills"
+          }
+        ],
+        "ip-domain": "starbucks-seattle",
+        "site": "starbucks-seattle"
+      }
+    ]
+  },
+  "enterprise": {
+    "enterprise": [
+      {
+        "connectivity-service": [
+          {
+            "connectivity-service": "cs4gtest",
+            "enabled": false
+          },
+          {
+            "connectivity-service": "cs5gtest",
+            "enabled": true
+          }
+        ],
+        "description": "Starbucks Corporation",
+        "display-name": "Starbucks Inc.",
+        "id": "starbucks"
+      },
+      {
+        "connectivity-service": [
+          {
+            "connectivity-service": "cs5gtest",
+            "enabled": true
+          }
+        ],
+        "description": "ACME Corporation",
+        "display-name": "ACME Corp",
+        "id": "acme"
+      },
+      {
+        "description": "This Enterprise holds discovered IMSIs that cannot be associated elsewhere.",
+        "display-name": "Default Enterprise",
+        "id": "defaultent"
+      }
+    ]
+  },
+  "ip-domain": {
+    "ip-domain": [
+      {
+        "admin-status": "DISABLE",
+        "description": "Chicago IP Domain",
+        "display-name": "Chicago",
+        "dns-primary": "8.8.8.4",
+        "dns-secondary": "8.8.8.4",
+        "enterprise": "acme",
+        "id": "acme-chicago",
+        "mtu": 12690,
+        "subnet": "163.25.44.0/31"
+      },
+      {
+        "admin-status": "ENABLE",
+        "description": "Global Default IP Domain",
+        "display-name": "Global Default IP Domain",
+        "dns-primary": "8.8.8.1",
+        "dns-secondary": "8.8.8.2",
+        "enterprise": "defaultent",
+        "id": "defaultent-defaultip",
+        "mtu": 57600,
+        "subnet": "192.168.0.0/24"
+      },
+      {
+        "admin-status": "ENABLE",
+        "description": "New York IP Domain",
+        "display-name": "New York",
+        "dns-primary": "8.8.8.1",
+        "dns-secondary": "8.8.8.2",
+        "enterprise": "starbucks",
+        "id": "starbucks-newyork",
+        "mtu": 57600,
+        "subnet": "254.186.117.251/31"
+      },
+      {
+        "admin-status": "ENABLE",
+        "description": "Seattle IP Domain",
+        "display-name": "Seattle",
+        "dns-primary": "8.8.8.3",
+        "dns-secondary": "8.8.8.3",
+        "enterprise": "starbucks",
+        "id": "starbucks-seattle",
+        "mtu": 12690,
+        "subnet": "196.5.91.0/31"
+      }
+    ]
+  },
+  "site": {
+    "site": [
+      {
+        "description": "ACME HQ",
+        "display-name": "Chicago",
+        "enterprise": "acme",
+        "id": "acme-chicago",
+        "imsi-definition": {
+          "enterprise": 1,
+          "format": "CCCNNNEEESSSSSS",
+          "mcc": 123,
+          "mnc": 456
+        }
+      },
+      {
+        "description": "Global Default Site",
+        "display-name": "Global Default Site",
+        "enterprise": "defaultent",
+        "id": "defaultent-defaultsite",
+        "imsi-definition": {
+          "format": "SSSSSSSSSSSSSSS"
+        }
+      },
+      {
+        "description": "Starbucks Corp HQ",
+        "display-name": "Seattle",
+        "enterprise": "starbucks",
+        "id": "starbucks-seattle",
+        "imsi-definition": {
+          "enterprise": 2,
+          "format": "CCCNNNEEESSSSSS",
+          "mcc": 265,
+          "mnc": 122
+        }
+      },
+      {
+        "description": "Starbucks New York",
+        "display-name": "New York",
+        "enterprise": "starbucks",
+        "id": "starbucks-newyork",
+        "imsi-definition": {
+          "enterprise": 2,
+          "format": "CCCNNNEEESSSSSS",
+          "mcc": 21,
+          "mnc": 32
+        }
+      }
+    ]
+  },
+  "template": {
+    "template": [
+      {
+        "description": "VCS Template 1",
+        "display-name": "Template 1",
+        "downlink": 10,
+        "id": "template-1",
+        "sd": 10886763,
+        "sst": 158,
+        "traffic-class": "class-1",
+        "uplink": 2
+      },
+      {
+        "description": "VCS Template 2",
+        "display-name": "Template 2",
+        "downlink": 5,
+        "id": "template-2",
+        "sd": 16619900,
+        "sst": 157,
+        "traffic-class": "class-2",
+        "uplink": 2
+      }
+    ]
+  },
+  "traffic-class": {
+    "traffic-class": [
+      {
+        "description": "High Priority TC",
+        "display-name": "Class 1",
+        "id": "class-1",
+        "pdb": 577,
+        "pelr": 3,
+        "qci": 10
+      },
+      {
+        "description": "Low Priority TC",
+        "display-name": "Class 3",
+        "id": "class-3",
+        "pdb": 833,
+        "pelr": 4,
+        "qci": 30
+      },
+      {
+        "description": "Medium Priority TC",
+        "display-name": "Class 2",
+        "id": "class-2",
+        "pdb": 831,
+        "pelr": 4,
+        "qci": 20
+      }
+    ]
+  },
+  "upf": {
+    "upf": [
+      {
+        "address": "chicago.robots-upf.acme.com",
+        "description": "Chicago Robots UPF",
+        "display-name": "Chicago Robots",
+        "enterprise": "acme",
+        "id": "acme-chicago-robots",
+        "port": 6161
+      },
+      {
+        "address": "newyork.cameras-upf.starbucks.com",
+        "description": "New York Cameras UPF",
+        "display-name": "New York Cameras",
+        "enterprise": "starbucks",
+        "id": "starbucks-newyork-cameras",
+        "port": 6161
+      },
+      {
+        "address": "newyork.pos-upf.starbucks.com",
+        "description": "NewYork POS UPF",
+        "display-name": "NewYork POS",
+        "enterprise": "starbucks",
+        "id": "starbucks-newyork-pos",
+        "port": 6161
+      },
+      {
+        "address": "seattle.cameras-upf.starbucks.com",
+        "description": "Seattle Cameras UPF",
+        "display-name": "Seattle Cameras",
+        "enterprise": "starbucks",
+        "id": "starbucks-seattle-cameras",
+        "port": 9229
+      }
+    ]
+  },
+  "vcs": {
+    "vcs": [
+      {
+        "ap": "acme-chicago-aps",
+        "application": [
+          {
+            "allow": false,
+            "application": "acme-dataacquisition"
+          }
+        ],
+        "description": "Chicago Robots",
+        "device-group": [
+          {
+            "device-group": "acme-chicago-robots",
+            "enable": true
+          }
+        ],
+        "display-name": "Chicago Robots VCS",
+        "downlink": 5,
+        "enterprise": "acme",
+        "id": "acme-chicago-robots",
+        "sd": 2973238,
+        "sst": 79,
+        "template": "template-2",
+        "traffic-class": "class-2",
+        "upf": "acme-chicago-robots",
+        "uplink": 2
+      },
+      {
+        "ap": "starbucks-newyork-aps",
+        "application": [
+          {
+            "allow": true,
+            "application": "starbucks-nvr"
+          }
+        ],
+        "description": "New York Cameras",
+        "device-group": [
+          {
+            "device-group": "starbucks-newyork-cameras",
+            "enable": true
+          }
+        ],
+        "display-name": "NY Cams",
+        "downlink": 5,
+        "enterprise": "starbucks",
+        "id": "starbucks-newyork-cameras",
+        "sd": 8284729,
+        "sst": 127,
+        "template": "template-1",
+        "traffic-class": "class-1",
+        "upf": "starbucks-newyork-cameras",
+        "uplink": 2
+      },
+      {
+        "ap": "starbucks-seattle-aps",
+        "application": [
+          {
+            "allow": false,
+            "application": "starbucks-nvr"
+          }
+        ],
+        "description": "Seattle Cameras",
+        "device-group": [
+          {
+            "device-group": "starbucks-seattle-cameras",
+            "enable": true
+          }
+        ],
+        "display-name": "Seattle Cams",
+        "downlink": 5,
+        "enterprise": "starbucks",
+        "id": "starbucks-seattle-cameras",
+        "sd": 2973238,
+        "sst": 79,
+        "template": "template-2",
+        "traffic-class": "class-2",
+        "upf": "starbucks-seattle-cameras",
+        "uplink": 2
+      }
+    ]
+  }
+}

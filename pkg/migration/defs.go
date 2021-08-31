@@ -8,6 +8,7 @@ package migration
 
 import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -41,6 +42,8 @@ type MigrationActions struct { //nolint
 
 // Migrator is the Migration Service.
 type Migrator struct {
-	steps            []*MigrationStep
+	steps []*MigrationStep
+	// Deprecated. use the address of the Gnmi instead
 	AetherConfigAddr string
+	Gnmi             gnmiclient.GnmiInterface
 }

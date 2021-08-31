@@ -15,74 +15,77 @@ import (
 	"github.com/google/uuid"
 	models_v1 "github.com/onosproject/config-models/modelplugin/aether-1.0.0/aether_1_0_0"
 	models_v2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"strconv"
 	"strings"
 )
 
-var log = logging.GetLogger("migration.steps")
-
 // MigrateV1V2ApnProfile migrates APN Profile from V1 to V2
+// Deprecated. - V1 model is obsolete
 func MigrateV1V2ApnProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.ApnProfile_ApnProfile_ApnProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
-	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
-	updates = migration.AddUpdate(updates, migration.UpdateString("apn-name", toTarget, profile.ApnName))
-	updates = migration.AddUpdate(updates, migration.UpdateString("dns-primary", toTarget, profile.DnsPrimary))
-	updates = migration.AddUpdate(updates, migration.UpdateString("dns-secondary", toTarget, profile.DnsSecondary))
-	updates = migration.AddUpdate(updates, migration.UpdateUInt32("mtu", toTarget, profile.Mtu))
-	updates = migration.AddUpdate(updates, migration.UpdateBool("gx-enabled", toTarget, profile.GxEnabled))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, profile.Description))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("apn-name", toTarget, profile.ApnName))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("dns-primary", toTarget, profile.DnsPrimary))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("dns-secondary", toTarget, profile.DnsSecondary))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("mtu", toTarget, profile.Mtu))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool("gx-enabled", toTarget, profile.GxEnabled))
 
-	prefix := migration.StringToPath(fmt.Sprintf("apn-profile/apn-profile[id=%s]", *profile.Id), toTarget)
-	deletePath := migration.StringToPath(fmt.Sprintf("apn-profile/apn-profile[id=%s]", *profile.Id), fromTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("apn-profile/apn-profile[id=%s]", *profile.Id), toTarget)
+	deletePath := gnmiclient.StringToPath(fmt.Sprintf("apn-profile/apn-profile[id=%s]", *profile.Id), fromTarget)
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// MigrateV1V2QosProfile migrates QOS Profile from V1 to V2
-func MigrateV1V2QosProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) (*migration.MigrationActions, error) {
+// migrateV1V2QosProfile migrates QOS Profile from V1 to V2
+// Deprecated. - V1 model is obsolete
+func migrateV1V2QosProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.QosProfile_QosProfile_QosProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
-	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, profile.Description))
 	if profile.ApnAmbr != nil {
-		updates = migration.AddUpdate(updates, migration.UpdateUInt32("apn-ambr/uplink", toTarget, profile.ApnAmbr.Uplink))
-		updates = migration.AddUpdate(updates, migration.UpdateUInt32("apn-ambr/downlink", toTarget, profile.ApnAmbr.Downlink))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("apn-ambr/uplink", toTarget, profile.ApnAmbr.Uplink))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("apn-ambr/downlink", toTarget, profile.ApnAmbr.Downlink))
 	}
 
-	prefix := migration.StringToPath(fmt.Sprintf("qos-profile/qos-profile[id=%s]", *profile.Id), toTarget)
-	deletePath := migration.StringToPath(fmt.Sprintf("qos-profile/qos-profile[id=%s]", *profile.Id), fromTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("qos-profile/qos-profile[id=%s]", *profile.Id), toTarget)
+	deletePath := gnmiclient.StringToPath(fmt.Sprintf("qos-profile/qos-profile[id=%s]", *profile.Id), fromTarget)
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// MigrateV1V2UpProfile migrates UP Profile from V1 to V2
-func MigrateV1V2UpProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) (*migration.MigrationActions, error) {
+// migrateV1V2UpProfile migrates UP Profile from V1 to V2
+// Deprecated. - V1 model is obsolete
+func migrateV1V2UpProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.UpProfile_UpProfile_UpProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
-	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
-	updates = migration.AddUpdate(updates, migration.UpdateString("user-plane", toTarget, profile.UserPlane))
-	updates = migration.AddUpdate(updates, migration.UpdateString("access-control", toTarget, profile.AccessControl))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, profile.Description))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("user-plane", toTarget, profile.UserPlane))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("access-control", toTarget, profile.AccessControl))
 
-	prefix := migration.StringToPath(fmt.Sprintf("up-profile/up-profile[id=%s]", *profile.Id), toTarget)
-	deletePath := migration.StringToPath(fmt.Sprintf("up-profile/up-profile[id=%s]", *profile.Id), fromTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("up-profile/up-profile[id=%s]", *profile.Id), toTarget)
+	deletePath := gnmiclient.StringToPath(fmt.Sprintf("up-profile/up-profile[id=%s]", *profile.Id), fromTarget)
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// MigrateV1V2AccessProfile migrates Access Profile from V1 to V2
-func MigrateV1V2AccessProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) (*migration.MigrationActions, error) {
+// migrateV1V2AccessProfile migrates Access Profile from V1 to V2
+// Deprecated. - V1 model is obsolete
+func migrateV1V2AccessProfile(step *migration.MigrationStep, fromTarget string, toTarget string, profile *models_v1.AccessProfile_AccessProfile_AccessProfile) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
-	updates = migration.AddUpdate(updates, migration.UpdateString("description", toTarget, profile.Description))
-	updates = migration.AddUpdate(updates, migration.UpdateString("type", toTarget, profile.Type))
-	updates = migration.AddUpdate(updates, migration.UpdateString("filter", toTarget, profile.Filter))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, profile.Description))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("type", toTarget, profile.Type))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("filter", toTarget, profile.Filter))
 
-	prefix := migration.StringToPath(fmt.Sprintf("access-profile/access-profile[id=%s]", *profile.Id), toTarget)
-	deletePath := migration.StringToPath(fmt.Sprintf("access-profile/access-profile[id=%s]", *profile.Id), fromTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("access-profile/access-profile[id=%s]", *profile.Id), toTarget)
+	deletePath := gnmiclient.StringToPath(fmt.Sprintf("access-profile/access-profile[id=%s]", *profile.Id), fromTarget)
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-// ParseV1UEID parses a V1 UEID and return the first and last IMSIs in the range
-func ParseV1UEID(s string) (uint64, uint64, error) {
+// parseV1UEID parses a V1 UEID and return the first and last IMSIs in the range
+// Deprecated. - V1 model is obsolete
+func parseV1UEID(s string) (uint64, uint64, error) {
 	// TODO: Bug in onos-config causes strings that are all digits to be
 	// converted into integers. I've been using the workaround of substituting
 	// an "e" for the first "3" in the IMSI.
@@ -112,9 +115,10 @@ func ParseV1UEID(s string) (uint64, uint64, error) {
 	return imsi, imsi, nil
 }
 
-// FindExistingUE given a V1 UE, checks and see if the V2 models already contain a UE
+// findExistingUE given a V1 UE, checks and see if the V2 models already contain a UE
 // that matches the keys. If so, then return the UUID of the V2 model.
-func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber_Subscriber_Ue) (string, error) {
+// Deprecated. - V1 model is obsolete
+func findExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber_Subscriber_Ue) (string, error) {
 	if destDevice.Subscriber == nil {
 		// there is nothing to search
 		return "", nil
@@ -126,7 +130,7 @@ func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber
 		return "", nil
 	}
 
-	first, last, err := ParseV1UEID(*ue.Ueid)
+	first, last, err := parseV1UEID(*ue.Ueid)
 	if err != nil {
 		return "", err
 	}
@@ -146,23 +150,24 @@ func FindExistingUE(destDevice *models_v2.Device, ue *models_v1.AetherSubscriber
 	return "", nil
 }
 
-// MigrateV1V2Subscriber migrates Subscriber from V1 to V2
-func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toTarget string, ue *models_v1.AetherSubscriber_Subscriber_Ue, destDevice *models_v2.Device) (*migration.MigrationActions, error) {
+// migrateV1V2Subscriber migrates Subscriber from V1 to V2
+// Deprecated. - V1 model is obsolete
+func migrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toTarget string, ue *models_v1.AetherSubscriber_Subscriber_Ue, destDevice *models_v2.Device) (*migration.MigrationActions, error) {
 	updates := []*gpb.Update{}
-	updates = migration.AddUpdate(updates, migration.UpdateUInt32("priority", toTarget, ue.Priority))
-	updates = migration.AddUpdate(updates, migration.UpdateBool("enabled", toTarget, ue.Enabled))
-	updates = migration.AddUpdate(updates, migration.UpdateString("profiles/apn-profile", toTarget, ue.Profiles.ApnProfile))
-	updates = migration.AddUpdate(updates, migration.UpdateString("profiles/qos-profile", toTarget, ue.Profiles.QosProfile))
-	updates = migration.AddUpdate(updates, migration.UpdateString("profiles/up-profile", toTarget, ue.Profiles.UpProfile))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("priority", toTarget, ue.Priority))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool("enabled", toTarget, ue.Enabled))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("profiles/apn-profile", toTarget, ue.Profiles.ApnProfile))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("profiles/qos-profile", toTarget, ue.Profiles.QosProfile))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("profiles/up-profile", toTarget, ue.Profiles.UpProfile))
 
-	updates = migration.AddUpdate(updates, migration.UpdateString("requested-apn", toTarget, ue.RequestedApn))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("requested-apn", toTarget, ue.RequestedApn))
 	if ue.ServingPlmn != nil {
-		updates = migration.AddUpdate(updates, migration.UpdateUInt32("serving-plmn/mcc", toTarget, ue.ServingPlmn.Mcc))
-		updates = migration.AddUpdate(updates, migration.UpdateUInt32("serving-plmn/mnc", toTarget, ue.ServingPlmn.Mnc))
-		updates = migration.AddUpdate(updates, migration.UpdateUInt32("serving-plmn/tac", toTarget, ue.ServingPlmn.Tac))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("serving-plmn/mcc", toTarget, ue.ServingPlmn.Mcc))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("serving-plmn/mnc", toTarget, ue.ServingPlmn.Mnc))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("serving-plmn/tac", toTarget, ue.ServingPlmn.Tac))
 	}
 	if ue.Ueid != nil {
-		first, last, err := ParseV1UEID(*ue.Ueid)
+		first, last, err := parseV1UEID(*ue.Ueid)
 		if err != nil {
 			return nil, err
 		}
@@ -170,8 +175,8 @@ func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toT
 		// TODO: Compensates for a bug in aether-config, by exploiting a different bug in aether-config
 		firstStr := strconv.FormatUint(first, 10)
 		lastStr := strconv.FormatUint(last, 10)
-		updates = migration.AddUpdate(updates, migration.UpdateString("imsi-range-from", toTarget, &firstStr))
-		updates = migration.AddUpdate(updates, migration.UpdateString("imsi-range-to", toTarget, &lastStr))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-range-from", toTarget, &firstStr))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-range-to", toTarget, &lastStr))
 	}
 
 	/*
@@ -181,7 +186,7 @@ func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toT
 	 * object has not been previously migrated, and we generate a new uuid for the new v2 object.
 	 */
 
-	ueUUID, err := FindExistingUE(destDevice, ue)
+	ueUUID, err := findExistingUE(destDevice, ue)
 	if err != nil {
 		return nil, err
 	}
@@ -189,22 +194,15 @@ func MigrateV1V2Subscriber(step *migration.MigrationStep, fromTarget string, toT
 		ueUUID = uuid.New().String()
 	}
 
-	prefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[id=%s]", ueUUID), toTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("subscriber/ue[id=%s]", ueUUID), toTarget)
 
-	deletePrefix := migration.StringToPath(fmt.Sprintf("subscriber/ue[ueid=%s]", *ue.Ueid), fromTarget)
+	deletePrefix := gnmiclient.StringToPath(fmt.Sprintf("subscriber/ue[ueid=%s]", *ue.Ueid), fromTarget)
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePrefix}}, nil
 }
 
-// StrDeref safely dereference a *string for printing
-func StrDeref(s *string) string {
-	if s == nil {
-		return "nil"
-	}
-	return *s
-}
-
 // MigrateV1V2 migrates device from V1 to V2
+// Deprecated. - V1 model is obsolete
 func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
 	srcJSONBytes := srcVal.GetJsonVal()
 	srcDevice := &models_v1.Device{}
@@ -226,7 +224,7 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.ApnProfile != nil {
 		for _, profile := range srcDevice.ApnProfile.ApnProfile {
-			log.Infof("Migrating APN Profile %s", StrDeref(profile.Id))
+			log.Infof("Migrating APN Profile %s", gnmiclient.StrDeref(profile.Id))
 			actions, err := MigrateV1V2ApnProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
@@ -237,8 +235,8 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.QosProfile != nil {
 		for _, profile := range srcDevice.QosProfile.QosProfile {
-			log.Infof("Migrating QOS Profile %s", StrDeref(profile.Id))
-			actions, err := MigrateV1V2QosProfile(step, fromTarget, toTarget, profile)
+			log.Infof("Migrating QOS Profile %s", gnmiclient.StrDeref(profile.Id))
+			actions, err := migrateV1V2QosProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
 			}
@@ -248,8 +246,8 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.UpProfile != nil {
 		for _, profile := range srcDevice.UpProfile.UpProfile {
-			log.Infof("Migrating UP Profile %s", StrDeref(profile.Id))
-			actions, err := MigrateV1V2UpProfile(step, fromTarget, toTarget, profile)
+			log.Infof("Migrating UP Profile %s", gnmiclient.StrDeref(profile.Id))
+			actions, err := migrateV1V2UpProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
 			}
@@ -259,8 +257,8 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.AccessProfile != nil {
 		for _, profile := range srcDevice.AccessProfile.AccessProfile {
-			log.Infof("Migrating Access Profile %s", StrDeref(profile.Id))
-			actions, err := MigrateV1V2AccessProfile(step, fromTarget, toTarget, profile)
+			log.Infof("Migrating Access Profile %s", gnmiclient.StrDeref(profile.Id))
+			actions, err := migrateV1V2AccessProfile(step, fromTarget, toTarget, profile)
 			if err != nil {
 				return nil, err
 			}
@@ -270,8 +268,8 @@ func MigrateV1V2(step *migration.MigrationStep, fromTarget string, toTarget stri
 
 	if srcDevice.Subscriber != nil {
 		for _, ue := range srcDevice.Subscriber.Ue {
-			log.Infof("Migrating Subscriber UE %s", StrDeref(ue.Ueid))
-			actions, err := MigrateV1V2Subscriber(step, fromTarget, toTarget, ue, destDevice)
+			log.Infof("Migrating Subscriber UE %s", gnmiclient.StrDeref(ue.Ueid))
+			actions, err := migrateV1V2Subscriber(step, fromTarget, toTarget, ue, destDevice)
 			if err != nil {
 				return nil, err
 			}

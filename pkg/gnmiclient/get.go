@@ -18,21 +18,8 @@ import (
 	"time"
 )
 
-// MockGetFunction can be used to mock a gNMI Get Operation for unit testing.
-// Deprecated. Use MockGnmiInterface instead
-type MockGetFunction func(*gpb.GetRequest) (*gpb.GetResponse, error)
-
-// MockGet can be set to a mocking function to mock executeGet.
-// Deprecated. Use MockGnmiInterface instead
-var MockGet MockGetFunction
-
 // executeGet executes gNMI Get request against the server named by addr.
 func executeGet(ctx context.Context, r *gpb.GetRequest, addr string) (*gpb.GetResponse, error) {
-	// for ease of unit testing
-	if MockGet != nil {
-		return MockGet(r)
-	}
-
 	q := client.Query{TLS: &tls.Config{}, Timeout: 5 * time.Second}
 
 	err := readCerts(q)

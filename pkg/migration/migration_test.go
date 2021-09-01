@@ -6,65 +6,16 @@ package migration
 
 import (
 	"context"
-	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"strings"
 	"testing"
 )
-
-// Deprecated. Use local variable instead
-var V1SetRequests []*gpb.SetRequest
-
-// Deprecated. Use local variable instead
-var V2SetRequests []*gpb.SetRequest
-
-// Mock a gNMI Get Request, providing a mocked v1 device.
-// Deprecated. Use local EXPECT() instead
-func MigrationTestMockGet(req *gpb.GetRequest) (*gpb.GetResponse, error) {
-	if len(req.Path) == 0 {
-		return nil, errors.New("Get: No Path")
-	}
-	if req.Path[0].Target == "v1-device" {
-		// construct an update, notification, and GetResponse
-		jsonStr := "{}"
-		update := gpb.Update{Path: req.Path[0],
-			Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: jsonStr}}}
-		notification := gpb.Notification{Update: []*gpb.Update{&update}}
-		return &gpb.GetResponse{Notification: []*gpb.Notification{&notification}}, nil
-	} else if req.Path[0].Target == "v2-device" {
-		return &gpb.GetResponse{}, nil
-	}
-	return nil, errors.New("Get: Unknown target")
-}
-
-// Mock a gNMI Set Reqeust, storing the sets in V1SetRequests or V2SetRequests
-// for further examination.
-// Deprecated. Use local EXPECT() instead
-func MigrationTestMockSet(req *gpb.SetRequest) (*gpb.SetResponse, error) {
-	var path *gpb.Path
-	if req.Prefix != nil {
-		path = req.Prefix
-	} else if req.Update != nil {
-		path = req.Update[0].Path
-	} else if req.Delete != nil {
-		path = req.Delete[0]
-	} else {
-		return nil, errors.New("Set: No Prefix or Update Path or Delete Path")
-	}
-	if path.Target == "v1-device" {
-		V1SetRequests = append(V1SetRequests, req)
-		return &gpb.SetResponse{}, nil
-	} else if path.Target == "v2-device" {
-		V2SetRequests = append(V2SetRequests, req)
-		return &gpb.SetResponse{}, nil
-	}
-	return nil, errors.New("Set: Unknown target")
-}
 
 // Create a mock action that updates a leaf, and then deletes the source model.
 func MakeMockAction(fromTarget string, toTarget string, updatePrefixStr string, updatePathStr string, val string) *MigrationActions {
@@ -268,7 +219,8 @@ func TestMigrate(t *testing.T) {
 	m.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models, MigrateV1V2)
 
 	// Should cause the V1->V2 migration step to be executed.
-	err := m.Migrate("v1-device", "1.0.0", "v2-device", "2.0.0")
+	outputToGnmi := true
+	err := m.Migrate("v1-device", "1.0.0", "v2-device", "2.0.0", &outputToGnmi, nil)
 	assert.Nil(t, err)
 
 	// one delete of the v1 model
@@ -294,4 +246,46 @@ func TestNewMigrator(t *testing.T) {
 	m := NewMigrator(gnmiClient)
 	assert.NotNil(t, m)
 	assert.Equal(t, "aether-config.aether.org", m.Gnmi.Address())
+}
+
+func Test_outputActions(t *testing.T) {
+	updatePrefix := gnmiclient.StringToPath("/root/list0[name=zero]", "v2-device")
+	var updates []*gpb.Update
+	val1 := uint32(12345)
+	updates = append(updates, gnmiclient.UpdateUInt32("/leaf1", "v2-device", &val1))
+	val2 := uint64(1234567890)
+	updates = append(updates, gnmiclient.UpdateUInt64("/path/leaf2", "v2-device", &val2))
+	val3 := true
+	updates = append(updates, gnmiclient.UpdateBool("/path/to/leaf3", "v2-device", &val3))
+	val4 := "test string"
+	updates = append(updates, gnmiclient.UpdateString("/path/to/leaf4", "v2-device", &val4))
+	val5 := "test new list instance with 2 keys"
+	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/leaf5", "v2-device", &val5))
+	valIDa := uint32(20)
+	updates = append(updates, gnmiclient.UpdateUInt32("/path/listA[idA=1][idB=20]/idA", "v2-device", &valIDa))
+	val6 := "test existing list instance with 2 keys"
+	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/leaf6", "v2-device", &val6))
+	val7 := "test new list instance with 1 new 1 old key"
+	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=21]/leaf5", "v2-device", &val7))
+	val8 := "test new list instance with 2 new keys"
+	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=2][idB=22]/leaf5", "v2-device", &val8))
+	val10 := "test list within an existing list"
+	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/acont/listB[idC=one]/leaf10", "v2-device", &val10))
+	val11 := "test existing list within an existing list"
+	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/acont/listB[idC=one]/leaf11", "v2-device", &val11))
+
+	deletePath := gnmiclient.StringToPath("/root/list[a=b]", "v1-device")
+
+	action := &MigrationActions{UpdatePrefix: updatePrefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}
+	actions := []*MigrationActions{action}
+
+	m := NewMigrator(nil)
+	jsonBytes, err := m.outputActions(actions,
+		"connectivity-service-v2", "connectivity-service-v3", "2.1.0", "3.0.0")
+	assert.NoError(t, err)
+	t.Log(string(jsonBytes))
+	expectedJSON, err := ioutil.ReadFile("./steps/testdata/testOutput.json")
+	assert.NoError(t, err)
+
+	assert.JSONEq(t, string(expectedJSON), string(jsonBytes))
 }

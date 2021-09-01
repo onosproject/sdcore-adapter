@@ -64,7 +64,7 @@ func Test_MigrateV21V3(t *testing.T) {
 
 	actions, err := MigrateV21V3(migrateV21V3Step, "cs2", "cs3", srcValJSON, dstValJSON)
 	assert.NoError(t, err)
-	assert.Len(t, actions, 57, "unexpected: actions is %d items", len(actions))
+	assert.Len(t, actions, 60, "unexpected: actions is %d items", len(actions))
 
 	csAction := actions[0]
 	assert.Empty(t, csAction.DeletePrefix)
@@ -78,8 +78,44 @@ func Test_MigrateV21V3(t *testing.T) {
 	assert.Equal(t, `path:{elem:{name:"display-name"} target:"cs3"} val:{string_val:"4G Connectivity Service"}`,
 		strings.ReplaceAll(csAction.Updates[1].String(), "  ", " "))
 
-	// Expecting actions 1-8 to be enterprises - order is changeable
-	for idx := 1; idx < 10; idx++ {
+	// Expecting action 1 to be enterprise defaultent
+	defaultEnterpriseAction := actions[1]
+	assert.Empty(t, defaultEnterpriseAction.DeletePrefix)
+	assert.Equal(t, "enterprise", defaultEnterpriseAction.UpdatePrefix.GetElem()[0].GetName(),
+		"unexpected type for %d", 1)
+	defaultEntName, ok := defaultEnterpriseAction.UpdatePrefix.Elem[1].Key["id"]
+	assert.True(t, ok)
+	assert.Equal(t, "defaultent", defaultEntName)
+
+	// Expecting action 2 to be ip-domain defaultent-defaultip
+	defaultIPDomainAction := actions[2]
+	assert.Empty(t, defaultIPDomainAction.DeletePrefix)
+	assert.Equal(t, "ip-domain", defaultIPDomainAction.UpdatePrefix.GetElem()[0].GetName(),
+		"unexpected type for %d", 1)
+	defaultIPDomainName, ok := defaultIPDomainAction.UpdatePrefix.Elem[1].Key["id"]
+	assert.True(t, ok)
+	assert.Equal(t, "defaultent-defaultip", defaultIPDomainName)
+
+	// Expecting action 3 to be ip-domain defaultent-defaultsite
+	defaultSiteAction := actions[3]
+	assert.Empty(t, defaultSiteAction.DeletePrefix)
+	assert.Equal(t, "site", defaultSiteAction.UpdatePrefix.GetElem()[0].GetName(),
+		"unexpected type for %d", 3)
+	defaultSiteName, ok := defaultSiteAction.UpdatePrefix.Elem[1].Key["id"]
+	assert.True(t, ok)
+	assert.Equal(t, "defaultent-defaultsite", defaultSiteName)
+
+	// Expecting action 4 to be ip-domain defaultent-defaultent-defaultdg
+	defaultDeviceGroupAction := actions[4]
+	assert.Empty(t, defaultDeviceGroupAction.DeletePrefix)
+	assert.Equal(t, "device-group", defaultDeviceGroupAction.UpdatePrefix.GetElem()[0].GetName(),
+		"unexpected type for %d", 4)
+	defaultDeviceGroupName, ok := defaultDeviceGroupAction.UpdatePrefix.Elem[1].Key["id"]
+	assert.True(t, ok)
+	assert.Equal(t, "defaultent-defaultdg", defaultDeviceGroupName)
+
+	// Expecting actions 5-13 to be enterprises - order is changeable
+	for idx := 5; idx < 13; idx++ {
 		enterpriseAction := actions[idx]
 		assert.Empty(t, enterpriseAction.DeletePrefix)
 		assert.Equal(t, "enterprise", enterpriseAction.UpdatePrefix.GetElem()[0].GetName(),
@@ -88,9 +124,6 @@ func Test_MigrateV21V3(t *testing.T) {
 		entname, ok := enterpriseAction.UpdatePrefix.Elem[1].Key["id"]
 		assert.True(t, ok)
 		switch entname {
-		case "defaultent":
-			assert.Len(t, enterpriseAction.Deletes, 0)
-			assert.Len(t, enterpriseAction.Updates, 1)
 		case "aether-ciena", "aether-ntt", "aether-intel", "aether-onf", "aether-tef",
 			"pronto-cornell", "pronto-princeton", "pronto-stanford":
 			assert.Len(t, enterpriseAction.Deletes, 1)
@@ -111,7 +144,7 @@ func Test_MigrateV21V3(t *testing.T) {
 	}
 
 	// Expecting actions 10-19 to be Upf (from UP Profile) - order is changeable
-	for idx := 11; idx < 20; idx++ {
+	for idx := 14; idx < 23; idx++ {
 		action := actions[idx]
 		assert.Empty(t, action.DeletePrefix)
 		assert.Equal(t, "upf", action.UpdatePrefix.GetElem()[0].GetName(), "expected upf for %d", idx)
@@ -143,7 +176,7 @@ func Test_MigrateV21V3(t *testing.T) {
 	}
 
 	// Expecting actions 21-30 to be IP Domains (from APN Profile) - order is changeable
-	for idx := 21; idx < 31; idx++ {
+	for idx := 24; idx < 34; idx++ {
 		action := actions[idx]
 		assert.Empty(t, action.DeletePrefix)
 		assert.Equal(t, "ip-domain", action.UpdatePrefix.GetElem()[0].GetName(), "unexpected type for %d", idx)
@@ -189,7 +222,7 @@ func Test_MigrateV21V3(t *testing.T) {
 	}
 
 	// Expecting actions 34-36 to be Templates and Traffic-Class (from QOS Profile) - order is changeable
-	for idx := 31; idx < 36; idx++ {
+	for idx := 34; idx < 39; idx++ {
 		action := actions[idx]
 		assert.Empty(t, action.DeletePrefix)
 		apnID, ok := action.UpdatePrefix.GetElem()[1].GetKey()["id"]
@@ -240,7 +273,7 @@ func Test_MigrateV21V3(t *testing.T) {
 
 	// Expecting actions 36-50 to be Sites and Device Groups from UE- order is changeable
 	// Telefonica has no imsi-range, and so should not create a device group
-	for idx := 36; idx < 56; idx++ {
+	for idx := 39; idx < 59; idx++ {
 		action := actions[idx]
 		assert.Empty(t, action.DeletePrefix)
 		uuid, ok := action.UpdatePrefix.GetElem()[1].GetKey()["id"]

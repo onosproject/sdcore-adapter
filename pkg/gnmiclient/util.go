@@ -16,24 +16,26 @@ import (
 
 // splitKey given a string foo[k=v], return (foo, &k, &v)
 // If the string does not contain a key, return (foo, nil, nil)
-func splitKey(name string) (*string, *string, *string) {
+func splitKey(name string) (*string, map[string]string) {
 	parts := strings.Split(name, "[")
 	name = parts[0]
 	if name == "" {
-		return nil, nil, nil
+		return nil, nil
 	}
 	if len(parts) < 2 {
-		return &name, nil, nil
+		return &name, nil
 	}
 
-	keyValue := strings.TrimRight(parts[1], "]")
-	parts = strings.Split(keyValue, "=")
-	if len(parts) < 2 {
-		return &name, nil, nil
+	keys := make(map[string]string)
+	for _, part := range parts[1:] {
+		keyValue := strings.TrimRight(part, "]")
+		subparts := strings.Split(keyValue, "=")
+		if len(subparts) < 2 {
+			return &name, nil
+		}
+		keys[subparts[0]] = subparts[1]
 	}
-	key := parts[0]
-	value := parts[1]
-	return &name, &key, &value
+	return &name, keys
 }
 
 // StringToPath converts a string for the format x/y/z[k=v] into a gdb.Path
@@ -46,14 +48,10 @@ func StringToPath(s string, target string) *gpb.Path {
 		if len(name) > 0 {
 			var keys map[string]string
 
-			name, key, value := splitKey(name)
+			name, keys := splitKey(name)
 			if name == nil {
 				// the term was empty
 				continue
-			}
-
-			if key != nil {
-				keys = map[string]string{*key: *value}
 			}
 
 			elem := &gpb.PathElem{Name: *name,

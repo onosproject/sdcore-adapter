@@ -40,6 +40,8 @@ var (
 	fromVersion      = flag.String("from-version", "", "modeling version to migrate from")
 	toVersion        = flag.String("to-version", "", "modeling version to migrate to")
 	aetherConfigAddr = flag.String("aether-config", "", "address of aether-config e.g. onos-config:5150")
+	outputToGnmi     = flag.Bool("out-to-gnmi", false, "output to aetherConfig as gnmi calls")
+	output           = flag.String("o", "", "filename to send output to instead of STDOUT when out-to-gnmi not set")
 )
 
 var log = logging.GetLogger("sdcore-migrate")
@@ -103,7 +105,7 @@ func main() {
 	}
 
 	// Perform the migration
-	if err = mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion); err != nil {
+	if err = mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion, outputToGnmi, output); err != nil {
 		log.Fatal("Migration failed. %s", err.Error())
 	}
 }

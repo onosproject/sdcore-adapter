@@ -12,42 +12,51 @@ import (
 
 func TestSplitKey(t *testing.T) {
 	// key and value
-	name, key, value := splitKey("foo[a=b]")
+	name, keys := splitKey("foo[a=b]")
 	assert.Equal(t, *name, "foo")
-	assert.Equal(t, *key, "a")
-	assert.Equal(t, *value, "b")
+	assert.Len(t, keys, 1)
+	value, ok := keys["a"]
+	assert.True(t, ok)
+	assert.Equal(t, "b", value)
 
 	// no [] section
-	name, key, value = splitKey("foo")
+	name, keys = splitKey("foo")
 	assert.Equal(t, *name, "foo")
-	assert.Nil(t, key)
-	assert.Nil(t, value)
+	assert.Empty(t, keys)
 
 	// [] section is empty
-	name, key, value = splitKey("foo[]")
+	name, keys = splitKey("foo[]")
 	assert.Equal(t, *name, "foo")
-	assert.Nil(t, key)
-	assert.Nil(t, value)
+	assert.Empty(t, keys)
 
 	// has key, but no value
 	// reasonable behavior is to treat the key=value as undefined and ignore it
-	name, key, value = splitKey("foo[junk]")
+	name, keys = splitKey("foo[junk]")
 	assert.Equal(t, *name, "foo")
-	assert.Nil(t, key)
-	assert.Nil(t, value)
+	assert.Empty(t, keys)
 
 	// empty string
-	name, key, value = splitKey("")
+	name, keys = splitKey("")
 	assert.Nil(t, name)
-	assert.Nil(t, key)
-	assert.Nil(t, value)
+	assert.Nil(t, keys)
 
 	// just a key=value but no name
 	// reasonable behavior is to treat this the same as empty string
-	name, key, value = splitKey("[foo=bar]")
+	name, keys = splitKey("[foo=bar]")
 	assert.Nil(t, name)
-	assert.Nil(t, key)
-	assert.Nil(t, value)
+	assert.Empty(t, keys)
+
+	// A double key name
+	name, keys = splitKey("foo[a=b][c=d]")
+	assert.Equal(t, "foo", *name)
+	assert.Len(t, keys, 2)
+	valueA, ok := keys["a"]
+	assert.True(t, ok)
+	assert.Equal(t, "b", valueA)
+	valueB, ok := keys["c"]
+	assert.True(t, ok)
+	assert.Equal(t, "d", valueB)
+
 }
 
 func TestStringToPath(t *testing.T) {

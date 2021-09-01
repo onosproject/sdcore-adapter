@@ -1,0 +1,67 @@
+{
+  "Deletes": {
+    "root-2.1.0": {
+      "additionalProperties": {
+        "target": "connectivity-service-v2"
+      },
+      "list": [
+        {
+          "a": "b"
+        }
+      ]
+    }
+  },
+  "Extensions": {
+    "model-type-102": "Aether",
+    "model-version-101": "3.0.0"
+  },
+  "Updates": {
+    "root-3.0.0": {
+      "list0": [
+        {
+          "leaf1": 12345,
+          "name": "zero",
+          "path": {
+            "leaf2": 1234567890,
+            "listA": [
+              {
+                "idA": 20,
+                "idB": 20,
+                "leaf5": "test new list instance with 2 keys"
+              },
+              {
+                "acont": {
+                  "listB": [
+                    {
+                      "idC": "one",
+                      "leaf10": "test list within an existing list",
+                      "leaf11": "test existing list within an existing list"
+                    }
+                  ]
+                },
+                "idA": 1,
+                "idB": 20,
+                "leaf6": "test existing list instance with 2 keys"
+              },
+              {
+                "idA": 1,
+                "idB": 21,
+                "leaf5": "test new list instance with 1 new 1 old key"
+              },
+              {
+                "idA": 2,
+                "idB": 22,
+                "leaf5": "test new list instance with 2 new keys"
+              }
+            ],
+            "to": {
+              "leaf3": true,
+              "leaf4": "test string"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "default-target": "connectivity-service-v3"
+}

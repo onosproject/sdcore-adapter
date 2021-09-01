@@ -23,6 +23,14 @@ import (
 	"strings"
 )
 
+const (
+	defaultEnterpriseID  = "defaultent"
+	defaultIPDomainID    = "defaultent-defaultip"
+	defaultSubnet        = "255.255.255.255/32"
+	defaultSiteID        = "defaultent-defaultsite"
+	defaultDeviceGroupID = "defaultent-defaultdg"
+)
+
 var log = logging.GetLogger("migration.steps")
 
 // MigrateV21V3 - top level migration entry
@@ -58,9 +66,15 @@ func MigrateV21V3(step *migration.MigrationStep, fromTarget string, toTarget str
 	}
 
 	if srcDevice.Enterprise != nil {
-		action := createDefaultEnterprise(fromTarget, toTarget)
-		var err error
+		action := createDefaultEnterprise(toTarget)
 		allActions = append(allActions, action)
+		action = createDefaultIpdomain(toTarget)
+		allActions = append(allActions, action)
+		action = createDefaultSite(toTarget)
+		allActions = append(allActions, action)
+		action = createDefaultDeviceGroup(toTarget)
+		allActions = append(allActions, action)
+		var err error
 		for _, profile := range srcDevice.Enterprise.Enterprise {
 			log.Infof("Migrating Enterprise %s", gnmiclient.StrDeref(profile.Id))
 			action, err = migrateV21V3Enterprise(fromTarget, toTarget, profile)
@@ -206,7 +220,7 @@ func migrateV21V3ApnProfileToIPDomain(fromTarget string, toTarget string, profil
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("subnet", toTarget, &defaultSubnet))
 
 	// Look for the UE where this is used and extract its enterprise
-	enterprise := "defaultent"
+	enterprise := defaultEnterpriseID
 	for _, ue := range subscriber.Ue {
 		if ue.Enterprise == nil || ue.Profiles.ApnProfile == nil || *ue.Profiles.ApnProfile != *profile.Id {
 			continue
@@ -307,12 +321,61 @@ func migrateV21V3ConnectivityService(fromTarget string, toTarget string, cs *mod
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-func createDefaultEnterprise(fromTarget string, toTarget string) *migration.MigrationActions {
+func createDefaultEnterprise(toTarget string) *migration.MigrationActions {
 	var updates []*gpb.Update
 	dispName := "Default Enterprise"
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, &dispName))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, &dispName))
+	description := "This Enterprise holds discovered IMSIs that cannot be associated elsewhere"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, &description))
 
-	prefix := gnmiclient.StringToPath("enterprise/enterprise[id=defaultent]", toTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprise/enterprise[id=%s]", defaultEnterpriseID), toTarget)
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}
+}
+
+func createDefaultIpdomain(toTarget string) *migration.MigrationActions {
+	var updates []*gpb.Update
+	dispName := "Global Default IP Domain"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, &dispName))
+	description := "Global Default IP Domain"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, &description))
+	enterprise := defaultEnterpriseID
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("enterprise", toTarget, &enterprise))
+	subnet := defaultSubnet
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("subnet", toTarget, &subnet))
+
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("ip-domain/ip-domain[id=%s]", defaultIPDomainID), toTarget)
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}
+}
+
+func createDefaultSite(toTarget string) *migration.MigrationActions {
+	var updates []*gpb.Update
+	dispName := "Global Default Site"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, &dispName))
+	description := "Global Default Site"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, &description))
+	enterprise := defaultEnterpriseID
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("enterprise", toTarget, &enterprise))
+	zero := uint32(0)
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/mcc", toTarget, &zero))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/mnc", toTarget, &zero))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/enterprise", toTarget, &zero))
+	format := "SSSSSSSSSSSSSSS"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-definition/format", toTarget, &format))
+
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("site/site[id=%s]", defaultSiteID), toTarget)
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}
+}
+
+func createDefaultDeviceGroup(toTarget string) *migration.MigrationActions {
+	var updates []*gpb.Update
+	dispName := "Global Default Device Group"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, &dispName))
+	site := defaultSiteID
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("site", toTarget, &site))
+	ipDomain := defaultIPDomainID
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("ip-domain", toTarget, &ipDomain))
+
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]", defaultDeviceGroupID), toTarget)
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}
 }
 

@@ -51,20 +51,56 @@ func TestImsiRange_CollapseImsi(t *testing.T) {
 	device := &models.Device{}
 	if len(dataJSON) > 0 {
 		if err := models.Unmarshal(dataJSON, device); err != nil {
-			//return nil, errors.NewInvalid("Failed to unmarshal json")
 			assert.Error(t, err)
 		}
 	}
 	ctrl := gomock.NewController(t)
 	gnmiClient := mocks.NewMockGnmiInterface(ctrl)
 
+	var delSetRequests []*gpb.SetRequest
+	var updSetRequests []*gpb.SetRequest
+
 	gnmiClient.EXPECT().Delete(gomock.Any(), gomock.Any(), "connectivity-service-v3",
-		"onos-config.micro-onos.svc.cluster.local:5150", gomock.Any()).AnyTimes()
+		"onos-config.micro-onos.svc.cluster.local:5150", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, prefix *gpb.Path, target string, addr string, deletes []*gpb.Path) error {
+			delSetRequests = append(delSetRequests, &gpb.SetRequest{Delete: deletes, Prefix: prefix})
+			return nil
+		}).AnyTimes()
 
 	gnmiClient.EXPECT().Update(gomock.Any(), gomock.Any(), "connectivity-service-v3",
-		"onos-config.micro-onos.svc.cluster.local:5150", gomock.Any()).AnyTimes()
+		"onos-config.micro-onos.svc.cluster.local:5150", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, prefix *gpb.Path, target string, addr string, updates []*gpb.Update) error {
+			updSetRequests = append(updSetRequests, &gpb.SetRequest{
+				Update: updates,
+			})
+			return nil
+		}).AnyTimes()
 
 	err = irange.CollapseImsi(device, gnmiClient)
+
+	assert.NotNil(t, delSetRequests)
+	assert.Len(t, delSetRequests, 4)
+	assert.Len(t, delSetRequests[3].GetDelete(), 2)
+	assert.Len(t, delSetRequests[0].Prefix.GetElem(), 3)
+	for _, data := range delSetRequests {
+		switch data.Prefix.Elem[2].Key["name"] {
+		case "auto-111222333000010", "auto-111222333000015", "auto-21322-91", "auto-21032002000094":
+		default:
+			t.Errorf("unexpected imsi %v", data.Prefix.Elem[2].Key["name"])
+		}
+	}
+
+	assert.NotNil(t, updSetRequests)
+	assert.Len(t, updSetRequests, 2)
+	assert.Len(t, updSetRequests[0].GetUpdate(), 2)
+	for _, data := range updSetRequests {
+		switch data.Update[0].Val.GetUintVal() {
+		case 111222333000010, 91:
+		default:
+			t.Errorf("unexpected imsi %v", data.Update[0].Val.GetUintVal())
+		}
+	}
+
 	assert.NoError(t, err)
 
 }

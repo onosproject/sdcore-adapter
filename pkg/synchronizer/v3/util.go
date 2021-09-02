@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 // FormatImsi formats MCC, MNC, ENT, and SUB into an IMSI, according to a format specifier
@@ -75,13 +76,11 @@ func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64,
 		return 0, err
 	}
 
-	//TODO for default site MCC,MNC,Ent Id values should be set to 0 instead they are returning as nil
-	// following nil check is workaround
-	if i.Mcc == nil {
-		return FormatImsi(format, 0, 0, 0, sub)
-	}
-
-	return FormatImsi(format, *i.Mcc, *i.Mnc, *i.Enterprise, sub)
+	return FormatImsi(format,
+		synchronizer.DerefUint32Ptr(i.Mcc, 0),
+		synchronizer.DerefUint32Ptr(i.Mnc, 0),
+		synchronizer.DerefUint32Ptr(i.Enterprise, 0),
+		sub)
 }
 
 // MaskSubscriberImsi masks off any leading subscriber digits

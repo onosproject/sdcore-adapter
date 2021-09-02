@@ -108,6 +108,17 @@ func TestFormatImsiDef(t *testing.T) {
 	imsi, err = FormatImsiDef(i, 123456789012345)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(123456789012345), imsi)
+
+	// Test bugfix on nil Enterprise
+	i = &models_v3.Site_Site_Site_ImsiDefinition{
+		Mcc:        aUint32(321),
+		Mnc:        aUint32(54),
+		Enterprise: nil,
+		Format:     aStr("SSSSSSSSSSSSSSS"),
+	}
+	imsi, err = FormatImsiDef(i, 123456789012345)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(123456789012345), imsi)
 }
 
 func TestProtoStringToProtoNumber(t *testing.T) {

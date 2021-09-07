@@ -14,7 +14,6 @@ import (
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -158,7 +157,7 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 }
 
 // Set implements the Set RPC in gNMI spec.
-func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, error) {
+func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	tStart := time.Now()
 	gnmiRequestsTotal.WithLabelValues("SET").Inc()
 

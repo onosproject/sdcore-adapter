@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/google/gnxi/utils/credentials"
@@ -42,6 +43,7 @@ var (
 	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v2", "Target to use when pulling from aether-config")
 	modelVersion       = flag.String("model_version", "v3", "Version of modeling to use")
 	showModelList      = flag.Bool("show_models", false, "Show list of available modes")
+	diagsPort          = flag.Uint("diags_port", 8080, "Port to use for Diagnostics API")
 )
 
 var log = logging.GetLogger("sdcore-adapter")
@@ -138,19 +140,32 @@ func main() {
 		log.Infof("Fetched config: %s", string(configData))
 	}
 
-	s, err := target.NewTarget(model, configData, synchronizerWrapper(sync))
+	c := make(chan os.Signal, 1)
+	signal.Notify(c)
 
+	s, err := target.NewTarget(model, configData, synchronizerWrapper(sync))
 	if err != nil {
 		log.Fatalf("error in creating gnmi target: %v", err)
 	}
+	go func() {
+		for {
+			oscall := <-c
+			if oscall.String() == "terminated" || oscall.String() == "interrupt" {
+				log.Warnf("system call:%+v", oscall)
+				s.Close()
+				os.Exit(0)
+			}
+		}
+	}()
+
 	pb.RegisterGNMIServer(g, s)
 	reflection.Register(g)
 
 	log.Info("starting metric handler")
 	go serveMetrics()
 
-	log.Info("starting out-of-band API")
-	diagapi.StartDiagnosticAPI(s, *aetherConfigAddr, *aetherConfigTarget)
+	log.Infof("starting out-of-band API on %d", *diagsPort)
+	diagapi.StartDiagnosticAPI(s, *aetherConfigAddr, *aetherConfigTarget, *diagsPort)
 
 	log.Infof("starting to listen on %s", *bindAddr)
 	listen, err := net.Listen("tcp", *bindAddr)

@@ -39,9 +39,10 @@ func main() {
 	}
 	defer gnmiClient.CloseClient()
 
-	fmt.Println("debug 1", gnmiClient)
-
 	proxy := subproxy.NewSubscriberProxy(*aetherConfigTarget, *baseWebConsoleURL, *aetherConfigAddr, gnmiClient, *postTimeout)
 
-	proxy.StartSubscriberProxy(*bindPort, "/api/subscriber/:ueId")
+	err = proxy.StartSubscriberProxy(*bindPort, "/api/subscriber/:ueId")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 }

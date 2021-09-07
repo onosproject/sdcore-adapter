@@ -8,23 +8,16 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/openconfig/ygot/ygot"
-	"net/http"
 	"time"
 )
 
 var (
 	subscriberAPISuffix = "/api/subscriber/"
 	log                 = logging.GetLogger("subscriber-proxy")
-	//Client is ...
-	Client HTTPClient
+	clientHTTP          HTTPClient
 )
 
-type response struct {
-	Status string `json:"status"`
-}
-
-// SubscriberProxy struct
-type SubscriberProxy struct {
+type subscriberProxy struct {
 	AetherConfigAddress string
 	BaseWebConsoleURL   string
 	AetherConfigTarget  string
@@ -38,9 +31,4 @@ type SubscriberProxy struct {
 
 	// used for ease of mocking
 	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) error
-}
-
-//HTTPClient interface
-type HTTPClient interface {
-	Do(req *http.Request) (*http.Response, error)
 }

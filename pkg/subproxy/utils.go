@@ -29,21 +29,20 @@ func getlogger() gin.HandlerFunc {
 		if raw != "" {
 			path = path + "?" + raw
 		}
-		log.Infof("| %3d | %15s | %-7s | %s | %s",
+		log.Debugf("| %3d | %15s | %-7s | %s | %s",
 			statusCode, clientIP, method, path, errorMessage)
 	}
 }
 
 // get JSON from
-func getJSONResponse(msg string) []byte {
-	var responseData response
-	responseData.Status = msg
+func getJSONResponse(msg string) ([]byte, error) {
+	responseData := make(map[string]interface{})
+	responseData["status"] = msg
 	jsonData, err := json.Marshal(responseData)
 	if err != nil {
-		log.Error(err.Error())
-		return nil
+		return nil, err
 	}
-	return jsonData
+	return jsonData, nil
 }
 
 //Check site for this imsi
@@ -136,7 +135,7 @@ func getSiteForDeviceGrp(device *models.Device, dg *models.DeviceGroup_DeviceGro
 }
 
 // PostToWebConsole will Call webui API for subscriber provision on the SD-Core
-func PostToWebConsole(postURI string, payload []byte, postTimeout time.Duration) (*http.Response, error) {
+func postToWebConsole(postURI string, payload []byte, postTimeout time.Duration) (*http.Response, error) {
 	log.Info("Calling WebUI API...")
 	req, err := http.NewRequest("POST", postURI, bytes.NewBuffer(payload))
 	if err != nil {
@@ -144,7 +143,7 @@ func PostToWebConsole(postURI string, payload []byte, postTimeout time.Duration)
 	}
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
-	resp, err := Client.Do(req)
+	resp, err := clientHTTP.Do(req)
 	if err != nil {
 		log.Error(err.Error())
 		return resp, fmt.Errorf(err.Error())

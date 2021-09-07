@@ -21,11 +21,16 @@ import (
 )
 
 func init() {
-	Client = &http.Client{}
+	clientHTTP = &http.Client{}
 }
 
-// AddSubscriberByID IMSI(ueId)
-func (s *SubscriberProxy) AddSubscriberByID(c *gin.Context) {
+//HTTPClient interface
+//go:generate mockgen -destination=../test/mocks/mock_http.go -package=mocks github.com/onosproject/sdcore-adapter/pkg/subproxy HTTPClient
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	log.Info("Received One Subscriber Data")
 	ueID := c.Param("ueId")
 	var payload []byte
@@ -47,33 +52,48 @@ func (s *SubscriberProxy) AddSubscriberByID(c *gin.Context) {
 		log.Error(err.Error())
 		return
 	}
-	err = s.UpdateImsiDeviceGroup(&imsiValue)
+	err = s.updateImsiDeviceGroup(&imsiValue)
 	if err != nil {
-		c.Data(http.StatusInternalServerError, "application/json", getJSONResponse(err.Error()))
+		jsonByte, err := getJSONResponse(err.Error())
+		if err != nil {
+			log.Debug(err.Error())
+		}
+		c.Data(http.StatusInternalServerError, "application/json", jsonByte)
 		return
 	}
 
-	resp, err := PostToWebConsole(s.BaseWebConsoleURL+subscriberAPISuffix+ueID, payload, s.PostTimeout)
+	resp, err := postToWebConsole(s.BaseWebConsoleURL+subscriberAPISuffix+ueID, payload, s.PostTimeout)
 	if err != nil {
-		c.Data(resp.StatusCode, "application/json", getJSONResponse(err.Error()))
+		jsonByte, err := getJSONResponse(err.Error())
+		if err != nil {
+			log.Debug(err.Error())
+		}
+		c.Data(resp.StatusCode, "application/json", jsonByte)
 		return
 	}
 	if resp.StatusCode != 201 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Error(err.Error())
-			c.Data(http.StatusInternalServerError, "application/json", getJSONResponse(err.Error()))
+			jsonByte, err := getJSONResponse(err.Error())
+			if err != nil {
+				log.Debug(err.Error())
+			}
+			c.Data(http.StatusInternalServerError, "application/json", jsonByte)
 			return
 		}
-		c.Data(resp.StatusCode, "application/json", getJSONResponse(string(bodyBytes)))
+
+		bodyBytes, err = getJSONResponse(string(bodyBytes))
+		if err != nil {
+			log.Debug(err.Error())
+		}
+		c.Data(resp.StatusCode, "application/json", bodyBytes)
 		return
 	}
 
 	c.JSON(resp.StatusCode, gin.H{"status": "success"})
 }
 
-// UpdateImsiDeviceGroup is ...
-func (s *SubscriberProxy) UpdateImsiDeviceGroup(imsi *uint64) error {
+func (s *subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
 	log.Info("Calling UpdateImsiDeviceGroup...")
 
 	// Get the current configuration from the ROC
@@ -108,15 +128,15 @@ func (s *SubscriberProxy) UpdateImsiDeviceGroup(imsi *uint64) error {
 	if site == nil {
 		log.Info("Not site found for this imsi %s", *imsi)
 		dgroup := "defaultent-defaultsite-default"
-		return s.AddImsiToDefaultGroup(device, dgroup, imsi)
+		return s.addImsiToDefaultGroup(device, dgroup, imsi)
 	}
 	dgroup := *site.Id + "-default"
-	return s.AddImsiToDefaultGroup(device, dgroup, imsi)
+	return s.addImsiToDefaultGroup(device, dgroup, imsi)
 
 }
 
-//AddImsiToDefaultGroup adds Imsi to default group expect the group already exists
-func (s *SubscriberProxy) AddImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) error {
+//addImsiToDefaultGroup adds Imsi to default group expect the group already exists
+func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) error {
 	log.Infof("AddImsiToDefaultGroup Name : %s", dgroup)
 
 	// Now get the device group the caller wants us to add the IMSI to
@@ -161,27 +181,26 @@ func (s *SubscriberProxy) AddImsiToDefaultGroup(device *models.Device, dgroup st
 
 }
 
-// StartSubscriberProxy starts server
-func (s *SubscriberProxy) StartSubscriberProxy(bindPort string, path string) {
+func (s *subscriberProxy) StartSubscriberProxy(bindPort string, path string) error {
 	router := gin.New()
 	router.Use(getlogger(), gin.Recovery())
-	router.POST(path, getlogger(), s.AddSubscriberByID)
+	router.POST(path, getlogger(), s.addSubscriberByID)
 	err := router.Run("0.0.0.0" + bindPort)
 	if err != nil {
-		log.Error(err.Error())
-		return
+		return err
 	}
+	return nil
 }
 
 //NewSubscriberProxy as Init method
 func NewSubscriberProxy(aetherConfigTarget string, baseWebConsoleURL string, aetherConfigAddr string,
-	gnmiClient gnmiclient.GnmiInterface, postTimeout time.Duration) *SubscriberProxy {
-	m := &SubscriberProxy{
+	gnmiClient gnmiclient.GnmiInterface, postTimeout time.Duration) *subscriberProxy {
+	sproxy := &subscriberProxy{
 		AetherConfigAddress: aetherConfigAddr,
 		AetherConfigTarget:  aetherConfigTarget,
 		BaseWebConsoleURL:   baseWebConsoleURL,
 		gnmiClient:          gnmiClient,
 		PostTimeout:         postTimeout,
 	}
-	return m
+	return sproxy
 }

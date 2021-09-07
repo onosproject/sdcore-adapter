@@ -9,18 +9,19 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
-	"github.com/onosproject/sdcore-adapter/pkg/subproxy/testdata/hmocks"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
 
-var sp = SubscriberProxy{
+var sp = subscriberProxy{
 	AetherConfigAddress:   "onos-config.micro-onos.svc.cluster.local:5150",
 	BaseWebConsoleURL:     "http://webui.omec.svc.cluster.local:5000",
 	AetherConfigTarget:    "connectivity-service-v3",
@@ -31,11 +32,14 @@ var sp = SubscriberProxy{
 	synchronizeDeviceFunc: nil,
 }
 
-func init() {
-	Client = &hmocks.HttpMockClient{}
+func TestMain(m *testing.M) {
+	log := logging.GetLogger("subscriber-proxy")
+	log.SetLevel(logging.DebugLevel)
+	clientHTTP = &mocks.MockHTTPClient{}
+	os.Exit(m.Run())
 }
 
-func TestSubscriberProxy_AddSubscriberByID(t *testing.T) {
+func TestSubscriberProxy_addSubscriberByID(t *testing.T) {
 
 	dataJSON, err := ioutil.ReadFile("./testdata/testData.json")
 	assert.NoError(t, err)
@@ -62,17 +66,20 @@ func TestSubscriberProxy_AddSubscriberByID(t *testing.T) {
 		}).AnyTimes()
 
 	respMock := ioutil.NopCloser(bytes.NewReader([]byte(`{}`)))
-	hmocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+
+	httpMockClient := mocks.NewMockHTTPClient(ctrl)
+
+	httpMockClient.EXPECT().Do(gomock.Any()).DoAndReturn(func(*http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: 201,
 			Body:       respMock,
 		}, nil
-	}
+	}).AnyTimes()
 
 	w := httptest.NewRecorder()
 	router := gin.New()
 	router.Use(getlogger(), gin.Recovery())
-	router.POST("/api/subscriber/:ueId", sp.AddSubscriberByID)
+	router.POST("/api/subscriber/:ueId", sp.addSubscriberByID)
 	payload := strings.NewReader(`{` + "" + `"plmnID": "26512",` + "" + `"ueId": "imsi-111222333444555",` + "" + `
 	"OPc": "8e27b6af0e692e750f32667a3b14605d",` + "" + `"key": "8baf473f2f8fd09487cccbd7097c6862",` + "" + `
 	"sequenceNumber": "16f3b3f70fc2",` + "" + `"DNN": "internet "` + "" + `}`)
@@ -96,7 +103,7 @@ func TestSubscriberProxy_AddSubscriberByID(t *testing.T) {
 
 }
 
-func TestSubscriberProxy_UpdateImsiDeviceGroup(t *testing.T) {
+func TestSubscriberProxy_updateImsiDeviceGroup(t *testing.T) {
 
 	dataJSON, err := ioutil.ReadFile("./testdata/testData.json")
 	assert.NoError(t, err)
@@ -124,28 +131,28 @@ func TestSubscriberProxy_UpdateImsiDeviceGroup(t *testing.T) {
 
 	// IMSI will be added to default device group under default site
 	imsiValue := uint64(111222333444555)
-	err = sp.UpdateImsiDeviceGroup(&imsiValue)
+	err = sp.updateImsiDeviceGroup(&imsiValue)
 	assert.NoError(t, err)
 	assert.NotNil(t, updSetRequests)
 	assert.Len(t, updSetRequests, 1)
 
 	//IMSI already exist in device group under default site
 	imsiValue = uint64(21032002000010)
-	err = sp.UpdateImsiDeviceGroup(&imsiValue)
+	err = sp.updateImsiDeviceGroup(&imsiValue)
 	assert.NoError(t, err)
 	assert.NotNil(t, updSetRequests)
 	assert.Len(t, updSetRequests, 1)
 
 	// IMSI will be added to device group under default site
 	imsiValue = uint64(265122002000035)
-	err = sp.UpdateImsiDeviceGroup(&imsiValue)
+	err = sp.updateImsiDeviceGroup(&imsiValue)
 	assert.NoError(t, err)
 	assert.NotNil(t, updSetRequests)
 	assert.Len(t, updSetRequests, 2)
 
 	//IMSI exist in device group under site
 	imsiValue = uint64(21032002000040)
-	err = sp.UpdateImsiDeviceGroup(&imsiValue)
+	err = sp.updateImsiDeviceGroup(&imsiValue)
 	assert.NoError(t, err)
 	assert.NotNil(t, updSetRequests)
 	assert.Len(t, updSetRequests, 2)

@@ -28,7 +28,6 @@ var sp = subscriberProxy{
 	gnmiClient:            nil,
 	PostTimeout:           0,
 	retryInterval:         0,
-	busy:                  0,
 	synchronizeDeviceFunc: nil,
 }
 
@@ -84,25 +83,14 @@ func TestSubscriberProxy_addSubscriberByID(t *testing.T) {
 	"OPc": "8e27b6af0e692e750f32667a3b14605d",` + "" + `"key": "8baf473f2f8fd09487cccbd7097c6862",` + "" + `
 	"sequenceNumber": "16f3b3f70fc2",` + "" + `"DNN": "internet "` + "" + `}`)
 	req, err := http.NewRequest("POST", "/api/subscriber/imsi-111222333444555", payload)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
+	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/json")
-
 	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusCreated {
-		assert.Equal(t, 201, w.Code)
-	}
-
+	assert.Equal(t, http.StatusCreated, w.Code)
 	resp, err := ioutil.ReadAll(w.Body)
-	if err != nil {
-		assert.NoError(t, err)
-	}
+	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, "{\"status\":\"success\"}", string(resp))
-
 }
 
 func TestSubscriberProxy_updateImsiDeviceGroup(t *testing.T) {
@@ -139,24 +127,25 @@ func TestSubscriberProxy_updateImsiDeviceGroup(t *testing.T) {
 	assert.Len(t, updSetRequests, 1)
 
 	//IMSI already exist in device group under default site
+	updSetRequests = nil
 	imsiValue = uint64(21032002000010)
+	err = sp.updateImsiDeviceGroup(&imsiValue)
+	assert.NoError(t, err)
+	assert.Len(t, updSetRequests, 0)
+
+	// IMSI will be added to device group under default site
+	updSetRequests = nil
+	imsiValue = uint64(265122002000035)
 	err = sp.updateImsiDeviceGroup(&imsiValue)
 	assert.NoError(t, err)
 	assert.NotNil(t, updSetRequests)
 	assert.Len(t, updSetRequests, 1)
 
-	// IMSI will be added to device group under default site
-	imsiValue = uint64(265122002000035)
-	err = sp.updateImsiDeviceGroup(&imsiValue)
-	assert.NoError(t, err)
-	assert.NotNil(t, updSetRequests)
-	assert.Len(t, updSetRequests, 2)
-
 	//IMSI exist in device group under site
+	updSetRequests = nil
 	imsiValue = uint64(21032002000040)
 	err = sp.updateImsiDeviceGroup(&imsiValue)
 	assert.NoError(t, err)
-	assert.NotNil(t, updSetRequests)
-	assert.Len(t, updSetRequests, 2)
+	assert.Len(t, updSetRequests, 0)
 
 }

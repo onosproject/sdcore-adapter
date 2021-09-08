@@ -40,7 +40,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 
 	if !strings.HasPrefix(ueID, "imsi-") {
 		log.Debugf("Ue Id format is invalid ")
-		c.JSON(http.StatusInternalServerError, gin.H{})
+		c.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 
@@ -49,7 +49,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	split := strings.Split(ueID, "-")
 	imsiValue, err := strconv.ParseUint(split[1], 10, 64)
 	if err != nil {
-		log.Error(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 	err = s.updateImsiDeviceGroup(&imsiValue)
@@ -93,7 +93,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	c.JSON(resp.StatusCode, gin.H{"status": "success"})
 }
 
-func (s *subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
+func (s subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
 
 	// Getting the current configuration from the ROC
 	origVal, err := s.gnmiClient.GetPath(context.Background(), "", s.AetherConfigTarget, s.AetherConfigAddress)
@@ -120,8 +120,10 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
 	log.Debugf("Imsi doesn't exist in any device group")
 
 	//Check if the site exists
-	site := findSiteForTheImsi(device, *imsi)
-
+	site, err := findSiteForTheImsi(device, *imsi)
+	if err != nil {
+		return err
+	}
 	if site == nil {
 		log.Debugf("Not site found for this imsi %s", *imsi)
 		dgroup := "defaultent-defaultsite-default"

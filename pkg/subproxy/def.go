@@ -24,10 +24,6 @@ type subscriberProxy struct {
 	gnmiClient          gnmiclient.GnmiInterface
 	PostTimeout         time.Duration
 	retryInterval       time.Duration
-	// Busy indicator, primarily used for unit testing. The channel length in and of itself
-	// is not sufficient, as it does not include the potential update that is currently syncing.
-	// >0 if the synchronizer has operations pending and/or in-progress
-	busy int32
 
 	// used for ease of mocking
 	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) error

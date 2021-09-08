@@ -46,7 +46,7 @@ func getJSONResponse(msg string) ([]byte, error) {
 }
 
 //Check site for this imsi
-func findSiteForTheImsi(device *models.Device, imsi uint64) *models.Site_Site_Site {
+func findSiteForTheImsi(device *models.Device, imsi uint64) (*models.Site_Site_Site, error) {
 	for _, site := range device.Site.Site {
 
 		// Check for default site
@@ -56,24 +56,22 @@ func findSiteForTheImsi(device *models.Device, imsi uint64) *models.Site_Site_Si
 
 		maskedImsi, err := sync.MaskSubscriberImsiDef(site.ImsiDefinition, imsi) // mask off the MCC/MNC/EntId
 		if err != nil {
-			log.Debugf("Failed to mask the subscriber: %v", err)
+			return nil, errors.NewInvalid("Failed to mask the subscriber: %v", err)
 		}
 
 		siteImsiValue, err := sync.FormatImsi(*site.ImsiDefinition.Format, *site.ImsiDefinition.Mcc,
 			*site.ImsiDefinition.Mnc, *site.ImsiDefinition.Enterprise, maskedImsi)
 		if err != nil {
-			log.Debugf("Failed to mask the subscriber: %v", err)
+			return nil, errors.NewInvalid("Failed to mask the subscriber: %v", err)
 		}
-
-		log.Debugf("Calculated imsiValue for this site : ", siteImsiValue)
 
 		if imsi == siteImsiValue {
 			log.Debugf("Found the site for imsi : ", *site.Id)
-			return site
+			return site, nil
 		}
 
 	}
-	return nil
+	return nil, nil
 }
 
 //Check if any DeviceGroups contains this imsi

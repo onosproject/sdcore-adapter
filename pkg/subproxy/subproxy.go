@@ -31,7 +31,7 @@ type HTTPClient interface {
 }
 
 func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
-	log.Info("Received One Subscriber Data")
+	log.Debugf("Received One Subscriber Data")
 	ueID := c.Param("ueId")
 	var payload []byte
 	if c.Request.Body != nil {
@@ -39,12 +39,12 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	}
 
 	if !strings.HasPrefix(ueID, "imsi-") {
-		log.Error("Ue Id format is invalid ")
+		log.Debugf("Ue Id format is invalid ")
 		c.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
-	log.Infof("Received subscriber id : %s ", ueID)
+	log.Debugf("Received subscriber id : %s ", ueID)
 
 	split := strings.Split(ueID, "-")
 	imsiValue, err := strconv.ParseUint(split[1], 10, 64)
@@ -54,8 +54,8 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	}
 	err = s.updateImsiDeviceGroup(&imsiValue)
 	if err != nil {
-		jsonByte, err := getJSONResponse(err.Error())
-		if err != nil {
+		jsonByte, okay := getJSONResponse(err.Error())
+		if okay != nil {
 			log.Debug(err.Error())
 		}
 		c.Data(http.StatusInternalServerError, "application/json", jsonByte)
@@ -64,8 +64,8 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 
 	resp, err := postToWebConsole(s.BaseWebConsoleURL+subscriberAPISuffix+ueID, payload, s.PostTimeout)
 	if err != nil {
-		jsonByte, err := getJSONResponse(err.Error())
-		if err != nil {
+		jsonByte, okay := getJSONResponse(err.Error())
+		if okay != nil {
 			log.Debug(err.Error())
 		}
 		c.Data(resp.StatusCode, "application/json", jsonByte)
@@ -74,8 +74,8 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	if resp.StatusCode != 201 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			jsonByte, err := getJSONResponse(err.Error())
-			if err != nil {
+			jsonByte, okay := getJSONResponse(err.Error())
+			if okay != nil {
 				log.Debug(err.Error())
 			}
 			c.Data(http.StatusInternalServerError, "application/json", jsonByte)
@@ -94,13 +94,10 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 }
 
 func (s *subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
-	log.Info("Calling UpdateImsiDeviceGroup...")
 
-	// Get the current configuration from the ROC
-
+	// Getting the current configuration from the ROC
 	origVal, err := s.gnmiClient.GetPath(context.Background(), "", s.AetherConfigTarget, s.AetherConfigAddress)
 	if err != nil {
-		log.Error("Failed to get the current state from onos-config: %v", err)
 		return errors.NewInvalid("failed to get the current state from onos-config: %v", err)
 	}
 
@@ -110,23 +107,23 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
 	if len(origJSONBytes) > 0 {
 		if err := models.Unmarshal(origJSONBytes, device); err != nil {
 			log.Error("Failed to unmarshal json")
-			return fmt.Errorf("failed to unmarshal json")
+			return errors.NewInvalid("failed to unmarshal json")
 		}
 	}
 
 	// Check if the IMSI already exists
 	dg := findImsiInDeviceGroup(device, *imsi)
 	if dg != nil {
-		log.Infof("Imsi %v already exists in device group %s", *imsi, *dg.Id)
+		log.Debugf("Imsi %v already exists in device group %s", *imsi, *dg.Id)
 		return nil
 	}
-	log.Info("Imsi doesn't exist in any device group")
+	log.Debugf("Imsi doesn't exist in any device group")
 
 	//Check if the site exists
 	site := findSiteForTheImsi(device, *imsi)
 
 	if site == nil {
-		log.Info("Not site found for this imsi %s", *imsi)
+		log.Debugf("Not site found for this imsi %s", *imsi)
 		dgroup := "defaultent-defaultsite-default"
 		return s.addImsiToDefaultGroup(device, dgroup, imsi)
 	}
@@ -137,13 +134,12 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
 
 //addImsiToDefaultGroup adds Imsi to default group expect the group already exists
 func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) error {
-	log.Infof("AddImsiToDefaultGroup Name : %s", dgroup)
+	log.Debugf("AddImsiToDefaultGroup Name : %s", dgroup)
 
 	// Now get the device group the caller wants us to add the IMSI to
 	dg, okay := device.DeviceGroup.DeviceGroup[dgroup]
 	if !okay {
-		log.Error("Failed to find device group %v", dgroup)
-		return fmt.Errorf("failed to find device group %v", dgroup)
+		return errors.NewInvalid("failed to find device group %v", dgroup)
 	}
 	site, err := getSiteForDeviceGrp(device, dg)
 	if err != nil {
@@ -152,11 +148,10 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 	}
 	maskedImsi, err := sync.MaskSubscriberImsiDef(site.ImsiDefinition, *imsi) // mask off the MCC/MNC/EntId
 	if err != nil {
-		log.Error("Failed to mask the subscriber: %v", err)
 		return errors.NewInvalid("Failed to mask the subscriber: %v", err)
 	}
 
-	log.Infof("Masked imsi is %v", maskedImsi)
+	log.Debugf("Masked imsi is %v", maskedImsi)
 
 	// An imsi-range inside of a devicegroup needs a name. Let's just name our range after the imsi
 	// we're creating, prepended with "auto-" to make it clear it was automatically added. Don't worry
@@ -174,7 +169,6 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 	// Apply them
 	err = s.gnmiClient.Update(context.Background(), prefix, s.AetherConfigTarget, s.AetherConfigAddress, updates)
 	if err != nil {
-		log.Errorf("Error executing gNMI: %v", err)
 		return errors.NewInternal("Error executing gNMI: %v", err)
 	}
 	return nil

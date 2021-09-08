@@ -66,7 +66,6 @@ func TestSubscriberProxy_addSubscriberByID(t *testing.T) {
 		}).AnyTimes()
 
 	respMock := ioutil.NopCloser(bytes.NewReader([]byte(`{}`)))
-
 	httpMockClient := mocks.NewMockHTTPClient(ctrl)
 
 	httpMockClient.EXPECT().Do(gomock.Any()).DoAndReturn(func(*http.Request) (*http.Response, error) {
@@ -76,6 +75,7 @@ func TestSubscriberProxy_addSubscriberByID(t *testing.T) {
 		}, nil
 	}).AnyTimes()
 
+	clientHTTP = httpMockClient
 	w := httptest.NewRecorder()
 	router := gin.New()
 	router.Use(getlogger(), gin.Recovery())
@@ -89,6 +89,7 @@ func TestSubscriberProxy_addSubscriberByID(t *testing.T) {
 		return
 	}
 	req.Header.Add("Content-Type", "application/json")
+
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusCreated {
@@ -99,6 +100,7 @@ func TestSubscriberProxy_addSubscriberByID(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
+	assert.NotNil(t, resp)
 	assert.Equal(t, "{\"status\":\"success\"}", string(resp))
 
 }

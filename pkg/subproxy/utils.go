@@ -7,9 +7,9 @@ package subproxy
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
 	"net/http"
 	"time"
@@ -56,47 +56,45 @@ func findSiteForTheImsi(device *models.Device, imsi uint64) *models.Site_Site_Si
 
 		maskedImsi, err := sync.MaskSubscriberImsiDef(site.ImsiDefinition, imsi) // mask off the MCC/MNC/EntId
 		if err != nil {
-			log.Error("Failed to mask the subscriber: %v", err)
+			log.Debugf("Failed to mask the subscriber: %v", err)
 		}
 
 		siteImsiValue, err := sync.FormatImsi(*site.ImsiDefinition.Format, *site.ImsiDefinition.Mcc,
 			*site.ImsiDefinition.Mnc, *site.ImsiDefinition.Enterprise, maskedImsi)
 		if err != nil {
-			log.Error("Failed to mask the subscriber: %v", err)
+			log.Debugf("Failed to mask the subscriber: %v", err)
 		}
 
-		log.Info("Calculated imsiValue for this site : ", siteImsiValue)
+		log.Debugf("Calculated imsiValue for this site : ", siteImsiValue)
 
 		if imsi == siteImsiValue {
-			log.Info("Found the site for imsi : ", *site.Id)
+			log.Debugf("Found the site for imsi : ", *site.Id)
 			return site
 		}
 
 	}
 	return nil
-
 }
 
 //Check if any DeviceGroups contains this imsi
 func findImsiInDeviceGroup(device *models.Device, imsi uint64) *models.DeviceGroup_DeviceGroup_DeviceGroup {
-	log.Info("findImsiInDeviceGroup...")
 deviceGroupLoop:
 	for _, dg := range device.DeviceGroup.DeviceGroup {
 		for _, imsiBlock := range dg.Imsis {
 			site, err := getSiteForDeviceGrp(device, dg)
 			if err != nil {
-				log.Warnf("Error getting site: %v", err)
+				log.Debugf("Error getting site: %v", err)
 				continue deviceGroupLoop
 			}
 
 			if imsiBlock.ImsiRangeFrom == nil {
-				log.Infof("imsiBlock %s in dg %s has blank ImsiRangeFrom", *imsiBlock.Name, *dg.Id)
+				log.Debugf("imsiBlock %s in dg %s has blank ImsiRangeFrom", *imsiBlock.Name, *dg.Id)
 				continue deviceGroupLoop
 			}
 			var firstImsi uint64
 			firstImsi, err = sync.FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeFrom)
 			if err != nil {
-				log.Infof("Failed to format IMSI in dg %s: %v", *dg.Id, err)
+				log.Debugf("Failed to format IMSI in dg %s: %v", *dg.Id, err)
 				continue deviceGroupLoop
 			}
 			var lastImsi uint64
@@ -105,12 +103,12 @@ deviceGroupLoop:
 			} else {
 				lastImsi, err = sync.FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeTo)
 				if err != nil {
-					log.Infof("Failed to format IMSI in dg %s: %v", *dg.Id, err)
+					log.Debugf("Failed to format IMSI in dg %s: %v", *dg.Id, err)
 					continue deviceGroupLoop
 				}
 
 			}
-			log.Infof("Compare %v %v %v", imsi, firstImsi, lastImsi)
+			log.Debugf("Compare %v %v %v", imsi, firstImsi, lastImsi)
 			if (imsi >= firstImsi) && (imsi <= lastImsi) {
 				return dg
 			}
@@ -122,31 +120,29 @@ deviceGroupLoop:
 //Get site for the device group
 func getSiteForDeviceGrp(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no site", *dg.Id)
+		return nil, errors.NewInvalid("DeviceGroup %s has no site", *dg.Id)
 	}
 	site, okay := device.Site.Site[*dg.Site]
 	if !okay {
-		return nil, fmt.Errorf("DeviceGroup %s site %s not found", *dg.Id, *dg.Site)
+		return nil, errors.NewInvalid("DeviceGroup %s site %s not found", *dg.Id, *dg.Site)
 	}
 	if (site.Enterprise == nil) || (*site.Enterprise == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no enterprise", *dg.Id)
+		return nil, errors.NewInvalid("DeviceGroup %s has no enterprise", *dg.Id)
 	}
 	return site, nil
 }
 
 // PostToWebConsole will Call webui API for subscriber provision on the SD-Core
 func postToWebConsole(postURI string, payload []byte, postTimeout time.Duration) (*http.Response, error) {
-	log.Info("Calling WebUI API...")
 	req, err := http.NewRequest("POST", postURI, bytes.NewBuffer(payload))
 	if err != nil {
-		log.Info("Error while connecting webui ", err.Error())
+		return nil, errors.NewInvalid("Error while connecting webui ", err.Error())
 	}
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := clientHTTP.Do(req)
 	if err != nil {
-		log.Error(err.Error())
-		return resp, fmt.Errorf(err.Error())
+		return resp, errors.NewInvalid(err.Error())
 	}
 	defer resp.Body.Close()
 

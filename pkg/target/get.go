@@ -22,5 +22,5 @@ func (s *target) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, 
 	}
 
 	log.Infof("allowed a Get request: %v", msg)
-	return s.Server.Get(ctx, req)
+	return s.Server.Get(req)
 }

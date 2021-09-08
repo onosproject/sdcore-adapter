@@ -28,7 +28,7 @@ func NewServer(model *Model, config []byte, callback ConfigCallback) (*Server, e
 		}
 	}
 
-	s.subscribers = make(map[string]*streamClient)
+	s.subscribed = make(map[string][]*streamClient)
 
 	/* Create a RingChannel that can hold 100 items, and will discard
 	 * the oldest if it becomes full.
@@ -44,6 +44,22 @@ func NewServer(model *Model, config []byte, callback ConfigCallback) (*Server, e
 	s.ConfigUpdate = channels.NewRingChannel(100)
 
 	return s, nil
+}
+
+// Close - called on shutdown - shutdown gracefully
+func (s *Server) Close() {
+	log.Info("Shutting down gNMI server")
+	for sub, streamClientList := range s.subscribed {
+		log.Infof("Closing subscriptions to %s. %d", sub, len(streamClientList))
+		for _, sc := range streamClientList {
+			close(sc.UpdateChan)
+		}
+	}
+
+	if s.ConfigUpdate != nil {
+		log.Info("Closing Ring Buffer Channel")
+		s.ConfigUpdate.Close()
+	}
 }
 
 // ExecuteCallbacks executes the callbacks for the synchronizer

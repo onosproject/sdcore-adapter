@@ -121,7 +121,7 @@ func runTestGet(t *testing.T, s *Server, textPbPath string, wantRetCode codes.Co
 		Encoding:  pb.Encoding_JSON_IETF,
 		UseModels: useModels,
 	}
-	resp, err := s.Get(context.TODO(), req)
+	resp, err := s.Get(req)
 
 	// Check return code
 	gotRetStatus, ok := status.FromError(err)
@@ -234,7 +234,7 @@ func runTestSet(t *testing.T, s *Server, textPbPrefix string, textPbUpdate strin
 		Prefix: &pbPrefix,
 		Update: []*pb.Update{&pbUpdate},
 	}
-	_, err := s.Set(context.TODO(), req)
+	_, err := s.Set(req)
 
 	// Check return code
 	gotRetStatus, ok := status.FromError(err)

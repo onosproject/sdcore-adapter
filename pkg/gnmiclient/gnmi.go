@@ -18,7 +18,7 @@ import (
 var log = logging.GetLogger("gnmiclient")
 
 // GnmiInterface - abstract definition of the Gnmi interface
-//go:generate mockgen -destination=test/mocks/mock_gnmi.go -package=mocks github.com/onosproject/sdcore-adapter/pkg/gnmiclient GnmiInterface
+//go:generate mockgen -destination=../test/mocks/mock_gnmi.go -package=mocks github.com/onosproject/sdcore-adapter/pkg/gnmiclient GnmiInterface
 type GnmiInterface interface {
 	// GetPath - gNMI Get
 	GetPath(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error)

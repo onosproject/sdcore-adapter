@@ -140,22 +140,23 @@ func (m *DiagnosticAPI) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 	fmt.Fprintf(w, "SUCCESS")
 }
 
-func (m *DiagnosticAPI) handleRequests() {
+func (m *DiagnosticAPI) handleRequests(port uint) {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/synchronize", m.reSync).Methods("POST")
 	myRouter.HandleFunc("/cache", m.getCache).Methods("GET")
 	myRouter.HandleFunc("/cache", m.postCache).Methods("POST")
 	myRouter.HandleFunc("/cache", m.deleteCache).Methods("DELETE")
 	myRouter.HandleFunc("/pull", m.pullFromOnosConfig).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8080", myRouter))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), myRouter))
 }
 
 // StartDiagnosticAPI starts the Diagnostic API, serving requests
 func StartDiagnosticAPI(targetServer TargetInterface,
 	defaultAetherConfigAddr string,
-	defaultTarget string) {
+	defaultTarget string,
+	port uint) {
 	m := DiagnosticAPI{targetServer: targetServer,
 		defaultAetherConfigAddr: defaultAetherConfigAddr,
 		defaultTarget:           defaultTarget}
-	go m.handleRequests()
+	go m.handleRequests(port)
 }

@@ -67,7 +67,7 @@ type Server struct {
 	config       ygot.ValidatedGoStruct
 	ConfigUpdate *channels.RingChannel
 	mu           sync.RWMutex // mu is the RW lock to protect the access to config
-	subscribers  map[string]*streamClient
+	subscribed   map[string][]*streamClient
 }
 
 var (

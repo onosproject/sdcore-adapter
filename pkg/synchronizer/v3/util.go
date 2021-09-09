@@ -8,6 +8,7 @@ package synchronizerv3
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
@@ -15,21 +16,43 @@ import (
 )
 
 // FormatImsi formats MCC, MNC, ENT, and SUB into an IMSI, according to a format specifier
-func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (uint64, error) {
+func FormatImsi(format string, mcc string, mnc string, ent uint32, sub uint64) (uint64, error) {
 	var imsi uint64
 	var mult uint64
+	var mccUint uint64
+	var mncUint uint64
+	var err error
 	mult = 1
+
+	if mcc != "" {
+		mccUint, err = strconv.ParseUint(mcc, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse mcc: %v", err)
+		}
+	} else {
+		mccUint = 0
+	}
+
+	if mnc != "" {
+		mncUint, err = strconv.ParseUint(mnc, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse mnc: %v", err)
+		}
+	} else {
+		mncUint = 0
+	}
+
 	// Build the IMSI from right to left, as it makes it easy to convert and pad integers
 	for i := len(format) - 1; i >= 0; i-- {
 		switch format[i] {
 		case 'C':
-			imsi = imsi + uint64(mcc%10)*mult
+			imsi = imsi + mccUint%10*mult
 			mult *= 10
-			mcc = mcc / 10
+			mccUint = mccUint / 10
 		case 'N':
-			imsi = imsi + uint64(mnc%10)*mult
+			imsi = imsi + mncUint%10*mult
 			mult *= 10
-			mnc = mnc / 10
+			mncUint = mncUint / 10
 		case 'E':
 			imsi = imsi + uint64(ent%10)*mult
 			mult *= 10
@@ -46,10 +69,10 @@ func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (
 	}
 	// IF there are any bits left in any of the fields, then it means we
 	// had more digits than the IMSI format called for.
-	if mcc > 0 && strings.Contains(format, "C") {
+	if mccUint > 0 && strings.Contains(format, "C") {
 		return 0, errors.New("Failed to convert all MCC digits")
 	}
-	if mnc > 0 && strings.Contains(format, "N") {
+	if mncUint > 0 && strings.Contains(format, "N") {
 		return 0, errors.New("Failed to convert all MNC digits")
 	}
 	if ent > 0 && strings.Contains(format, "E") {
@@ -77,8 +100,8 @@ func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64,
 	}
 
 	return FormatImsi(format,
-		synchronizer.DerefUint32Ptr(i.Mcc, 0),
-		synchronizer.DerefUint32Ptr(i.Mnc, 0),
+		synchronizer.DerefStrPtr(i.Mcc, "0"),
+		synchronizer.DerefStrPtr(i.Mnc, "0"),
 		synchronizer.DerefUint32Ptr(i.Enterprise, 0),
 		sub)
 }

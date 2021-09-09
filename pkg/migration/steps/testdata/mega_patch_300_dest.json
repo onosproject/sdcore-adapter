@@ -6,12 +6,12 @@
           {
             "address": "ap1.seattle.starbucks.com",
             "enable": true,
-            "tac": 654
+            "tac": "654"
           },
           {
             "address": "ap2.seattle.starbucks.com",
             "enable": true,
-            "tac": 87475
+            "tac": "87475"
           }
         ],
         "description": "Seattle APs",
@@ -24,7 +24,7 @@
           {
             "address": "ap2.chicago.acme.com",
             "enable": true,
-            "tac": 8002
+            "tac": "8002"
           }
         ],
         "description": "Chicago APs",
@@ -37,7 +37,7 @@
           {
             "address": "ap2.newyork.starbucks.com",
             "enable": true,
-            "tac": 8002
+            "tac": "8002"
           }
         ],
         "description": "New York APs",
@@ -312,8 +312,8 @@
         "imsi-definition": {
           "enterprise": 1,
           "format": "CCCNNNEEESSSSSS",
-          "mcc": 123,
-          "mnc": 456
+          "mcc": "123",
+          "mnc": "456"
         }
       },
       {
@@ -333,8 +333,8 @@
         "imsi-definition": {
           "enterprise": 2,
           "format": "CCCNNNEEESSSSSS",
-          "mcc": 265,
-          "mnc": 122
+          "mcc": "265",
+          "mnc": "122"
         }
       },
       {
@@ -345,8 +345,8 @@
         "imsi-definition": {
           "enterprise": 2,
           "format": "CCCNNNEEESSSSSS",
-          "mcc": 21,
-          "mnc": 32
+          "mcc": "21",
+          "mnc": "32"
         }
       }
     ]

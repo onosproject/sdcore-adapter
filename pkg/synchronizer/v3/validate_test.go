@@ -14,7 +14,7 @@ import (
 
 func TestValidateVcs(t *testing.T) {
 	v := &models_v3.Vcs_Vcs_Vcs{
-		Sst: aUint32(123),
+		Sst: aUint8(123),
 		Sd:  aUint32(456),
 	}
 	err := validateVcs(v)
@@ -28,7 +28,7 @@ func TestValidateVcs(t *testing.T) {
 
 	// SD is optional
 	v = &models_v3.Vcs_Vcs_Vcs{
-		Sst: aUint32(123),
+		Sst: aUint8(123),
 	}
 	err = validateVcs(v)
 	assert.Nil(t, err)
@@ -37,13 +37,13 @@ func TestValidateVcs(t *testing.T) {
 func TestValidateAppEndpoint(t *testing.T) {
 	e := &models_v3.Application_Application_Application_Endpoint{
 		Address:   aStr("1.2.3.4"),
-		PortStart: aUint32(123),
+		PortStart: aUint16(123),
 	}
 	err := validateAppEndpoint(e)
 	assert.Nil(t, err)
 
 	e = &models_v3.Application_Application_Application_Endpoint{
-		PortStart: aUint32(123),
+		PortStart: aUint16(123),
 	}
 	err = validateAppEndpoint(e)
 	assert.EqualError(t, err, "Address is nil")
@@ -71,14 +71,14 @@ func TestValidateIPDomain(t *testing.T) {
 func TestValidateAccessPoint(t *testing.T) {
 	a := &models_v3.ApList_ApList_ApList_AccessPoints{
 		Address: aStr("1.2.3.4"),
-		Tac:     aUint32(1234),
+		Tac:     aStr("1234"),
 	}
 	err := validateAccessPoint(a)
 	assert.Nil(t, err)
 
 	// missing address
 	a = &models_v3.ApList_ApList_ApList_AccessPoints{
-		Tac: aUint32(1234),
+		Tac: aStr("1234"),
 	}
 	err = validateAccessPoint(a)
 	assert.EqualError(t, err, "Address is nil")
@@ -94,14 +94,14 @@ func TestValidateAccessPoint(t *testing.T) {
 func TestValidateUpf(t *testing.T) {
 	u := &models_v3.Upf_Upf_Upf{
 		Address: aStr("1.2.3.4"),
-		Port:    aUint32(1234),
+		Port:    aUint16(1234),
 	}
 	err := validateUpf(u)
 	assert.Nil(t, err)
 
 	// missing address
 	u = &models_v3.Upf_Upf_Upf{
-		Port: aUint32(1234),
+		Port: aUint16(1234),
 	}
 	err = validateUpf(u)
 	assert.EqualError(t, err, "Address is nil")
@@ -116,8 +116,8 @@ func TestValidateUpf(t *testing.T) {
 
 func TestValidateImsiDefinition(t *testing.T) {
 	i := &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
-		Mnc:        aUint32(45),
+		Mcc:        aStr("123"),
+		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
 	}
@@ -126,7 +126,7 @@ func TestValidateImsiDefinition(t *testing.T) {
 
 	// missing MCC
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mnc:        aUint32(45),
+		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
 	}
@@ -135,7 +135,7 @@ func TestValidateImsiDefinition(t *testing.T) {
 
 	// missing MNC
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
+		Mcc:        aStr("123"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
 	}
@@ -144,8 +144,8 @@ func TestValidateImsiDefinition(t *testing.T) {
 
 	// missing Ent
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:    aUint32(123),
-		Mnc:    aUint32(45),
+		Mcc:    aStr("123"),
+		Mnc:    aStr("45"),
 		Format: aStr("CCCNN0EEESSSSSS"),
 	}
 	err = validateImsiDefinition(i)
@@ -153,8 +153,8 @@ func TestValidateImsiDefinition(t *testing.T) {
 
 	// Wrong number of characters
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
-		Mnc:        aUint32(45),
+		Mcc:        aStr("123"),
+		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSS"),
 	}
@@ -163,8 +163,8 @@ func TestValidateImsiDefinition(t *testing.T) {
 
 	// Default format is okay
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
-		Mnc:        aUint32(45),
+		Mcc:        aStr("123"),
+		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 	}
 	err = validateImsiDefinition(i)

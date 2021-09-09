@@ -34,7 +34,7 @@ type ipDomain struct {
 	Pool string `json:"ue-ip-pool"`
 	// AdminStatus string `json:"admin-status"`  Dropped from current JSON
 	DNSPrimary string `json:"dns-primary"`
-	Mtu        uint32 `json:"mtu"`
+	Mtu        uint16 `json:"mtu"`
 }
 
 type deviceGroup struct {
@@ -57,7 +57,7 @@ type qos struct {
 
 type gNodeB struct {
 	Name string `json:"name"`
-	Tac  uint32 `json:"tac"`
+	Tac  string `json:"tac"`
 }
 
 type plmn struct {
@@ -67,7 +67,7 @@ type plmn struct {
 
 type upf struct {
 	Name string `json:"upf-name"`
-	Port uint32 `json:"upf-port"`
+	Port uint16 `json:"upf-port"`
 }
 
 type siteInfo struct {
@@ -80,8 +80,8 @@ type siteInfo struct {
 type application struct {
 	Name      string `json:"app-name"`
 	Endpoint  string `json:"endpoint"`
-	StartPort uint32 `json:"start-port"`
-	EndPort   uint32 `json:"end-port"`
+	StartPort uint16 `json:"start-port"`
+	EndPort   uint16 `json:"end-port"`
 	Protocol  uint32 `json:"protocol"`
 }
 
@@ -379,7 +379,7 @@ deviceGroupLoop:
 			Dnn:        synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
 			Pool:       *ipd.Subnet,
 			DNSPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-			Mtu:        synchronizer.DerefUint32Ptr(ipd.Mtu, DefaultMTU),
+			Mtu:        synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
 		}
 		dgCore.IPDomain = ipdCore
 
@@ -434,12 +434,9 @@ vcsLoop:
 			log.Warnf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
 			continue vcsLoop
 		}
-		mcc := *site.ImsiDefinition.Mcc
-		mnc := *site.ImsiDefinition.Mnc
-
 		plmn := plmn{
-			Mcc: strconv.FormatUint(uint64(mcc), 10),
-			Mnc: strconv.FormatUint(uint64(mnc), 10),
+			Mcc: *site.ImsiDefinition.Mcc,
+			Mnc: *site.ImsiDefinition.Mnc,
 		}
 		siteInfo := siteInfo{
 			SiteName: *site.Id,
@@ -557,7 +554,7 @@ vcsLoop:
 
 				appCore.StartPort = *endpoint.PortStart
 				if endpoint.PortEnd != nil {
-					appCore.EndPort = synchronizer.DerefUint32Ptr(endpoint.PortEnd, 0)
+					appCore.EndPort = synchronizer.DerefUint16Ptr(endpoint.PortEnd, 0)
 				} else {
 					// no EndPort specified -- assume it's a singleton range
 					appCore.EndPort = appCore.StartPort

@@ -152,8 +152,8 @@
         "imsi-definition": {
           "enterprise": 1,
           "format": "CCCNNNEEESSSSSS",
-          "mcc": 123,
-          "mnc": 456
+          "mcc": "123",
+          "mnc": "456"
         }
       },
       {
@@ -173,8 +173,8 @@
         "imsi-definition": {
           "enterprise": 2,
           "format": "CCCNNNEEESSSSSS",
-          "mcc": 21,
-          "mnc": 32
+          "mcc": "21",
+          "mnc": "32"
         }
       },
       {
@@ -185,8 +185,8 @@
         "imsi-definition": {
           "enterprise": 2,
           "format": "CCCNNNEEESSSSSS",
-          "mcc": 265,
-          "mnc": 122
+          "mcc": "265",
+          "mnc": "122"
         }
       }
     ]

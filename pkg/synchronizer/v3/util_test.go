@@ -14,33 +14,33 @@ import (
 
 func TestFormatImsi(t *testing.T) {
 	// straightforward conversion
-	imsi, err := FormatImsi("CCCNNNEEESSSSSS", 123, 456, 789, 123456)
+	imsi, err := FormatImsi("CCCNNNEEESSSSSS", "123", "456", 789, 123456)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(123456789123456), imsi)
 
 	// zero padding on each field
-	imsi, err = FormatImsi("CCCNNNEEESSSSSS", 12, 34, 56, 78)
+	imsi, err = FormatImsi("CCCNNNEEESSSSSS", "12", "34", 56, 78)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(12034056000078), imsi)
 
 	// forced zero after the MNC
-	imsi, err = FormatImsi("CCCNN0EEESSSSSS", 123, 45, 789, 123456)
+	imsi, err = FormatImsi("CCCNN0EEESSSSSS", "123", "45", 789, 123456)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(123450789123456), imsi)
 
 	// subscriber is too long
-	_, err = FormatImsi("CCCNNNEEESSSSSS", 123, 456, 789, 1234567)
+	_, err = FormatImsi("CCCNNNEEESSSSSS", "123", "456", 789, 1234567)
 	assert.EqualError(t, err, "Failed to convert all Subscriber digits")
 
 	// unrecognized character
-	_, err = FormatImsi("CCCNNNEEESSSSSZ", 123, 456, 789, 123456)
+	_, err = FormatImsi("CCCNNNEEESSSSSZ", "123", "456", 789, 123456)
 	assert.EqualError(t, err, "Unrecognized IMSI format specifier 'Z'")
 }
 
 func TestFormatImsiDef(t *testing.T) {
 	i := &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
-		Mnc:        aUint32(45),
+		Mcc:        aStr("123"),
+		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
 	}
@@ -50,8 +50,8 @@ func TestFormatImsiDef(t *testing.T) {
 
 	// If format is nil, a default will be used
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
-		Mnc:        aUint32(45),
+		Mcc:        aStr("123"),
+		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     nil,
 	}
@@ -63,7 +63,7 @@ func TestFormatImsiDef(t *testing.T) {
 
 	// missing MCC
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mnc:        aUint32(45),
+		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
 	}
@@ -72,7 +72,7 @@ func TestFormatImsiDef(t *testing.T) {
 
 	// missing MNC
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
+		Mcc:        aStr("123"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
 	}
@@ -81,8 +81,8 @@ func TestFormatImsiDef(t *testing.T) {
 
 	// missing Ent
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:    aUint32(123),
-		Mnc:    aUint32(45),
+		Mcc:    aStr("123"),
+		Mnc:    aStr("45"),
 		Format: aStr("CCCNN0EEESSSSSS"),
 	}
 	_, err = FormatImsiDef(i, 123456)
@@ -90,8 +90,8 @@ func TestFormatImsiDef(t *testing.T) {
 
 	// Wrong number of characters
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
-		Mnc:        aUint32(45),
+		Mcc:        aStr("123"),
+		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSS"),
 	}
@@ -100,8 +100,8 @@ func TestFormatImsiDef(t *testing.T) {
 
 	// 15-digit IMSI is just fine
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(321),
-		Mnc:        aUint32(54),
+		Mcc:        aStr("321"),
+		Mnc:        aStr("54"),
 		Enterprise: aUint32(987),
 		Format:     aStr("SSSSSSSSSSSSSSS"),
 	}
@@ -111,8 +111,8 @@ func TestFormatImsiDef(t *testing.T) {
 
 	// Test bugfix on nil Enterprise
 	i = &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(321),
-		Mnc:        aUint32(54),
+		Mcc:        aStr("321"),
+		Mnc:        aStr("54"),
 		Enterprise: nil,
 		Format:     aStr("SSSSSSSSSSSSSSS"),
 	}

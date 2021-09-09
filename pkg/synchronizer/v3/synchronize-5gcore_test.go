@@ -23,6 +23,21 @@ func aBool(b bool) *bool {
 	return &b
 }
 
+// to facilitate easy declaring of pointers to int8
+func aInt8(u int8) *int8 {
+	return &u
+}
+
+// to facilitate easy declaring of pointers to uint8
+func aUint8(u uint8) *uint8 {
+	return &u
+}
+
+// to facilitate easy declaring of pointers to uint16
+func aUint16(u uint16) *uint16 {
+	return &u
+}
+
 // to facilitate easy declaring of pointers to uint32
 func aUint32(u uint32) *uint32 {
 	return &u
@@ -117,12 +132,12 @@ func BuildSampleDeviceGroup() (
 		Id:          aStr("sample-ipd"),
 		Subnet:      aStr("1.2.3.4/24"),
 		DnsPrimary:  aStr("8.8.8.8"),
-		Mtu:         aUint32(1492),
+		Mtu:         aUint16(1492),
 		Dnn:         aStr("5ginternet"),
 	}
 	imsiDef := &models_v3.Site_Site_Site_ImsiDefinition{
-		Mcc:        aUint32(123),
-		Mnc:        aUint32(456),
+		Mcc:        aStr("123"),
+		Mnc:        aStr("456"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNNNEEESSSSSS"),
 	}
@@ -159,15 +174,15 @@ func BuildSampleVcs() (
 	ep := &models_v3.Application_Application_Application_Endpoint{
 		Address:   aStr("1.2.3.4"),
 		Name:      aStr("sample-app-ep"),
-		PortStart: aUint32(123),
-		PortEnd:   aUint32(124),
+		PortStart: aUint16(123),
+		PortEnd:   aUint16(124),
 		Protocol:  aStr("UDP"),
 	}
 
 	ap := &models_v3.ApList_ApList_ApList_AccessPoints{
 		Address: aStr("6.7.8.9"),
 		Enable:  aBool(true),
-		Tac:     aUint32(77),
+		Tac:     aStr("77AB"),
 	}
 
 	apl := &models_v3.ApList_ApList_ApList{
@@ -203,7 +218,7 @@ func BuildSampleVcs() (
 		Downlink:     aUint32(4321),
 		Uplink:       aUint32(8765),
 		Sd:           aUint32(111),
-		Sst:          aUint32(222),
+		Sst:          aUint8(222),
 		TrafficClass: aStr("sample-traffic-class"),
 	}
 
@@ -211,9 +226,9 @@ func BuildSampleVcs() (
 		Id:          aStr("sample-traffic-class"),
 		Description: aStr("sample-traffic-class-desc"),
 		DisplayName: aStr("sample-traffic-class-dn"),
-		Pdb:         aUint32(333),
-		Pelr:        aUint32(444),
-		Qci:         aUint32(55),
+		Pdb:         aUint16(333),
+		Pelr:        aInt8(144),
+		Qci:         aUint8(55),
 	}
 
 	upf := &models_v3.Upf_Upf_Upf{
@@ -221,7 +236,7 @@ func BuildSampleVcs() (
 		Address:     aStr("2.3.4.5"),
 		Description: aStr("sample-upf-desc"),
 		DisplayName: aStr("sample-upf-dn"),
-		Port:        aUint32(66),
+		Port:        aUint16(66),
 	}
 
 	vcs := &models_v3.Vcs_Vcs_Vcs{
@@ -234,7 +249,7 @@ func BuildSampleVcs() (
 		Uplink:       aUint32(8765),
 		Id:           aStr("sample-vcs"),
 		Sd:           aUint32(111),
-		Sst:          aUint32(222),
+		Sst:          aUint8(222),
 		Template:     aStr("sample-template"),
 		TrafficClass: aStr("sample-traffic-class"),
 		Upf:          aStr("sample-upf"),

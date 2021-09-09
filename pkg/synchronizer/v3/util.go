@@ -15,8 +15,8 @@ import (
 )
 
 // FormatImsi formats MCC, MNC, ENT, and SUB into an IMSI, according to a format specifier
-func FormatImsi(format string, mcc uint32, mnc uint32, ent uint32, sub uint64) (uint64, error) {
-	var imsi uint64
+func FormatImsi(format string, mcc string, mnc string, ent uint32, sub uint64) (uint64, error) {
+	var imsi string
 	var mult uint64
 	mult = 1
 	// Build the IMSI from right to left, as it makes it easy to convert and pad integers
@@ -77,8 +77,8 @@ func FormatImsiDef(i *models.Site_Site_Site_ImsiDefinition, sub uint64) (uint64,
 	}
 
 	return FormatImsi(format,
-		synchronizer.DerefUint32Ptr(i.Mcc, 0),
-		synchronizer.DerefUint32Ptr(i.Mnc, 0),
+		synchronizer.DerefStrPtr(i.Mcc, "0"),
+		synchronizer.DerefStrPtr(i.Mnc, "0"),
 		synchronizer.DerefUint32Ptr(i.Enterprise, 0),
 		sub)
 }

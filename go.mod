@@ -25,3 +25,5 @@ require (
 	google.golang.org/grpc v1.37.0
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+replace github.com/onosproject/config-models/modelplugin/aether-3.0.0 => ../config-models/modelplugin/aether-3.0.0

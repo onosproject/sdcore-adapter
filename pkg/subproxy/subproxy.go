@@ -52,7 +52,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
-	err = s.updateImsiDeviceGroup(&imsiValue)
+	err = s.updateImsiDeviceGroup(imsiValue)
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
 		if okay != nil {
@@ -93,7 +93,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	c.JSON(resp.StatusCode, gin.H{"status": "success"})
 }
 
-func (s subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
+func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
 
 	// Getting the current configuration from the ROC
 	origVal, err := s.gnmiClient.GetPath(context.Background(), "", s.AetherConfigTarget, s.AetherConfigAddress)
@@ -112,20 +112,20 @@ func (s subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
 	}
 
 	// Check if the IMSI already exists
-	dg := findImsiInDeviceGroup(device, *imsi)
+	dg := findImsiInDeviceGroup(device, imsi)
 	if dg != nil {
-		log.Debugf("Imsi %v already exists in device group %s", *imsi, *dg.Id)
+		log.Debugf("Imsi %v already exists in device group %s", imsi, *dg.Id)
 		return nil
 	}
 	log.Debugf("Imsi doesn't exist in any device group")
 
 	//Check if the site exists
-	site, err := findSiteForTheImsi(device, *imsi)
+	site, err := findSiteForTheImsi(device, imsi)
 	if err != nil {
 		return err
 	}
 	if site == nil {
-		log.Debugf("Not site found for this imsi %s", *imsi)
+		log.Debugf("Not site found for this imsi %s", imsi)
 		dgroup := "defaultent-defaultsite-default"
 		return s.addImsiToDefaultGroup(device, dgroup, imsi)
 	}
@@ -135,7 +135,7 @@ func (s subscriberProxy) updateImsiDeviceGroup(imsi *uint64) error {
 }
 
 //addImsiToDefaultGroup adds Imsi to default group expect the group already exists
-func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup string, imsi *uint64) error {
+func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup string, imsi uint64) error {
 	log.Debugf("AddImsiToDefaultGroup Name : %s", dgroup)
 
 	// Now get the device group the caller wants us to add the IMSI to
@@ -148,7 +148,7 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 		log.Error("Failed to find site for device group %v", *dg.Id)
 		return errors.NewInternal("failed to find site for device group %v", *dg.Id)
 	}
-	maskedImsi, err := sync.MaskSubscriberImsiDef(site.ImsiDefinition, *imsi) // mask off the MCC/MNC/EntId
+	maskedImsi, err := sync.MaskSubscriberImsiDef(site.ImsiDefinition, imsi) // mask off the MCC/MNC/EntId
 	if err != nil {
 		return errors.NewInvalid("Failed to mask the subscriber: %v", err)
 	}
@@ -158,7 +158,7 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 	// An imsi-range inside of a devicegroup needs a name. Let's just name our range after the imsi
 	// we're creating, prepended with "auto-" to make it clear it was automatically added. Don't worry
 	// about coalescing ranges -- just create simple ranges with exactly one imsi per range.
-	rangeName := fmt.Sprintf("auto-%d", *imsi)
+	rangeName := fmt.Sprintf("auto-%d", imsi)
 
 	// Generate a prefix into the gNMI configuration tree
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsis[name=%s]", dgroup,

@@ -121,7 +121,7 @@ func TestSubscriberProxy_updateImsiDeviceGroup(t *testing.T) {
 
 	// IMSI will be added to default device group under default site
 	imsiValue := uint64(111222333444555)
-	err = sp.updateImsiDeviceGroup(&imsiValue)
+	err = sp.updateImsiDeviceGroup(imsiValue)
 	assert.NoError(t, err)
 	assert.NotNil(t, updSetRequests)
 	assert.Len(t, updSetRequests, 1)
@@ -129,14 +129,14 @@ func TestSubscriberProxy_updateImsiDeviceGroup(t *testing.T) {
 	//IMSI already exist in device group under default site
 	updSetRequests = nil
 	imsiValue = uint64(21032002000010)
-	err = sp.updateImsiDeviceGroup(&imsiValue)
+	err = sp.updateImsiDeviceGroup(imsiValue)
 	assert.NoError(t, err)
 	assert.Len(t, updSetRequests, 0)
 
 	// IMSI will be added to device group under default site
 	updSetRequests = nil
 	imsiValue = uint64(265122002000035)
-	err = sp.updateImsiDeviceGroup(&imsiValue)
+	err = sp.updateImsiDeviceGroup(imsiValue)
 	assert.NoError(t, err)
 	assert.NotNil(t, updSetRequests)
 	assert.Len(t, updSetRequests, 1)
@@ -144,7 +144,7 @@ func TestSubscriberProxy_updateImsiDeviceGroup(t *testing.T) {
 	//IMSI exist in device group under site
 	updSetRequests = nil
 	imsiValue = uint64(21032002000040)
-	err = sp.updateImsiDeviceGroup(&imsiValue)
+	err = sp.updateImsiDeviceGroup(imsiValue)
 	assert.NoError(t, err)
 	assert.Len(t, updSetRequests, 0)
 

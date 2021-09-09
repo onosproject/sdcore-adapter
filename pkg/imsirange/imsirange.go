@@ -257,7 +257,7 @@ func generateName(s *models.Site_Site_Site_ImsiDefinition, firstImsi uint64, mas
 		rangeName := fmt.Sprintf("auto-%d", firstImsi)
 		return rangeName
 	}
-	rangeName := fmt.Sprintf("auto-%d%d%d-%d", *s.Mcc, *s.Mnc, *s.Enterprise, maskedFirstImsi)
+	rangeName := fmt.Sprintf("auto-%s%s%d-%d", *s.Mcc, *s.Mnc, *s.Enterprise, maskedFirstImsi)
 	return rangeName
 }
 

@@ -27,3 +27,11 @@ func DerefUint32Ptr(u *uint32, def uint32) uint32 {
 	}
 	return *u
 }
+
+// DerefUint16Ptr dereference a uint16 pointer, returning default if it is nil
+func DerefUint16Ptr(u *uint16, def uint16) uint16 {
+	if u == nil {
+		return def
+	}
+	return *u
+}

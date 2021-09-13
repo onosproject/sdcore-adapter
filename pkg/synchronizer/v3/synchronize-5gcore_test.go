@@ -345,7 +345,7 @@ func TestSynchronizeVCS(t *testing.T) {
 			  "gNodeBs": [
 				{
 				  "name": "6.7.8.9",
-				  "tac": "77AB"
+				  "tac": 30635
 				}
 			  ],
 			  "upf": {
@@ -424,7 +424,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 			  "gNodeBs": [
 				{
 				  "name": "6.7.8.9",
-				  "tac": "77AB"
+				  "tac": 30635
 				}
 			  ],
 			  "upf": {

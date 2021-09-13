@@ -57,7 +57,7 @@ type qos struct {
 
 type gNodeB struct {
 	Name string `json:"name"`
-	Tac  string `json:"tac"`
+	Tac  uint32 `json:"tac"`
 }
 
 type plmn struct {
@@ -456,9 +456,14 @@ vcsLoop:
 					continue vcsLoop
 				}
 				if *ap.Enable {
+					tac, err := strconv.ParseUint(*ap.Tac, 16, 32)
+					if err != nil {
+						log.Warnf("AccessPointList %s Failed to convert tac %s to integer: %v", *apList.Id, *ap.Tac, err)
+						continue vcsLoop
+					}
 					gNodeB := gNodeB{
 						Name: *ap.Address,
-						Tac:  *ap.Tac,
+						Tac:  uint32(tac),
 					}
 					siteInfo.GNodeBs = append(siteInfo.GNodeBs, gNodeB)
 				}

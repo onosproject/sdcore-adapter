@@ -287,8 +287,8 @@ func Test_MigrateV21V3(t *testing.T) {
 				assert.Equal(t, "Ciena subscriber match rule", action.Updates[0].Val.GetStringVal())
 				assert.Equal(t, "enterprise", action.Updates[1].GetPath().GetElem()[0].GetName())
 				assert.Equal(t, "aether-ciena", action.Updates[1].Val.GetStringVal())
-				assert.Equal(t, uint64(315), action.Updates[2].Val.GetUintVal())
-				assert.Equal(t, uint64(10), action.Updates[3].Val.GetUintVal())
+				assert.Equal(t, "031", action.Updates[2].Val.GetStringVal())
+				assert.Equal(t, "01", action.Updates[3].Val.GetStringVal())
 				assert.Equal(t, "SSSSSSSSSSSSSSS", action.Updates[4].Val.GetStringVal())
 			case "device-group":
 				assert.Len(t, action.Deletes, 0)

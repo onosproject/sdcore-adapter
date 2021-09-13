@@ -479,8 +479,8 @@
           "up-profile": "ciena"
         },
         "serving-plmn": {
-          "mcc": 315,
-          "mnc": 10,
+          "mcc": 31,
+          "mnc": 1,
           "tac": 5
         }
       },

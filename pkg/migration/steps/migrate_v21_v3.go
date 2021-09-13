@@ -173,8 +173,10 @@ func migrateV21V3SubscriberToSite(fromTarget string, toTarget string, ue *models
 	var updates []*gpb.Update
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, ue.DisplayName))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("enterprise", toTarget, ue.Enterprise))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/mcc", toTarget, ue.ServingPlmn.Mcc))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/mnc", toTarget, ue.ServingPlmn.Mnc))
+	mccString := fmt.Sprintf("%03d", *ue.ServingPlmn.Mcc)
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-definition/mcc", toTarget, &mccString))
+	mncString := fmt.Sprintf("%02d", *ue.ServingPlmn.Mnc)
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-definition/mnc", toTarget, &mncString))
 	genericFormat := "SSSSSSSSSSSSSSS"
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-definition/format", toTarget, &genericFormat))
 
@@ -356,8 +358,10 @@ func createDefaultSite(toTarget string) *migration.MigrationActions {
 	enterprise := defaultEnterpriseID
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("enterprise", toTarget, &enterprise))
 	zero := uint32(0)
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/mcc", toTarget, &zero))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/mnc", toTarget, &zero))
+	emptyMnc := "00"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-definition/mcc", toTarget, &emptyMnc))
+	emptyMcc := "000"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-definition/mnc", toTarget, &emptyMcc))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/enterprise", toTarget, &zero))
 	format := "SSSSSSSSSSSSSSS"
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-definition/format", toTarget, &format))

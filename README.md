@@ -39,10 +39,13 @@ Each step has a model version and modelplugin associated with it. Migrations are
 Migrations are executed between specific versions and targets. For example,
 
 ```bash
-sdcore-migrate -from-target connectivity-v1 -from-version 1.0.0 -to-target connectivity-v2 -to-version 2.0.0 
+sdcore-migrate -from-target connectivity-v2 -from-version 2.1.0 -to-target connectivity-v3 -to-version 3.0.0  \
+--aether-config localhost:5150 --hostCheckDisabled --ah "Bearer ????"
 ```
 
-For now, from_target and to_target must be different in order to compensate for an issue in aether-config, but eventually the expectation is that from_target and to_target can be the same.
+See [here](./cmd/sdcore-migrate/README.md) for more details.
+
+> For now, from_target and to_target must be different in order to compensate for an issue in aether-config, but eventually the expectation is that from_target and to_target can be the same.
 
 # Additional Documentation
 

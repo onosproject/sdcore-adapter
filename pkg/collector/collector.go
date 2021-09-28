@@ -16,6 +16,18 @@ import (
 
 var log = logging.GetLogger("collector")
 
+// RecordSiteMetrics records Site-based metrics
+func RecordSiteMetrics(period time.Duration, siteID string) {
+	go func() {
+		for {
+			aetheredge_e2e_tests_ok.WithLabelValues(siteID).Set(1)
+			aetheredge_e2e_tests_down.WithLabelValues(siteID).Set(0)
+			aetheredge_in_maintenance_window.WithLabelValues(siteID).Set(0)
+			time.Sleep(period)
+		}
+	}()
+}
+
 // RecordMetrics records VCS-based metrics
 func RecordMetrics(period time.Duration, vcdID string) {
 	vcsLatency.WithLabelValues(vcdID).Set(21.0)
@@ -71,6 +83,7 @@ func RecordUEMetrics(period time.Duration, vcsID string, imsiList []string, upTh
 						smfPduSessionProfile.WithLabelValues(imsi, ip, state, "upf", vcsID).Set(1)
 					} else {
 						smfPduSessionProfile.WithLabelValues(imsi, ip, state, "upf", vcsID).Set(0)
+
 					}
 				}
 
@@ -104,12 +117,14 @@ func RecordUEMetrics(period time.Duration, vcsID string, imsiList []string, upTh
 						// Someone turned the knob in the mock-sdcore-exporter control ui.
 						ueLatency.WithLabelValues(imsi, vcsID, "downstream").Set(downLatency * (*PercentDownLatency))
 					}
+					ueSubscriberInfo.WithLabelValues(imsi, ip).Set(1)
 				} else {
 					// inactive UE has no throughput or latency
 					ueThroughput.WithLabelValues(imsi, vcsID, "upstream").Set(0)
 					ueThroughput.WithLabelValues(imsi, vcsID, "downstream").Set(0)
 					ueLatency.WithLabelValues(imsi, vcsID, "upstream").Set(0)
 					ueLatency.WithLabelValues(imsi, vcsID, "downstream").Set(0)
+					ueSubscriberInfo.WithLabelValues(imsi, ip).Set(0)
 				}
 			}
 			smfPduSessions.Set(counts[0]) // counts[0] is active UEs
@@ -119,6 +134,20 @@ func RecordUEMetrics(period time.Duration, vcsID string, imsiList []string, upTh
 }
 
 var (
+	// Site metrics
+	aetheredge_e2e_tests_ok = promauto.NewGaugeVec(prometheus.GaugeOpts{
+                Name: "aetheredge_e2e_tests_ok",
+                Help: "Was E2E connection and ping successful?",
+        }, []string{"name"})
+	aetheredge_e2e_tests_down = promauto.NewGaugeVec(prometheus.GaugeOpts{
+                Name: "aetheredge_e2e_tests_down",
+                Help: "Has the agent failed to send results for 10 minutes?",
+        }, []string{"name"})
+	aetheredge_in_maintenance_window = promauto.NewGaugeVec(prometheus.GaugeOpts{
+                Name: "aetheredge_in_maintenance_window",
+                Help: "Is the edge currently in a maintenance window?",
+        }, []string{"name"})
+	//VCS-based metrics
 	vcsLatency = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "vcs_latency",
 		Help: "VCS Latency",
@@ -143,6 +172,10 @@ var (
 	})
 
 	// UE throughput and latencies are hypothetical per-UE values
+	ueSubscriberInfo = promauto.NewGaugeVec(prometheus.GaugeOpts{
+                Name: "subscriber_info",
+                Help: "Subscriber Info",
+        }, []string{"imsi", "mobile_ip"})
 	ueThroughput = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "ue_throughput",
 		Help: "ue_throughput",

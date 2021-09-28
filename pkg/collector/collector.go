@@ -18,11 +18,28 @@ var log = logging.GetLogger("collector")
 
 // RecordSiteMetrics records Site-based metrics
 func RecordSiteMetrics(period time.Duration, siteID string) {
+	edgeTestsOk.WithLabelValues(siteID).Set(1)
+	edgeTestsDown.WithLabelValues(siteID).Set(0)
+	edgeMaintenanceWindow.WithLabelValues(siteID).Set(0)
+	rand.Seed(time.Now().UnixNano())
+
 	go func() {
 		for {
 			edgeTestsOk.WithLabelValues(siteID).Set(1)
 			edgeTestsDown.WithLabelValues(siteID).Set(0)
 			edgeMaintenanceWindow.WithLabelValues(siteID).Set(0)
+
+			isDisconnected := rand.Intn(100)%9 == 0
+			isInMaintenance := rand.Intn(100)%8 == 0
+
+			if isDisconnected {
+				edgeTestsOk.WithLabelValues(siteID).Set(1)
+				edgeTestsDown.WithLabelValues(siteID).Set(0)
+			}
+			// This is separate condition as even in Maintenanace , Tests can be running and can be successful
+			if isInMaintenance {
+				edgeMaintenanceWindow.WithLabelValues(siteID).Set(1)
+			}
 			time.Sleep(period)
 		}
 	}()

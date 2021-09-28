@@ -20,9 +20,9 @@ var log = logging.GetLogger("collector")
 func RecordSiteMetrics(period time.Duration, siteID string) {
 	go func() {
 		for {
-			aetheredge_e2e_tests_ok.WithLabelValues(siteID).Set(1)
-			aetheredge_e2e_tests_down.WithLabelValues(siteID).Set(0)
-			aetheredge_in_maintenance_window.WithLabelValues(siteID).Set(0)
+			edgeTestsOk.WithLabelValues(siteID).Set(1)
+			edgeTestsDown.WithLabelValues(siteID).Set(0)
+			edgeMaintenanceWindow.WithLabelValues(siteID).Set(0)
 			time.Sleep(period)
 		}
 	}()
@@ -135,18 +135,18 @@ func RecordUEMetrics(period time.Duration, vcsID string, imsiList []string, upTh
 
 var (
 	// Site metrics
-	aetheredge_e2e_tests_ok = promauto.NewGaugeVec(prometheus.GaugeOpts{
-                Name: "aetheredge_e2e_tests_ok",
-                Help: "Was E2E connection and ping successful?",
-        }, []string{"name"})
-	aetheredge_e2e_tests_down = promauto.NewGaugeVec(prometheus.GaugeOpts{
-                Name: "aetheredge_e2e_tests_down",
-                Help: "Has the agent failed to send results for 10 minutes?",
-        }, []string{"name"})
-	aetheredge_in_maintenance_window = promauto.NewGaugeVec(prometheus.GaugeOpts{
-                Name: "aetheredge_in_maintenance_window",
-                Help: "Is the edge currently in a maintenance window?",
-        }, []string{"name"})
+	edgeTestsOk = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "aetheredge_e2e_tests_ok",
+		Help: "Edge Connectivity Tests",
+	}, []string{"name"})
+	edgeTestsDown = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "aetheredge_e2e_tests_down",
+		Help: "Edge Connectivity Tests",
+	}, []string{"name"})
+	edgeMaintenanceWindow = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "aetheredge_in_maintenance_window",
+		Help: "Edge Site in Maintenance",
+	}, []string{"name"})
 	//VCS-based metrics
 	vcsLatency = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "vcs_latency",
@@ -173,9 +173,9 @@ var (
 
 	// UE throughput and latencies are hypothetical per-UE values
 	ueSubscriberInfo = promauto.NewGaugeVec(prometheus.GaugeOpts{
-                Name: "subscriber_info",
-                Help: "Subscriber Info",
-        }, []string{"imsi", "mobile_ip"})
+		Name: "subscriber_info",
+		Help: "subscriber info",
+	}, []string{"imsi"})
 	ueThroughput = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "ue_throughput",
 		Help: "ue_throughput",

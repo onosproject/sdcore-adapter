@@ -1,0 +1,452 @@
+// SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
+//
+// SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+
+package synchronizerv4
+
+import (
+	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
+	"os"
+	"testing"
+)
+
+// to facilitate easy declaring of pointers to strings
+func aStr(s string) *string {
+	return &s
+}
+
+// to facilitate easy declaring of pointers to bools
+func aBool(b bool) *bool {
+	return &b
+}
+
+// to facilitate easy declaring of pointers to int8
+func aInt8(u int8) *int8 {
+	return &u
+}
+
+// to facilitate easy declaring of pointers to uint8
+func aUint8(u uint8) *uint8 {
+	return &u
+}
+
+// to facilitate easy declaring of pointers to uint16
+func aUint16(u uint16) *uint16 {
+	return &u
+}
+
+// to facilitate easy declaring of pointers to uint32
+func aUint32(u uint32) *uint32 {
+	return &u
+}
+
+// to facilitate easy declaring of pointers to uint64
+func aUint64(u uint64) *uint64 {
+	return &u
+}
+
+// populate an Enterprise structure
+func MakeEnterprise(desc string, displayName string, id string, cs []string) *models.Enterprise_Enterprise_Enterprise {
+	csList := map[string]*models.Enterprise_Enterprise_Enterprise_ConnectivityService{}
+
+	for _, csID := range cs {
+		csList[csID] = &models.Enterprise_Enterprise_Enterprise_ConnectivityService{
+			ConnectivityService: aStr(csID),
+			Enabled:             aBool(true),
+		}
+	}
+
+	ent := models.Enterprise_Enterprise_Enterprise{
+		Description:         aStr(desc),
+		DisplayName:         aStr(displayName),
+		Id:                  aStr(id),
+		ConnectivityService: csList,
+	}
+
+	return &ent
+}
+
+func MakeCs(desc string, displayName string, id string) *models.ConnectivityService_ConnectivityService_ConnectivityService {
+	cs := models.ConnectivityService_ConnectivityService_ConnectivityService{
+		Description:     aStr(desc),
+		DisplayName:     aStr(displayName),
+		Id:              aStr(id),
+		Core_5GEndpoint: aStr("http://5gcore"),
+	}
+
+	return &cs
+}
+
+// an empty device should yield empty json
+func TestSynchronizeDeviceEmpty(t *testing.T) {
+	// Get a temporary file name and defer deletion of the file
+	f, err := ioutil.TempFile("", "synchronizer-json")
+	assert.Nil(t, err)
+	tempFileName := f.Name()
+	defer func() {
+		assert.Nil(t, os.Remove(tempFileName))
+	}()
+
+	s := Synchronizer{}
+	s.SetOutputFileName(tempFileName)
+	device := models.Device{}
+	err = s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	content, err := ioutil.ReadFile(tempFileName)
+	assert.Nil(t, err)
+	assert.Equal(t, "", string(content))
+}
+
+func TestSynchronizeDeviceCSEnt(t *testing.T) {
+	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
+	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
+
+	m := &MemPusher{}
+	s := Synchronizer{}
+	s.SetPusher(m)
+
+	device := models.Device{
+		Enterprise:          &models.Enterprise_Enterprise{Enterprise: map[string]*models.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+	}
+	err := s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+}
+
+func BuildSampleDeviceGroup() (
+	*models.Enterprise_Enterprise_Enterprise,
+	*models.ConnectivityService_ConnectivityService_ConnectivityService,
+	*models.IpDomain_IpDomain_IpDomain,
+	*models.Site_Site_Site,
+	*models.DeviceGroup_DeviceGroup_DeviceGroup) {
+	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
+	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
+
+	ipd := &models.IpDomain_IpDomain_IpDomain{
+		Description: aStr("sample-ipd-desc"),
+		DisplayName: aStr("sample-ipd-dn"),
+		Id:          aStr("sample-ipd"),
+		Subnet:      aStr("1.2.3.4/24"),
+		DnsPrimary:  aStr("8.8.8.8"),
+		Mtu:         aUint16(1492),
+		Dnn:         aStr("5ginternet"),
+	}
+	imsiDef := &models.Site_Site_Site_ImsiDefinition{
+		Mcc:        aStr("123"),
+		Mnc:        aStr("456"),
+		Enterprise: aUint32(789),
+		Format:     aStr("CCCNNNEEESSSSSS"),
+	}
+	site := &models.Site_Site_Site{
+		Description:    aStr("sample-site-desc"),
+		DisplayName:    aStr("sample-site-dn"),
+		Id:             aStr("sample-site"),
+		Enterprise:     aStr("sample-ent"),
+		ImsiDefinition: imsiDef,
+	}
+	imsi := models.DeviceGroup_DeviceGroup_DeviceGroup_Imsis{
+		ImsiRangeFrom: aUint64(1),
+	}
+	dg := &models.DeviceGroup_DeviceGroup_DeviceGroup{
+		//Description: aStr("sample-dg-desc"),
+		DisplayName: aStr("sample-dg-dn"),
+		Id:          aStr("sample-dg"),
+		Site:        aStr("sample-site"),
+		IpDomain:    aStr("sample-ipd"),
+		Imsis:       map[string]*models.DeviceGroup_DeviceGroup_DeviceGroup_Imsis{"sample-imsi": &imsi},
+	}
+
+	return ent, cs, ipd, site, dg
+}
+
+func BuildSampleVcs() (
+	*models.ApList_ApList_ApList,
+	*models.Application_Application_Application,
+	*models.Template_Template_Template,
+	*models.TrafficClass_TrafficClass_TrafficClass,
+	*models.Upf_Upf_Upf,
+	*models.Vcs_Vcs_Vcs) {
+
+	ep := &models.Application_Application_Application_Endpoint{
+		Address:   aStr("1.2.3.4"),
+		Name:      aStr("sample-app-ep"),
+		PortStart: aUint16(123),
+		PortEnd:   aUint16(124),
+		Protocol:  aStr("UDP"),
+	}
+
+	ap := &models.ApList_ApList_ApList_AccessPoints{
+		Address: aStr("6.7.8.9"),
+		Enable:  aBool(true),
+		Tac:     aStr("77AB"),
+	}
+
+	apl := &models.ApList_ApList_ApList{
+		Id:           aStr("sample-aplist"),
+		AccessPoints: map[string]*models.ApList_ApList_ApList_AccessPoints{"sample-ap": ap},
+		Description:  aStr("sample-aplist-desc"),
+		DisplayName:  aStr("sample-aplist-dn"),
+		Enterprise:   aStr("sample-ent"),
+	}
+
+	app := &models.Application_Application_Application{
+		Id:          aStr("sample-app"),
+		Description: aStr("sample-app-desc"),
+		DisplayName: aStr("sample-app-dn"),
+		Endpoint:    map[string]*models.Application_Application_Application_Endpoint{"sample-app-ep": ep},
+		Enterprise:  aStr("sample-ent"),
+	}
+
+	appLink := &models.Vcs_Vcs_Vcs_Application{
+		Allow:       aBool(true),
+		Application: aStr("sample-app"),
+	}
+
+	dgLink := &models.Vcs_Vcs_Vcs_DeviceGroup{
+		DeviceGroup: aStr("sample-dg"),
+		Enable:      aBool(true),
+	}
+
+	tp := &models.Template_Template_Template{
+		Id:           aStr("sample-template"),
+		Description:  aStr("sample-template-desc"),
+		DisplayName:  aStr("sample-template-dn"),
+		Downlink:     aUint32(4321),
+		Uplink:       aUint32(8765),
+		Sd:           aUint32(111),
+		Sst:          aUint8(222),
+		TrafficClass: aStr("sample-traffic-class"),
+	}
+
+	tc := &models.TrafficClass_TrafficClass_TrafficClass{
+		Id:          aStr("sample-traffic-class"),
+		Description: aStr("sample-traffic-class-desc"),
+		DisplayName: aStr("sample-traffic-class-dn"),
+		Pdb:         aUint16(333),
+		Pelr:        aInt8(44),
+		Qci:         aUint8(55),
+	}
+
+	upf := &models.Upf_Upf_Upf{
+		Id:          aStr("sample-upf"),
+		Address:     aStr("2.3.4.5"),
+		Description: aStr("sample-upf-desc"),
+		DisplayName: aStr("sample-upf-dn"),
+		Port:        aUint16(66),
+	}
+
+	vcs := &models.Vcs_Vcs_Vcs{
+		Ap:           aStr("sample-aplist"),
+		Application:  map[string]*models.Vcs_Vcs_Vcs_Application{"sample-app": appLink},
+		Description:  aStr("sample-vcs-desc"),
+		DeviceGroup:  map[string]*models.Vcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
+		DisplayName:  aStr("sample-app-dn"),
+		Downlink:     aUint32(4321),
+		Uplink:       aUint32(8765),
+		Id:           aStr("sample-vcs"),
+		Sd:           aUint32(111),
+		Sst:          aUint8(222),
+		Template:     aStr("sample-template"),
+		TrafficClass: aStr("sample-traffic-class"),
+		Upf:          aStr("sample-upf"),
+	}
+
+	return apl, app, tp, tc, upf, vcs
+}
+
+func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
+
+	m := NewMemPusher()
+	s := Synchronizer{}
+	s.SetPusher(m)
+
+	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
+
+	device := models.Device{
+		Enterprise:          &models.Enterprise_Enterprise{Enterprise: map[string]*models.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.Site_Site{Site: map[string]*models.Site_Site_Site{"sample-site": site}},
+		IpDomain:            &models.IpDomain_IpDomain{IpDomain: map[string]*models.IpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.DeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.DeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
+	}
+	err := s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	assert.True(t, okay)
+	if okay {
+		expectedResult := `{
+			"imsis": [
+			  "123456789000001"
+			],
+			"ip-domain-name": "sample-ipd",
+			"site-info": "sample-site",
+			"ip-domain-expanded": {
+			  "dnn": "5ginternet",
+			  "ue-ip-pool": "1.2.3.4/24",
+			  "dns-primary": "8.8.8.8",
+			  "mtu": 1492
+			}
+		  }`
+		require.JSONEq(t, expectedResult, json)
+	}
+}
+
+func TestSynchronizeVCS(t *testing.T) {
+	m := NewMemPusher()
+	s := Synchronizer{}
+	s.SetPusher(m)
+
+	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
+	apl, app, tp, tc, upf, vcs := BuildSampleVcs()
+
+	device := models.Device{
+		Enterprise:          &models.Enterprise_Enterprise{Enterprise: map[string]*models.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.Site_Site{Site: map[string]*models.Site_Site_Site{"sample-site": site}},
+		IpDomain:            &models.IpDomain_IpDomain{IpDomain: map[string]*models.IpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.DeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.DeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
+		ApList:              &models.ApList_ApList{ApList: map[string]*models.ApList_ApList_ApList{*apl.Id: apl}},
+		Application:         &models.Application_Application{Application: map[string]*models.Application_Application_Application{*app.Id: app}},
+		Template:            &models.Template_Template{Template: map[string]*models.Template_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models.TrafficClass_TrafficClass{TrafficClass: map[string]*models.TrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		Upf:                 &models.Upf_Upf{Upf: map[string]*models.Upf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models.Vcs_Vcs{Vcs: map[string]*models.Vcs_Vcs_Vcs{*vcs.Id: vcs}},
+	}
+
+	err := s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+	json, okay := m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	assert.True(t, okay)
+	if okay {
+		expectedResult := `{
+			"slice-id": {
+			  "sst": "222",
+			  "sd": "00006F"
+			},
+			"qos": {
+			  "uplink": 8765,
+			  "downlink": 4321,
+			  "traffic-class": "sample-traffic-class"
+			},
+			"site-device-group": [
+			  "sample-dg"
+			],
+			"site-info": {
+			  "site-name": "sample-site",
+			  "plmn": {
+				"mcc": "123",
+				"mnc": "456"
+			  },
+			  "gNodeBs": [
+				{
+				  "name": "6.7.8.9",
+				  "tac": 30635
+				}
+			  ],
+			  "upf": {
+				"upf-name": "2.3.4.5",
+				"upf-port": 66
+			  }
+			},
+			"deny-applications": [],
+			"permit-applications": [
+			  "sample-app"
+			],
+			"applications-information": [
+			  {
+				"app-name": "sample-app",
+				"endpoint": "1.2.3.4/32",
+				"start-port": 123,
+				"end-port": 124,
+				"protocol": 17
+			  }
+			]
+		  }`
+
+		require.JSONEq(t, expectedResult, json)
+	}
+}
+
+func TestSynchronizeVCSEmptySD(t *testing.T) {
+	m := NewMemPusher()
+	s := Synchronizer{}
+	s.SetPusher(m)
+
+	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
+	apl, app, tp, tc, upf, vcs := BuildSampleVcs()
+
+	// Set the SD to nil.
+	vcs.Sd = nil
+
+	device := models.Device{
+		Enterprise:          &models.Enterprise_Enterprise{Enterprise: map[string]*models.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.Site_Site{Site: map[string]*models.Site_Site_Site{"sample-site": site}},
+		IpDomain:            &models.IpDomain_IpDomain{IpDomain: map[string]*models.IpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.DeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.DeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
+		ApList:              &models.ApList_ApList{ApList: map[string]*models.ApList_ApList_ApList{*apl.Id: apl}},
+		Application:         &models.Application_Application{Application: map[string]*models.Application_Application_Application{*app.Id: app}},
+		Template:            &models.Template_Template{Template: map[string]*models.Template_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models.TrafficClass_TrafficClass{TrafficClass: map[string]*models.TrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		Upf:                 &models.Upf_Upf{Upf: map[string]*models.Upf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models.Vcs_Vcs{Vcs: map[string]*models.Vcs_Vcs_Vcs{*vcs.Id: vcs}},
+	}
+
+	err := s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+	json, okay := m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	assert.True(t, okay)
+	if okay {
+		expectedResult := `{
+			"slice-id": {
+			  "sst": "222",
+			  "sd": ""
+			},
+			"qos": {
+			  "uplink": 8765,
+			  "downlink": 4321,
+			  "traffic-class": "sample-traffic-class"
+			},
+			"site-device-group": [
+			  "sample-dg"
+			],
+			"site-info": {
+			  "site-name": "sample-site",
+			  "plmn": {
+				"mcc": "123",
+				"mnc": "456"
+			  },
+			  "gNodeBs": [
+				{
+				  "name": "6.7.8.9",
+				  "tac": 30635
+				}
+			  ],
+			  "upf": {
+				"upf-name": "2.3.4.5",
+				"upf-port": 66
+			  }
+			},
+			"deny-applications": [],
+			"permit-applications": [
+			  "sample-app"
+			],
+			"applications-information": [
+			  {
+				"app-name": "sample-app",
+				"endpoint": "1.2.3.4/32",
+				"start-port": 123,
+				"end-port": 124,
+				"protocol": 17
+			  }
+			]
+		  }`
+
+		require.JSONEq(t, expectedResult, json)
+	}
+}

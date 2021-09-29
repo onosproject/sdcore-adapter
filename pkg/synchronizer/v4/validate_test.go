@@ -64,21 +64,21 @@ func TestValidateSmallCell(t *testing.T) {
 		Address: aStr("1.2.3.4"),
 		Tac:     aStr("1234"),
 	}
-	err := ValidateSmallCell(a)
+	err := validateSmallCell(a)
 	assert.Nil(t, err)
 
 	// missing address
 	a = &models_v4.OnfSite_Site_Site_SmallCell{
 		Tac: aStr("1234"),
 	}
-	err = ValidateSmallCell(a)
+	err = validateSmallCell(a)
 	assert.EqualError(t, err, "Address is nil")
 
 	// missing Tac
 	a = &models_v4.OnfSite_Site_Site_SmallCell{
 		Address: aStr("1.2.3.4"),
 	}
-	err = ValidateSmallCell(a)
+	err = validateSmallCell(a)
 	assert.EqualError(t, err, "Tac is nil")
 }
 

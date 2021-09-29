@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv3 implements a synchronizer for Aether v3 models
+// Package synchronizerv4 implements a synchronizer for Aether v4 models
 package synchronizerv4
 
 import (

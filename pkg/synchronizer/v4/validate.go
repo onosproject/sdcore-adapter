@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv3 implements declarations and utilities for the v3 synchronizer.
+// Package synchronizerv4 implements declarations and utilities for the v4 synchronizer.
 package synchronizerv4
 
 import (
@@ -42,7 +42,7 @@ func validateIPDomain(ipd *models.OnfIpDomain_IpDomain_IpDomain) error {
 }
 
 // return error if SmallCell cannot be synchronized due to missing data
-func ValidateSmallCell(ap *models.OnfSite_Site_Site_SmallCell) error {
+func validateSmallCell(ap *models.OnfSite_Site_Site_SmallCell) error {
 	if ap.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}

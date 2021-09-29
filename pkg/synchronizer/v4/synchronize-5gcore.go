@@ -430,7 +430,7 @@ vcsLoop:
 
 		if site.SmallCell != nil {
 			for _, ap := range site.SmallCell {
-				err = ValidateSmallCell(ap)
+				err = validateSmallCell(ap)
 				if err != nil {
 					log.Warnf("SmallCell invalid: %s", err)
 					continue vcsLoop
@@ -488,14 +488,13 @@ vcsLoop:
 			slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
 		}
 
-		// TODO: These should be uint64 in the modeling
 		if vcs.Device != nil {
 			if vcs.Device.Mbr != nil {
 				if vcs.Device.Mbr.Uplink != nil {
-					slice.Qos.Uplink = uint64(*vcs.Device.Mbr.Uplink)
+					slice.Qos.Uplink = *vcs.Device.Mbr.Uplink
 				}
 				if vcs.Device.Mbr.Downlink != nil {
-					slice.Qos.Downlink = uint64(*vcs.Device.Mbr.Downlink)
+					slice.Qos.Downlink = *vcs.Device.Mbr.Downlink
 				}
 			}
 		}

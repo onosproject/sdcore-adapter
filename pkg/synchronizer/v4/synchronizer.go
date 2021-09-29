@@ -10,7 +10,6 @@ import (
 	modelplugin "github.com/onosproject/config-models/modelplugin/aether-4.0.0/modelplugin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
-	gnmiproto "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
 	"time"

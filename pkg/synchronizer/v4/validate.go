@@ -18,7 +18,7 @@ import (
 // TODO: See if there is a way to do this automatically using ygot
 
 // return error if VCS cannot be synchronized due to missing data
-func validateVcs(vcs *models.Vcs_Vcs_Vcs) error {
+func validateVcs(vcs *models.OnfVcs_Vcs_Vcs) error {
 	if vcs.Sst == nil {
 		return fmt.Errorf("Sst is nil")
 	}
@@ -26,10 +26,7 @@ func validateVcs(vcs *models.Vcs_Vcs_Vcs) error {
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func validateAppEndpoint(ep *models.Application_Application_Application_Endpoint) error {
-	if ep.Address == nil {
-		return fmt.Errorf("Address is nil")
-	}
+func validateAppEndpoint(ep *models.OnfApplication_Application_Application_Endpoint) error {
 	if ep.PortStart == nil {
 		return fmt.Errorf("PortStart is nil")
 	}
@@ -37,7 +34,7 @@ func validateAppEndpoint(ep *models.Application_Application_Application_Endpoint
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func validateIPDomain(ipd *models.IpDomain_IpDomain_IpDomain) error {
+func validateIPDomain(ipd *models.OnfIpDomain_IpDomain_IpDomain) error {
 	if ipd.Subnet == nil {
 		return fmt.Errorf("Subnet is nil")
 	}
@@ -45,7 +42,7 @@ func validateIPDomain(ipd *models.IpDomain_IpDomain_IpDomain) error {
 }
 
 // return error if AccessPoint cannot be synchronized due to missing data
-func validateAccessPoint(ap *models.ApList_ApList_ApList_AccessPoints) error {
+func validateAccessPoint(ap *models.OnfSite_Site_Site_SmallCell) error {
 	if ap.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -56,7 +53,7 @@ func validateAccessPoint(ap *models.ApList_ApList_ApList_AccessPoints) error {
 }
 
 // return error if UPF cannot be synchronized due to missing data
-func validateUpf(u *models.Upf_Upf_Upf) error {
+func validateUpf(u *models.OnfUpf_Upf_Upf) error {
 	if u.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -66,7 +63,7 @@ func validateUpf(u *models.Upf_Upf_Upf) error {
 	return nil
 }
 
-func validateImsiDefinition(i *models.Site_Site_Site_ImsiDefinition) error {
+func validateImsiDefinition(i *models.OnfSite_Site_Site_ImsiDefinition) error {
 	var format string
 	if i.Format != nil {
 		format = *i.Format

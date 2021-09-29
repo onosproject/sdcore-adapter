@@ -38,7 +38,7 @@ func TestFormatImsi(t *testing.T) {
 }
 
 func TestFormatImsiDef(t *testing.T) {
-	i := &models.Site_Site_Site_ImsiDefinition{
+	i := &models.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
@@ -49,7 +49,7 @@ func TestFormatImsiDef(t *testing.T) {
 	assert.Equal(t, uint64(123450789123456), imsi)
 
 	// If format is nil, a default will be used
-	i = &models.Site_Site_Site_ImsiDefinition{
+	i = &models.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
@@ -62,7 +62,7 @@ func TestFormatImsiDef(t *testing.T) {
 	// Should reproduce the same errors as validateImsiDefinition
 
 	// missing MCC
-	i = &models.Site_Site_Site_ImsiDefinition{
+	i = &models.OnfSite_Site_Site_ImsiDefinition{
 		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
@@ -71,7 +71,7 @@ func TestFormatImsiDef(t *testing.T) {
 	assert.EqualError(t, err, "Format contains C, yet MCC is nil")
 
 	// missing MNC
-	i = &models.Site_Site_Site_ImsiDefinition{
+	i = &models.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
@@ -80,7 +80,7 @@ func TestFormatImsiDef(t *testing.T) {
 	assert.EqualError(t, err, "Format contains N, yet MNC is nil")
 
 	// missing Ent
-	i = &models.Site_Site_Site_ImsiDefinition{
+	i = &models.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:    aStr("123"),
 		Mnc:    aStr("45"),
 		Format: aStr("CCCNN0EEESSSSSS"),
@@ -89,7 +89,7 @@ func TestFormatImsiDef(t *testing.T) {
 	assert.EqualError(t, err, "Format contains E, yet Enterprise is nil")
 
 	// Wrong number of characters
-	i = &models.Site_Site_Site_ImsiDefinition{
+	i = &models.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
@@ -99,7 +99,7 @@ func TestFormatImsiDef(t *testing.T) {
 	assert.EqualError(t, err, "Format is not 15 characters")
 
 	// 15-digit IMSI is just fine
-	i = &models.Site_Site_Site_ImsiDefinition{
+	i = &models.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("321"),
 		Mnc:        aStr("54"),
 		Enterprise: aUint32(987),
@@ -110,7 +110,7 @@ func TestFormatImsiDef(t *testing.T) {
 	assert.Equal(t, uint64(123456789012345), imsi)
 
 	// Test bugfix on nil Enterprise
-	i = &models.Site_Site_Site_ImsiDefinition{
+	i = &models.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("321"),
 		Mnc:        aStr("54"),
 		Enterprise: nil,

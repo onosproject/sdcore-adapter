@@ -49,17 +49,17 @@ func aUint64(u uint64) *uint64 {
 }
 
 // populate an Enterprise structure
-func MakeEnterprise(desc string, displayName string, id string, cs []string) *models.Enterprise_Enterprise_Enterprise {
-	csList := map[string]*models.Enterprise_Enterprise_Enterprise_ConnectivityService{}
+func MakeEnterprise(desc string, displayName string, id string, cs []string) *models.OnfEnterprise_Enterprise_Enterprise {
+	csList := map[string]*models.OnfEnterprise_Enterprise_Enterprise_ConnectivityService{}
 
 	for _, csID := range cs {
-		csList[csID] = &models.Enterprise_Enterprise_Enterprise_ConnectivityService{
+		csList[csID] = &models.OnfEnterprise_Enterprise_Enterprise_ConnectivityService{
 			ConnectivityService: aStr(csID),
 			Enabled:             aBool(true),
 		}
 	}
 
-	ent := models.Enterprise_Enterprise_Enterprise{
+	ent := models.OnfEnterprise_Enterprise_Enterprise{
 		Description:         aStr(desc),
 		DisplayName:         aStr(displayName),
 		Id:                  aStr(id),
@@ -69,8 +69,8 @@ func MakeEnterprise(desc string, displayName string, id string, cs []string) *mo
 	return &ent
 }
 
-func MakeCs(desc string, displayName string, id string) *models.ConnectivityService_ConnectivityService_ConnectivityService {
-	cs := models.ConnectivityService_ConnectivityService_ConnectivityService{
+func MakeCs(desc string, displayName string, id string) *models.OnfConnectivityService_ConnectivityService_ConnectivityService {
+	cs := models.OnfConnectivityService_ConnectivityService_ConnectivityService{
 		Description:     aStr(desc),
 		DisplayName:     aStr(displayName),
 		Id:              aStr(id),
@@ -110,23 +110,23 @@ func TestSynchronizeDeviceCSEnt(t *testing.T) {
 	s.SetPusher(m)
 
 	device := models.Device{
-		Enterprise:          &models.Enterprise_Enterprise{Enterprise: map[string]*models.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
 	}
 	err := s.SynchronizeDevice(&device)
 	assert.Nil(t, err)
 }
 
 func BuildSampleDeviceGroup() (
-	*models.Enterprise_Enterprise_Enterprise,
-	*models.ConnectivityService_ConnectivityService_ConnectivityService,
-	*models.IpDomain_IpDomain_IpDomain,
-	*models.Site_Site_Site,
-	*models.DeviceGroup_DeviceGroup_DeviceGroup) {
+	*models.OnfEnterprise_Enterprise_Enterprise,
+	*models.OnfConnectivityService_ConnectivityService_ConnectivityService,
+	*models.OnfIpDomain_IpDomain_IpDomain,
+	*models.OnfSite_Site_Site,
+	*models.OnfDeviceGroup_DeviceGroup_DeviceGroup) {
 	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
 	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
 
-	ipd := &models.IpDomain_IpDomain_IpDomain{
+	ipd := &models.OnfIpDomain_IpDomain_IpDomain{
 		Description: aStr("sample-ipd-desc"),
 		DisplayName: aStr("sample-ipd-dn"),
 		Id:          aStr("sample-ipd"),
@@ -135,103 +135,101 @@ func BuildSampleDeviceGroup() (
 		Mtu:         aUint16(1492),
 		Dnn:         aStr("5ginternet"),
 	}
-	imsiDef := &models.Site_Site_Site_ImsiDefinition{
+	imsiDef := &models.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Mnc:        aStr("456"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNNNEEESSSSSS"),
 	}
-	site := &models.Site_Site_Site{
+	sc := &models.OnfSite_Site_Site_SmallCell{
+		Name:    aStr("myradio"),
+		Address: aStr("6.7.8.9"),
+		Enable:  aBool(true),
+		Tac:     aStr("77AB"),
+	}
+	site := &models.OnfSite_Site_Site{
 		Description:    aStr("sample-site-desc"),
 		DisplayName:    aStr("sample-site-dn"),
 		Id:             aStr("sample-site"),
 		Enterprise:     aStr("sample-ent"),
 		ImsiDefinition: imsiDef,
+		SmallCell:      map[string]*models.OnfSite_Site_Site_SmallCell{"myradio": sc},
 	}
-	imsi := models.DeviceGroup_DeviceGroup_DeviceGroup_Imsis{
+	imsi := models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{
 		ImsiRangeFrom: aUint64(1),
 	}
-	dg := &models.DeviceGroup_DeviceGroup_DeviceGroup{
+	dg := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup{
 		//Description: aStr("sample-dg-desc"),
 		DisplayName: aStr("sample-dg-dn"),
 		Id:          aStr("sample-dg"),
 		Site:        aStr("sample-site"),
 		IpDomain:    aStr("sample-ipd"),
-		Imsis:       map[string]*models.DeviceGroup_DeviceGroup_DeviceGroup_Imsis{"sample-imsi": &imsi},
+		Imsis:       map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{"sample-imsi": &imsi},
 	}
 
 	return ent, cs, ipd, site, dg
 }
 
 func BuildSampleVcs() (
-	*models.ApList_ApList_ApList,
-	*models.Application_Application_Application,
-	*models.Template_Template_Template,
-	*models.TrafficClass_TrafficClass_TrafficClass,
-	*models.Upf_Upf_Upf,
-	*models.Vcs_Vcs_Vcs) {
+	*models.OnfApplication_Application_Application,
+	*models.OnfTemplate_Template_Template,
+	*models.OnfTrafficClass_TrafficClass_TrafficClass,
+	*models.OnfUpf_Upf_Upf,
+	*models.OnfVcs_Vcs_Vcs) {
 
-	ep := &models.Application_Application_Application_Endpoint{
-		Address:   aStr("1.2.3.4"),
+	ep := &models.OnfApplication_Application_Application_Endpoint{
 		Name:      aStr("sample-app-ep"),
 		PortStart: aUint16(123),
 		PortEnd:   aUint16(124),
 		Protocol:  aStr("UDP"),
 	}
 
-	ap := &models.ApList_ApList_ApList_AccessPoints{
-		Address: aStr("6.7.8.9"),
-		Enable:  aBool(true),
-		Tac:     aStr("77AB"),
-	}
-
-	apl := &models.ApList_ApList_ApList{
-		Id:           aStr("sample-aplist"),
-		AccessPoints: map[string]*models.ApList_ApList_ApList_AccessPoints{"sample-ap": ap},
-		Description:  aStr("sample-aplist-desc"),
-		DisplayName:  aStr("sample-aplist-dn"),
-		Enterprise:   aStr("sample-ent"),
-	}
-
-	app := &models.Application_Application_Application{
+	app := &models.OnfApplication_Application_Application{
 		Id:          aStr("sample-app"),
 		Description: aStr("sample-app-desc"),
 		DisplayName: aStr("sample-app-dn"),
-		Endpoint:    map[string]*models.Application_Application_Application_Endpoint{"sample-app-ep": ep},
+		Address:     aStr("1.2.3.4"),
+		Endpoint:    map[string]*models.OnfApplication_Application_Application_Endpoint{"sample-app-ep": ep},
 		Enterprise:  aStr("sample-ent"),
 	}
 
-	appLink := &models.Vcs_Vcs_Vcs_Application{
+	appLink := &models.OnfVcs_Vcs_Vcs_Filter{
 		Allow:       aBool(true),
 		Application: aStr("sample-app"),
 	}
 
-	dgLink := &models.Vcs_Vcs_Vcs_DeviceGroup{
+	dgLink := &models.OnfVcs_Vcs_Vcs_DeviceGroup{
 		DeviceGroup: aStr("sample-dg"),
 		Enable:      aBool(true),
 	}
 
-	tp := &models.Template_Template_Template{
+	tpDevMbr := &models.OnfTemplate_Template_Template_Device_Mbr{
+		Downlink: aUint64(4321),
+		Uplink:   aUint64(8765),
+	}
+	tpDev := &models.OnfTemplate_Template_Template_Device{
+		Mbr: tpDevMbr,
+	}
+
+	tp := &models.OnfTemplate_Template_Template{
 		Id:           aStr("sample-template"),
 		Description:  aStr("sample-template-desc"),
 		DisplayName:  aStr("sample-template-dn"),
-		Downlink:     aUint32(4321),
-		Uplink:       aUint32(8765),
+		Device:       tpDev,
 		Sd:           aUint32(111),
 		Sst:          aUint8(222),
 		TrafficClass: aStr("sample-traffic-class"),
 	}
 
-	tc := &models.TrafficClass_TrafficClass_TrafficClass{
+	tc := &models.OnfTrafficClass_TrafficClass_TrafficClass{
 		Id:          aStr("sample-traffic-class"),
 		Description: aStr("sample-traffic-class-desc"),
 		DisplayName: aStr("sample-traffic-class-dn"),
-		Pdb:         aUint16(333),
-		Pelr:        aInt8(44),
 		Qci:         aUint8(55),
+		Arp:         aUint8(3),
 	}
 
-	upf := &models.Upf_Upf_Upf{
+	upf := &models.OnfUpf_Upf_Upf{
 		Id:          aStr("sample-upf"),
 		Address:     aStr("2.3.4.5"),
 		Description: aStr("sample-upf-desc"),
@@ -239,14 +237,20 @@ func BuildSampleVcs() (
 		Port:        aUint16(66),
 	}
 
-	vcs := &models.Vcs_Vcs_Vcs{
-		Ap:           aStr("sample-aplist"),
-		Application:  map[string]*models.Vcs_Vcs_Vcs_Application{"sample-app": appLink},
+	vcDevMbr := &models.OnfVcs_Vcs_Vcs_Device_Mbr{
+		Downlink: aUint64(4321),
+		Uplink:   aUint64(8765),
+	}
+	vcDev := &models.OnfVcs_Vcs_Vcs_Device{
+		Mbr: vcDevMbr,
+	}
+
+	vcs := &models.OnfVcs_Vcs_Vcs{
+		Filter:       map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink},
 		Description:  aStr("sample-vcs-desc"),
-		DeviceGroup:  map[string]*models.Vcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
+		DeviceGroup:  map[string]*models.OnfVcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
 		DisplayName:  aStr("sample-app-dn"),
-		Downlink:     aUint32(4321),
-		Uplink:       aUint32(8765),
+		Device:       vcDev,
 		Id:           aStr("sample-vcs"),
 		Sd:           aUint32(111),
 		Sst:          aUint8(222),
@@ -255,7 +259,7 @@ func BuildSampleVcs() (
 		Upf:          aStr("sample-upf"),
 	}
 
-	return apl, app, tp, tc, upf, vcs
+	return app, tp, tc, upf, vcs
 }
 
 func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
@@ -267,11 +271,11 @@ func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
 	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
 
 	device := models.Device{
-		Enterprise:          &models.Enterprise_Enterprise{Enterprise: map[string]*models.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
-		Site:                &models.Site_Site{Site: map[string]*models.Site_Site_Site{"sample-site": site}},
-		IpDomain:            &models.IpDomain_IpDomain{IpDomain: map[string]*models.IpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
-		DeviceGroup:         &models.DeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.DeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
 	}
 	err := s.SynchronizeDevice(&device)
 	assert.Nil(t, err)
@@ -302,20 +306,19 @@ func TestSynchronizeVCS(t *testing.T) {
 	s.SetPusher(m)
 
 	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	apl, app, tp, tc, upf, vcs := BuildSampleVcs()
+	app, tp, tc, upf, vcs := BuildSampleVcs()
 
 	device := models.Device{
-		Enterprise:          &models.Enterprise_Enterprise{Enterprise: map[string]*models.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
-		Site:                &models.Site_Site{Site: map[string]*models.Site_Site_Site{"sample-site": site}},
-		IpDomain:            &models.IpDomain_IpDomain{IpDomain: map[string]*models.IpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
-		DeviceGroup:         &models.DeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.DeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
-		ApList:              &models.ApList_ApList{ApList: map[string]*models.ApList_ApList_ApList{*apl.Id: apl}},
-		Application:         &models.Application_Application{Application: map[string]*models.Application_Application_Application{*app.Id: app}},
-		Template:            &models.Template_Template{Template: map[string]*models.Template_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.TrafficClass_TrafficClass{TrafficClass: map[string]*models.TrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
-		Upf:                 &models.Upf_Upf{Upf: map[string]*models.Upf_Upf_Upf{*upf.Id: upf}},
-		Vcs:                 &models.Vcs_Vcs{Vcs: map[string]*models.Vcs_Vcs_Vcs{*vcs.Id: vcs}},
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
+		Application:         &models.OnfApplication_Application{Application: map[string]*models.OnfApplication_Application_Application{*app.Id: app}},
+		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
 	err := s.SynchronizeDevice(&device)
@@ -378,23 +381,22 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 	s.SetPusher(m)
 
 	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	apl, app, tp, tc, upf, vcs := BuildSampleVcs()
+	app, tp, tc, upf, vcs := BuildSampleVcs()
 
 	// Set the SD to nil.
 	vcs.Sd = nil
 
 	device := models.Device{
-		Enterprise:          &models.Enterprise_Enterprise{Enterprise: map[string]*models.Enterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.ConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.ConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
-		Site:                &models.Site_Site{Site: map[string]*models.Site_Site_Site{"sample-site": site}},
-		IpDomain:            &models.IpDomain_IpDomain{IpDomain: map[string]*models.IpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
-		DeviceGroup:         &models.DeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.DeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
-		ApList:              &models.ApList_ApList{ApList: map[string]*models.ApList_ApList_ApList{*apl.Id: apl}},
-		Application:         &models.Application_Application{Application: map[string]*models.Application_Application_Application{*app.Id: app}},
-		Template:            &models.Template_Template{Template: map[string]*models.Template_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.TrafficClass_TrafficClass{TrafficClass: map[string]*models.TrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
-		Upf:                 &models.Upf_Upf{Upf: map[string]*models.Upf_Upf_Upf{*upf.Id: upf}},
-		Vcs:                 &models.Vcs_Vcs{Vcs: map[string]*models.Vcs_Vcs_Vcs{*vcs.Id: vcs}},
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
+		Application:         &models.OnfApplication_Application{Application: map[string]*models.OnfApplication_Application_Application{*app.Id: app}},
+		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
 	err := s.SynchronizeDevice(&device)

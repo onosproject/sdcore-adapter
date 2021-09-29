@@ -160,7 +160,7 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 }
 
 // SynchronizeConnectivityService synchronizes a connectivity service
-func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	log.Infof("Synchronizing Connectivity Service %s", *cs.Id)
 
 	if device.DeviceGroup != nil {
@@ -180,7 +180,7 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 }
 
 // GetIPDomain looks up an IpDomain
-func (s *Synchronizer) GetIPDomain(device *models.Device, id *string) (*models.IpDomain_IpDomain_IpDomain, error) {
+func (s *Synchronizer) GetIPDomain(device *models.Device, id *string) (*models.OnfIpDomain_IpDomain_IpDomain, error) {
 	if device.IpDomain == nil {
 		return nil, fmt.Errorf("Device contains no IpDomains")
 	}
@@ -194,23 +194,8 @@ func (s *Synchronizer) GetIPDomain(device *models.Device, id *string) (*models.I
 	return ipd, nil
 }
 
-// GetApList looks up an ApList
-func (s *Synchronizer) GetApList(device *models.Device, id *string) (*models.ApList_ApList_ApList, error) {
-	if device.ApList == nil {
-		return nil, fmt.Errorf("Device contains no ApLists")
-	}
-	if (id == nil) || (*id == "") {
-		return nil, fmt.Errorf("ApList id is blank")
-	}
-	apl, okay := device.ApList.ApList[*id]
-	if !okay {
-		return nil, fmt.Errorf("ApList %s not found", *id)
-	}
-	return apl, nil
-}
-
 // GetUpf looks up a Upf
-func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.Upf_Upf_Upf, error) {
+func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.OnfUpf_Upf_Upf, error) {
 	if device.Upf == nil {
 		return nil, fmt.Errorf("Device contains no Upfs")
 	}
@@ -225,7 +210,7 @@ func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.Upf_Up
 }
 
 // GetApplication looks up an application
-func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*models.Application_Application_Application, error) {
+func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*models.OnfApplication_Application_Application, error) {
 	if device.Application == nil {
 		return nil, fmt.Errorf("Device contains no Applications")
 	}
@@ -240,7 +225,7 @@ func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*model
 }
 
 // GetTrafficClass looks up a TrafficClass
-func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*models.TrafficClass_TrafficClass_TrafficClass, error) {
+func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*models.OnfTrafficClass_TrafficClass_TrafficClass, error) {
 	if device.TrafficClass == nil {
 		return nil, fmt.Errorf("Device contains no Traffic Classes")
 	}
@@ -255,7 +240,7 @@ func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*mode
 }
 
 // GetDeviceGroupSite gets the site for a DeviceGroup
-func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
+func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) (*models.OnfSite_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
 		return nil, fmt.Errorf("DeviceGroup %s has no site", *dg.Id)
 	}
@@ -270,8 +255,8 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.Devi
 }
 
 // GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it, and the Site.
-func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs) ([]*models.DeviceGroup_DeviceGroup_DeviceGroup, *models.Site_Site_Site, error) {
-	dgList := []*models.DeviceGroup_DeviceGroup_DeviceGroup{}
+func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, *models.OnfSite_Site_Site, error) {
+	dgList := []*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{}
 	for _, dgLink := range vcs.DeviceGroup {
 		if !*dgLink.Enable {
 			continue
@@ -304,7 +289,7 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vc
 }
 
 // SynchronizeDeviceGroups synchronizes the device groups
-func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	pushFailures := 0
 deviceGroupLoop:
 	for _, dg := range device.DeviceGroup.DeviceGroup {
@@ -404,7 +389,7 @@ deviceGroupLoop:
 }
 
 // SynchronizeVcs synchronizes the VCSes
-func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.ConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	pushFailures := 0
 vcsLoop:
 	for _, vcs := range device.Vcs.Vcs {
@@ -443,22 +428,17 @@ vcsLoop:
 			Plmn:     plmn,
 		}
 
-		if vcs.Ap != nil {
-			apList, err := s.GetApList(device, vcs.Ap)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine ap list: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			for _, ap := range apList.AccessPoints {
+		if site.SmallCell != nil {
+			for _, ap := range site.SmallCell {
 				err = validateAccessPoint(ap)
 				if err != nil {
-					log.Warnf("AccessPointList %s invalid: %s", *apList.Id, err)
+					log.Warnf("SmallCell invalid: %s", err)
 					continue vcsLoop
 				}
 				if *ap.Enable {
 					tac, err := strconv.ParseUint(*ap.Tac, 16, 32)
 					if err != nil {
-						log.Warnf("AccessPointList %s Failed to convert tac %s to integer: %v", *apList.Id, *ap.Tac, err)
+						log.Warnf("SmallCell Failed to convert tac %s to integer: %v", *ap.Tac, err)
 						continue vcsLoop
 					}
 					gNodeB := gNodeB{
@@ -509,11 +489,15 @@ vcsLoop:
 		}
 
 		// TODO: These should be uint64 in the modeling
-		if vcs.Uplink != nil {
-			slice.Qos.Uplink = uint64(*vcs.Uplink)
-		}
-		if vcs.Downlink != nil {
-			slice.Qos.Downlink = uint64(*vcs.Downlink)
+		if vcs.Device != nil {
+			if vcs.Device.Mbr != nil {
+				if vcs.Device.Mbr.Uplink != nil {
+					slice.Qos.Uplink = uint64(*vcs.Device.Mbr.Uplink)
+				}
+				if vcs.Device.Mbr.Downlink != nil {
+					slice.Qos.Downlink = uint64(*vcs.Device.Mbr.Downlink)
+				}
+			}
 		}
 
 		if vcs.TrafficClass != nil {
@@ -525,7 +509,7 @@ vcsLoop:
 			slice.Qos.TrafficClass = *trafficClass.Id
 		}
 
-		for _, appRef := range vcs.Application {
+		for _, appRef := range vcs.Filter {
 			app, err := s.GetApplication(device, appRef.Application)
 			if err != nil {
 				log.Warnf("Vcs %s unable to determine application: %s", *vcs.Id, err)
@@ -539,6 +523,11 @@ vcsLoop:
 			appCore := application{
 				Name: *app.Id,
 			}
+			if (app.Address == nil) || (*app.Address == "") {
+				// this is a temporary restriction
+				log.Warnf("Vcs %s Application %s has empty address", *vcs.Id, *app.Id)
+				continue vcsLoop
+			}
 			if len(app.Endpoint) > 1 {
 				// this is a temporary restriction
 				log.Warnf("Vcs %s Application %s has more endpoints than are allowed", *vcs.Id, *app.Id)
@@ -551,10 +540,10 @@ vcsLoop:
 					log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
 					continue vcsLoop
 				}
-				if strings.Contains(*endpoint.Address, "/") {
-					appCore.Endpoint = *endpoint.Address
+				if strings.Contains(*app.Address, "/") {
+					appCore.Endpoint = *app.Address
 				} else {
-					appCore.Endpoint = *endpoint.Address + "/32"
+					appCore.Endpoint = *app.Address + "/32"
 				}
 
 				appCore.StartPort = *endpoint.PortStart

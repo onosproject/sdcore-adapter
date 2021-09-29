@@ -13,21 +13,21 @@ import (
 )
 
 func TestValidateVcs(t *testing.T) {
-	v := &models_v4.Vcs_Vcs_Vcs{
+	v := &models_v4.OnfVcs_Vcs_Vcs{
 		Sst: aUint8(123),
 		Sd:  aUint32(456),
 	}
 	err := validateVcs(v)
 	assert.Nil(t, err)
 
-	v = &models_v4.Vcs_Vcs_Vcs{
+	v = &models_v4.OnfVcs_Vcs_Vcs{
 		Sd: aUint32(456),
 	}
 	err = validateVcs(v)
 	assert.EqualError(t, err, "Sst is nil")
 
 	// SD is optional
-	v = &models_v4.Vcs_Vcs_Vcs{
+	v = &models_v4.OnfVcs_Vcs_Vcs{
 		Sst: aUint8(123),
 	}
 	err = validateVcs(v)
@@ -35,56 +35,52 @@ func TestValidateVcs(t *testing.T) {
 }
 
 func TestValidateAppEndpoint(t *testing.T) {
-	e := &models_v4.Application_Application_Application_Endpoint{
-		Address:   aStr("1.2.3.4"),
+	e := &models_v4.OnfApplication_Application_Application_Endpoint{
 		PortStart: aUint16(123),
 	}
 	err := validateAppEndpoint(e)
 	assert.Nil(t, err)
 
-	e = &models_v4.Application_Application_Application_Endpoint{
+	e = &models_v4.OnfApplication_Application_Application_Endpoint{
 		PortStart: aUint16(123),
 	}
 	err = validateAppEndpoint(e)
 	assert.EqualError(t, err, "Address is nil")
 
-	e = &models_v4.Application_Application_Application_Endpoint{
-		Address: aStr("1.2.3.4"),
-	}
+	e = &models_v4.OnfApplication_Application_Application_Endpoint{}
 	err = validateAppEndpoint(e)
 	assert.EqualError(t, err, "PortStart is nil")
 }
 
 func TestValidateIPDomain(t *testing.T) {
-	i := &models_v4.IpDomain_IpDomain_IpDomain{
+	i := &models_v4.OnfIpDomain_IpDomain_IpDomain{
 		Subnet: aStr("1.2.3.4/24"),
 	}
 	err := validateIPDomain(i)
 	assert.Nil(t, err)
 
 	// Missing subnet
-	i = &models_v4.IpDomain_IpDomain_IpDomain{}
+	i = &models_v4.OnfIpDomain_IpDomain_IpDomain{}
 	err = validateIPDomain(i)
 	assert.EqualError(t, err, "Subnet is nil")
 }
 
 func TestValidateAccessPoint(t *testing.T) {
-	a := &models_v4.ApList_ApList_ApList_AccessPoints{
-		Address: aStr("1.2.3.4"),
-		Tac:     aStr("1234"),
+	a := &models_v4.OnfSite_Site_Site_SmallCell{
+		Tac: aStr("1234"),
 	}
 	err := validateAccessPoint(a)
 	assert.Nil(t, err)
 
 	// missing address
-	a = &models_v4.ApList_ApList_ApList_AccessPoints{
+	a = &models_v4.OnfSite_Site_Site_SmallCell{
 		Tac: aStr("1234"),
 	}
 	err = validateAccessPoint(a)
 	assert.EqualError(t, err, "Address is nil")
 
 	// missing Tac
-	a = &models_v4.ApList_ApList_ApList_AccessPoints{
+	a = &models_v4.OnfSite_Site_Site_SmallCell{
 		Address: aStr("1.2.3.4"),
 	}
 	err = validateAccessPoint(a)
@@ -92,7 +88,7 @@ func TestValidateAccessPoint(t *testing.T) {
 }
 
 func TestValidateUpf(t *testing.T) {
-	u := &models_v4.Upf_Upf_Upf{
+	u := &models_v4.OnfUpf_Upf_Upf{
 		Address: aStr("1.2.3.4"),
 		Port:    aUint16(1234),
 	}
@@ -100,14 +96,14 @@ func TestValidateUpf(t *testing.T) {
 	assert.Nil(t, err)
 
 	// missing address
-	u = &models_v4.Upf_Upf_Upf{
+	u = &models_v4.OnfUpf_Upf_Upf{
 		Port: aUint16(1234),
 	}
 	err = validateUpf(u)
 	assert.EqualError(t, err, "Address is nil")
 
 	// missing port
-	u = &models_v4.Upf_Upf_Upf{
+	u = &models_v4.OnfUpf_Upf_Upf{
 		Address: aStr("1.2.3.4"),
 	}
 	err = validateUpf(u)
@@ -115,7 +111,7 @@ func TestValidateUpf(t *testing.T) {
 }
 
 func TestValidateImsiDefinition(t *testing.T) {
-	i := &models_v4.Site_Site_Site_ImsiDefinition{
+	i := &models_v4.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
@@ -125,7 +121,7 @@ func TestValidateImsiDefinition(t *testing.T) {
 	assert.Nil(t, err)
 
 	// missing MCC
-	i = &models_v4.Site_Site_Site_ImsiDefinition{
+	i = &models_v4.OnfSite_Site_Site_ImsiDefinition{
 		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
@@ -134,7 +130,7 @@ func TestValidateImsiDefinition(t *testing.T) {
 	assert.EqualError(t, err, "Format contains C, yet MCC is nil")
 
 	// missing MNC
-	i = &models_v4.Site_Site_Site_ImsiDefinition{
+	i = &models_v4.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNN0EEESSSSSS"),
@@ -143,7 +139,7 @@ func TestValidateImsiDefinition(t *testing.T) {
 	assert.EqualError(t, err, "Format contains N, yet MNC is nil")
 
 	// missing Ent
-	i = &models_v4.Site_Site_Site_ImsiDefinition{
+	i = &models_v4.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:    aStr("123"),
 		Mnc:    aStr("45"),
 		Format: aStr("CCCNN0EEESSSSSS"),
@@ -152,7 +148,7 @@ func TestValidateImsiDefinition(t *testing.T) {
 	assert.EqualError(t, err, "Format contains E, yet Enterprise is nil")
 
 	// Wrong number of characters
-	i = &models_v4.Site_Site_Site_ImsiDefinition{
+	i = &models_v4.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),
@@ -162,7 +158,7 @@ func TestValidateImsiDefinition(t *testing.T) {
 	assert.EqualError(t, err, "Format is not 15 characters")
 
 	// Default format is okay
-	i = &models_v4.Site_Site_Site_ImsiDefinition{
+	i = &models_v4.OnfSite_Site_Site_ImsiDefinition{
 		Mcc:        aStr("123"),
 		Mnc:        aStr("45"),
 		Enterprise: aUint32(789),

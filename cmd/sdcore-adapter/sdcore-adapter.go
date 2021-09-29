@@ -23,6 +23,7 @@ import (
 	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	synchronizerv2 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v2"
 	synchronizerv3 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
+	synchronizerv4 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
@@ -85,6 +86,9 @@ func main() {
 	} else if *modelVersion == "v3" {
 		log.Infof("Initializing synchronizer for v3 models")
 		sync = synchronizerv3.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	} else if *modelVersion == "v4" {
+		log.Infof("Initializing synchronizer for v4 models")
+		sync = synchronizerv4.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
 	} else {
 		log.Panicf("invalid modelVersion %s", *modelVersion)
 	}

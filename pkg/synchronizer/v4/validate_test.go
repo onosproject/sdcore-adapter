@@ -41,12 +41,6 @@ func TestValidateAppEndpoint(t *testing.T) {
 	err := validateAppEndpoint(e)
 	assert.Nil(t, err)
 
-	e = &models_v4.OnfApplication_Application_Application_Endpoint{
-		PortStart: aUint16(123),
-	}
-	err = validateAppEndpoint(e)
-	assert.EqualError(t, err, "Address is nil")
-
 	e = &models_v4.OnfApplication_Application_Application_Endpoint{}
 	err = validateAppEndpoint(e)
 	assert.EqualError(t, err, "PortStart is nil")
@@ -67,7 +61,8 @@ func TestValidateIPDomain(t *testing.T) {
 
 func TestValidateAccessPoint(t *testing.T) {
 	a := &models_v4.OnfSite_Site_Site_SmallCell{
-		Tac: aStr("1234"),
+		Address: aStr("1.2.3.4"),
+		Tac:     aStr("1234"),
 	}
 	err := validateAccessPoint(a)
 	assert.Nil(t, err)

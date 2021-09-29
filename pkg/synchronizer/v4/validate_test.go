@@ -59,26 +59,26 @@ func TestValidateIPDomain(t *testing.T) {
 	assert.EqualError(t, err, "Subnet is nil")
 }
 
-func TestValidateAccessPoint(t *testing.T) {
+func TestValidateSmallCell(t *testing.T) {
 	a := &models_v4.OnfSite_Site_Site_SmallCell{
 		Address: aStr("1.2.3.4"),
 		Tac:     aStr("1234"),
 	}
-	err := validateAccessPoint(a)
+	err := ValidateSmallCell(a)
 	assert.Nil(t, err)
 
 	// missing address
 	a = &models_v4.OnfSite_Site_Site_SmallCell{
 		Tac: aStr("1234"),
 	}
-	err = validateAccessPoint(a)
+	err = ValidateSmallCell(a)
 	assert.EqualError(t, err, "Address is nil")
 
 	// missing Tac
 	a = &models_v4.OnfSite_Site_Site_SmallCell{
 		Address: aStr("1.2.3.4"),
 	}
-	err = validateAccessPoint(a)
+	err = ValidateSmallCell(a)
 	assert.EqualError(t, err, "Tac is nil")
 }
 

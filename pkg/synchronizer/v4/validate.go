@@ -41,8 +41,8 @@ func validateIPDomain(ipd *models.OnfIpDomain_IpDomain_IpDomain) error {
 	return nil
 }
 
-// return error if AccessPoint cannot be synchronized due to missing data
-func validateAccessPoint(ap *models.OnfSite_Site_Site_SmallCell) error {
+// return error if SmallCell cannot be synchronized due to missing data
+func ValidateSmallCell(ap *models.OnfSite_Site_Site_SmallCell) error {
 	if ap.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}

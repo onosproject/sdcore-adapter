@@ -430,7 +430,7 @@ vcsLoop:
 
 		if site.SmallCell != nil {
 			for _, ap := range site.SmallCell {
-				err = validateAccessPoint(ap)
+				err = ValidateSmallCell(ap)
 				if err != nil {
 					log.Warnf("SmallCell invalid: %s", err)
 					continue vcsLoop

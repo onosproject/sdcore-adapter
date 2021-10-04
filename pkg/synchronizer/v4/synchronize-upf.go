@@ -13,7 +13,7 @@ import (
 )
 
 type sliceQos struct {
-	Uplink        uint64 `json:"uplinkMBR,omittempt"`
+	Uplink        uint64 `json:"uplinkMBR,omitempty"`
 	Downlink      uint64 `json:"downlinkMBR,omitempty"`
 	UplinkBurst   uint64 `json:"uplinkBurstSize,omitempty"`
 	DownlinkBurst uint64 `json:"downlinkBurstSize,omitempty"`

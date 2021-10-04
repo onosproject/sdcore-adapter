@@ -13,10 +13,10 @@ import (
 )
 
 type sliceQos struct {
-	Uplink        uint64 `json:"uplinkMBR"`
-	Downlink      uint64 `json:"downlinkMBR"`
-	UplinkBurst   uint64 `json:"uplinkBurstSize"`
-	DownlinkBurst uint64 `json:"downlinkBurstSize"`
+	Uplink        uint64 `json:"uplinkMBR,omittempt"`
+	Downlink      uint64 `json:"downlinkMBR,omitempty"`
+	UplinkBurst   uint64 `json:"uplinkBurstSize,omitempty"`
+	DownlinkBurst uint64 `json:"downlinkBurstSize,omitempty"`
 }
 
 type ueResourceInfo struct {
@@ -59,7 +59,7 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 			sc.SliceQos.Uplink = *vcs.Slice.Mbr.Uplink
 		}
 		if vcs.Slice.Mbr.Downlink != nil {
-			sc.SliceQos.Uplink = *vcs.Slice.Mbr.Uplink
+			sc.SliceQos.Downlink = *vcs.Slice.Mbr.Downlink
 		}
 	}
 
@@ -84,7 +84,10 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 		return 0, fmt.Errorf("Vcs %s failed to marshal UPF JSON: %s", *vcs.Id, err)
 	}
 
-	url := fmt.Sprintf("%s/v1/network-slice/%s", *aUpf.ConfigEndpoint, *vcs.Id)
+	// TODO: confirm with Badhri, not slicename at the end of the url
+	//url := fmt.Sprintf("%s/v1/config/network-slices/%s", *aUpf.ConfigEndpoint, *vcs.Id)
+
+	url := fmt.Sprintf("%s/v1/config/network-slices", *aUpf.ConfigEndpoint)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {
 		return 1, fmt.Errorf("vcs %s failed to push UPF JSON: %s", *vcs.Id, err)

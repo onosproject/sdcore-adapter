@@ -203,11 +203,12 @@ func BuildSampleVcs() (
 	}
 
 	upf := &models.OnfUpf_Upf_Upf{
-		Id:          aStr("sample-upf"),
-		Address:     aStr("2.3.4.5"),
-		Description: aStr("sample-upf-desc"),
-		DisplayName: aStr("sample-upf-dn"),
-		Port:        aUint16(66),
+		Id:             aStr("sample-upf"),
+		Address:        aStr("2.3.4.5"),
+		ConfigEndpoint: aStr("http://upf"),
+		Description:    aStr("sample-upf-desc"),
+		DisplayName:    aStr("sample-upf-dn"),
+		Port:           aUint16(66),
 	}
 
 	vcDevMbr := &models.OnfVcs_Vcs_Vcs_Device_Mbr{
@@ -218,6 +219,9 @@ func BuildSampleVcs() (
 		Mbr: vcDevMbr,
 	}
 
+	sliceQosMbr := &models.OnfVcs_Vcs_Vcs_Slice_Mbr{Uplink: aUint64(333), Downlink: aUint64(444)}
+	sliceQos := &models.OnfVcs_Vcs_Vcs_Slice{Mbr: sliceQosMbr}
+
 	vcs := &models.OnfVcs_Vcs_Vcs{
 		Filter:       map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink, "sample-app2": app2Link},
 		Description:  aStr("sample-vcs-desc"),
@@ -227,6 +231,7 @@ func BuildSampleVcs() (
 		Id:           aStr("sample-vcs"),
 		Sd:           aUint32(111),
 		Sst:          aUint8(222),
+		Slice:        sliceQos,
 		Template:     aStr("sample-template"),
 		TrafficClass: aStr("sample-traffic-class"),
 		Upf:          aStr("sample-upf"),

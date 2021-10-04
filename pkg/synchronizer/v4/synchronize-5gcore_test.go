@@ -166,7 +166,7 @@ func BuildSampleDeviceGroup() (
 }
 
 func BuildSampleVcs() (
-	*models.OnfApplication_Application_Application,
+	map[string]*models.OnfApplication_Application_Application,
 	*models.OnfTemplate_Template_Template,
 	*models.OnfTrafficClass_TrafficClass_TrafficClass,
 	*models.OnfUpf_Upf_Upf,
@@ -179,7 +179,7 @@ func BuildSampleVcs() (
 		Protocol:  aStr("UDP"),
 	}
 
-	app := &models.OnfApplication_Application_Application{
+	app1 := &models.OnfApplication_Application_Application{
 		Id:          aStr("sample-app"),
 		Description: aStr("sample-app-desc"),
 		DisplayName: aStr("sample-app-dn"),
@@ -188,10 +188,25 @@ func BuildSampleVcs() (
 		Enterprise:  aStr("sample-ent"),
 	}
 
+	app2 := &models.OnfApplication_Application_Application{
+		Id:          aStr("sample-app2"),
+		Description: aStr("sample-app2-desc"),
+		DisplayName: aStr("sample-app2-dn"),
+		Address:     aStr("1.2.3.5"),
+		Endpoint:    map[string]*models.OnfApplication_Application_Application_Endpoint{"sample-app2-ep": ep},
+		Enterprise:  aStr("sample-ent"),
+	}
+
 	appLink := &models.OnfVcs_Vcs_Vcs_Filter{
 		Allow:       aBool(true),
 		Priority:    aUint8(7),
 		Application: aStr("sample-app"),
+	}
+
+	app2Link := &models.OnfVcs_Vcs_Vcs_Filter{
+		Allow:       aBool(false),
+		Priority:    aUint8(8),
+		Application: aStr("sample-app2"),
 	}
 
 	dgLink := &models.OnfVcs_Vcs_Vcs_DeviceGroup{
@@ -242,7 +257,7 @@ func BuildSampleVcs() (
 	}
 
 	vcs := &models.OnfVcs_Vcs_Vcs{
-		Filter:       map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink},
+		Filter:       map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink, "sample-app2": app2Link},
 		Description:  aStr("sample-vcs-desc"),
 		DeviceGroup:  map[string]*models.OnfVcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
 		DisplayName:  aStr("sample-app-dn"),
@@ -255,7 +270,9 @@ func BuildSampleVcs() (
 		Upf:          aStr("sample-upf"),
 	}
 
-	return app, tp, tc, upf, vcs
+	apps := map[string]*models.OnfApplication_Application_Application{*app1.Id: app1, *app2.Id: app2}
+
+	return apps, tp, tc, upf, vcs
 }
 
 func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
@@ -303,7 +320,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 	s.SetPusher(m)
 
 	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	app, tp, tc, upf, vcs := BuildSampleVcs()
+	apps, tp, tc, upf, vcs := BuildSampleVcs()
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -311,7 +328,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
 		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
-		Application:         &models.OnfApplication_Application{Application: map[string]*models.OnfApplication_Application_Application{*app.Id: app}},
+		Application:         &models.OnfApplication_Application{Application: apps},
 		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
 		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
@@ -353,7 +370,7 @@ func TestSynchronizeVCS(t *testing.T) {
 	s.SetPusher(m)
 
 	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	app, tp, tc, upf, vcs := BuildSampleVcs()
+	apps, tp, tc, upf, vcs := BuildSampleVcs()
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -361,7 +378,7 @@ func TestSynchronizeVCS(t *testing.T) {
 		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
 		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
-		Application:         &models.OnfApplication_Application{Application: map[string]*models.OnfApplication_Application_Application{*app.Id: app}},
+		Application:         &models.OnfApplication_Application{Application: apps},
 		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
 		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
@@ -406,6 +423,15 @@ func TestSynchronizeVCS(t *testing.T) {
 				"action": "permit",
 				"protocol": 17,
 				"priority": 7
+			},
+			{
+				"rule-name": "sample-app2",
+				"dest-port-start": 123,
+				"dest-port-end": 124,
+				"dest-network": "1.2.3.5/32",
+				"action": "deny",
+				"protocol": 17,
+				"priority": 8
 			}]
 		}`
 
@@ -419,7 +445,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 	s.SetPusher(m)
 
 	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	app, tp, tc, upf, vcs := BuildSampleVcs()
+	apps, tp, tc, upf, vcs := BuildSampleVcs()
 
 	// Set the SD to nil.
 	vcs.Sd = nil
@@ -430,7 +456,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
 		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
-		Application:         &models.OnfApplication_Application{Application: map[string]*models.OnfApplication_Application_Application{*app.Id: app}},
+		Application:         &models.OnfApplication_Application{Application: apps},
 		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
 		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
@@ -475,6 +501,15 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 				"action": "permit",
 				"protocol": 17,
 				"priority": 7
+			},
+			{
+				"rule-name": "sample-app2",
+				"dest-port-start": 123,
+				"dest-port-end": 124,
+				"dest-network": "1.2.3.5/32",
+				"action": "deny",
+				"protocol": 17,
+				"priority": 8
 			}]
 		}`
 

@@ -296,6 +296,57 @@ func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
 	}
 }
 
+func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
+
+	m := NewMemPusher()
+	s := Synchronizer{}
+	s.SetPusher(m)
+
+	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
+	app, tp, tc, upf, vcs := BuildSampleVcs()
+
+	device := models.Device{
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
+		Application:         &models.OnfApplication_Application{Application: map[string]*models.OnfApplication_Application_Application{*app.Id: app}},
+		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
+	}
+	err := s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	// Note: With an associated VCS, we'll pick up the QoS settings
+
+	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	assert.True(t, okay)
+	if okay {
+		expectedResult := `{
+			"imsis": [
+			  "123456789000001"
+			],
+			"ip-domain-name": "sample-ipd",
+			"site-info": "sample-site",
+			"ip-domain-expanded": {
+			  "dnn": "5ginternet",
+			  "ue-ip-pool": "1.2.3.4/24",
+			  "dns-primary": "8.8.8.8",
+			  "mtu": 1492
+			},
+			"ue-dnn-qos": {
+				"dnn-mbr-downlink": 4321,
+				"dnn-mbr-uplink": 8765,
+				"traffic-class": "sample-traffic-class"
+			}
+		  }`
+		require.JSONEq(t, expectedResult, json)
+	}
+}
+
 func TestSynchronizeVCS(t *testing.T) {
 	m := NewMemPusher()
 	s := Synchronizer{}

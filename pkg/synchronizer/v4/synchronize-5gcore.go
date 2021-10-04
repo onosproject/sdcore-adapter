@@ -458,197 +458,189 @@ deviceGroupLoop:
 }
 
 // SynchronizeVcs synchronizes the VCSes
+// Return a count of push-related errors
+func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
+	dgList, site, err := s.GetVcsDGAndSite(device, vcs)
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s unable to determine site: %s", *vcs.Id, err)
+	}
+	valid, okay := validEnterpriseIds[*site.Enterprise]
+	if (!okay) || (!valid) {
+		return 0, fmt.Errorf("VCS %s is not part of ConnectivityService %s.", *vcs.Id, *cs.Id)
+	}
+
+	err = validateVcs(vcs)
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s is invalid: %s", *vcs.Id, err)
+	}
+
+	if site.ImsiDefinition == nil {
+		return 0, fmt.Errorf("Vcs %s has nnil Site.ImsiDefinition", *vcs.Id)
+	}
+	err = validateImsiDefinition(site.ImsiDefinition)
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
+	}
+	plmn := plmn{
+		Mcc: *site.ImsiDefinition.Mcc,
+		Mnc: *site.ImsiDefinition.Mnc,
+	}
+	siteInfo := siteInfo{
+		SiteName: *site.Id,
+		Plmn:     plmn,
+	}
+
+	if site.SmallCell != nil {
+		for _, ap := range site.SmallCell {
+			err = validateSmallCell(ap)
+			if err != nil {
+				return 0, fmt.Errorf("SmallCell invalid: %s", err)
+			}
+			if *ap.Enable {
+				tac, err := strconv.ParseUint(*ap.Tac, 16, 32)
+				if err != nil {
+					return 0, fmt.Errorf("SmallCell Failed to convert tac %s to integer: %v", *ap.Tac, err)
+				}
+				gNodeB := gNodeB{
+					Name: *ap.Address,
+					Tac:  uint32(tac),
+				}
+				siteInfo.GNodeBs = append(siteInfo.GNodeBs, gNodeB)
+			}
+		}
+	}
+
+	if vcs.Upf != nil {
+		aUpf, err := s.GetUpf(device, vcs.Upf)
+		if err != nil {
+			return 0, fmt.Errorf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
+		}
+		err = validateUpf(aUpf)
+		if err != nil {
+			return 0, fmt.Errorf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
+		}
+		siteInfo.Upf = upf{
+			Name: *aUpf.Address,
+			Port: *aUpf.Port,
+		}
+	}
+
+	sliceID := sliceIDStruct{
+		Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
+	}
+
+	// If the SD is unset, then do not set SD in the output. If it is set,
+	// then emit it as a string of six hex digits.
+	if vcs.Sd != nil {
+		sliceID.Sd = fmt.Sprintf("%06X", *vcs.Sd)
+	}
+
+	slice := slice{
+		ID:                        sliceID,
+		SiteInfo:                  siteInfo,
+		ApplicationFilteringRules: []appFilterRule{},
+	}
+
+	for _, dg := range dgList {
+		slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
+	}
+
+	// be deterministic...
+	appKeys := []string{}
+	for k, _ := range vcs.Filter {
+		appKeys = append(appKeys, k)
+	}
+	sort.Strings(appKeys)
+
+	for _, k := range appKeys {
+		appRef := vcs.Filter[k]
+		app, err := s.GetApplication(device, appRef.Application)
+		if err != nil {
+			return 0, fmt.Errorf("Vcs %s unable to determine application: %s", *vcs.Id, err)
+		}
+		appCore := appFilterRule{
+			Name: *app.Id,
+		}
+
+		if (app.Address == nil) || (*app.Address == "") {
+			// this is a temporary restriction
+			return 0, fmt.Errorf("Vcs %s Application %s has empty address", *vcs.Id, *app.Id)
+		}
+		if len(app.Endpoint) > 1 {
+			// this is a temporary restriction
+			return 0, fmt.Errorf("Vcs %s Application %s has more endpoints than are allowed", *vcs.Id, *app.Id)
+		}
+		// there can be at most one at this point...
+		for _, endpoint := range app.Endpoint {
+			err = validateAppEndpoint(endpoint)
+			if err != nil {
+				log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
+			}
+			if strings.Contains(*app.Address, "/") {
+				appCore.DestNetwork = *app.Address
+			} else {
+				appCore.DestNetwork = *app.Address + "/32"
+			}
+
+			appCore.DestPortStart = *endpoint.PortStart
+			if endpoint.PortEnd != nil {
+				appCore.DestPortEnd = synchronizer.DerefUint16Ptr(endpoint.PortEnd, 0)
+			} else {
+				// no EndPort specified -- assume it's a singleton range
+				appCore.DestPortEnd = appCore.DestPortStart
+			}
+
+			protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DefaultProtocol))
+			if err != nil {
+				return 0, fmt.Errorf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
+			}
+			appCore.Protocol = protoNum
+
+			if (appRef.Allow != nil) && (*appRef.Allow) {
+				appCore.Action = "permit"
+			} else {
+				appCore.Action = "deny"
+			}
+
+			appCore.Priority = synchronizer.DerefUint8Ptr(appRef.Priority, 0)
+		}
+		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
+	}
+
+	data, err := json.MarshalIndent(slice, "", "  ")
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s failed to marshal JSON: %s", *vcs.Id, err)
+	}
+
+	url := fmt.Sprintf("%s/v1/network-slice/%s", *cs.Core_5GEndpoint, *vcs.Id)
+	err = s.pusher.PushUpdate(url, data)
+	if err != nil {
+		return 1, fmt.Errorf("Vcs %s failed to push update: %s", *vcs.Id, err)
+	}
+
+	return 0, nil
+}
+
+// SynchronizeVcs synchronizes the VCSes
 func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	pushFailures := 0
 vcsLoop:
 	for _, vcs := range device.Vcs.Vcs {
-		dgList, site, err := s.GetVcsDGAndSite(device, vcs)
+		corePushFailures, err := s.SynchronizeVcsCore(device, vcs, cs, validEnterpriseIds)
+		pushFailures += corePushFailures
 		if err != nil {
-			log.Warnf("Vcs %s unable to determine site: %s", *vcs.Id, err)
-			continue vcsLoop
-		}
-		valid, okay := validEnterpriseIds[*site.Enterprise]
-		if (!okay) || (!valid) {
-			log.Infof("VCS %s is not part of ConnectivityService %s.", *vcs.Id, *cs.Id)
+			log.Warnf("Vcs %s failed to synchronize Core: %s", *vcs.Id, err)
 			continue vcsLoop
 		}
 
-		err = validateVcs(vcs)
+		upfPushFailures, err := s.SynchronizeVcsUPF(device, vcs)
+		pushFailures += upfPushFailures
 		if err != nil {
-			log.Warnf("Vcs %s is invalid: %s", err)
-			continue vcsLoop
-		}
-
-		if site.ImsiDefinition == nil {
-			log.Warn("Vcs %s has nnil Site.ImsiDefinition", *vcs.Id)
-			continue vcsLoop
-		}
-		err = validateImsiDefinition(site.ImsiDefinition)
-		if err != nil {
-			log.Warnf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
-			continue vcsLoop
-		}
-		plmn := plmn{
-			Mcc: *site.ImsiDefinition.Mcc,
-			Mnc: *site.ImsiDefinition.Mnc,
-		}
-		siteInfo := siteInfo{
-			SiteName: *site.Id,
-			Plmn:     plmn,
-		}
-
-		if site.SmallCell != nil {
-			for _, ap := range site.SmallCell {
-				err = validateSmallCell(ap)
-				if err != nil {
-					log.Warnf("SmallCell invalid: %s", err)
-					continue vcsLoop
-				}
-				if *ap.Enable {
-					tac, err := strconv.ParseUint(*ap.Tac, 16, 32)
-					if err != nil {
-						log.Warnf("SmallCell Failed to convert tac %s to integer: %v", *ap.Tac, err)
-						continue vcsLoop
-					}
-					gNodeB := gNodeB{
-						Name: *ap.Address,
-						Tac:  uint32(tac),
-					}
-					siteInfo.GNodeBs = append(siteInfo.GNodeBs, gNodeB)
-				}
-			}
-		}
-
-		if vcs.Upf != nil {
-			aUpf, err := s.GetUpf(device, vcs.Upf)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			err = validateUpf(aUpf)
-			if err != nil {
-				log.Warnf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			siteInfo.Upf = upf{
-				Name: *aUpf.Address,
-				Port: *aUpf.Port,
-			}
-		}
-
-		sliceID := sliceIDStruct{
-			Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
-		}
-
-		// If the SD is unset, then do not set SD in the output. If it is set,
-		// then emit it as a string of six hex digits.
-		if vcs.Sd != nil {
-			sliceID.Sd = fmt.Sprintf("%06X", *vcs.Sd)
-		}
-
-		slice := slice{
-			ID:                        sliceID,
-			SiteInfo:                  siteInfo,
-			ApplicationFilteringRules: []appFilterRule{},
-		}
-
-		for _, dg := range dgList {
-			slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
-		}
-
-		// be deterministic...
-		appKeys := []string{}
-		for k, _ := range vcs.Filter {
-			appKeys = append(appKeys, k)
-		}
-		sort.Strings(appKeys)
-
-		for _, k := range appKeys {
-			appRef := vcs.Filter[k]
-			app, err := s.GetApplication(device, appRef.Application)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine application: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			appCore := appFilterRule{
-				Name: *app.Id,
-			}
-
-			/*
-				type appFilterRule struct {
-					Name          string `json:"rule-name"`
-					Priority      uint8  `json:"priority"`
-					Action        string `json:"action"`
-					DestNetwork   string `json:"dest-network"`
-					DestPortStart uint16 `json:"dest-port-start"`
-					DestPortEnd   uint16 `json:"dest-port-end"`
-					Protocol      uint32 `json:"protocol"`
-				}
-			*/
-
-			if (app.Address == nil) || (*app.Address == "") {
-				// this is a temporary restriction
-				log.Warnf("Vcs %s Application %s has empty address", *vcs.Id, *app.Id)
-				continue vcsLoop
-			}
-			if len(app.Endpoint) > 1 {
-				// this is a temporary restriction
-				log.Warnf("Vcs %s Application %s has more endpoints than are allowed", *vcs.Id, *app.Id)
-				continue vcsLoop
-			}
-			// there can be at most one at this point...
-			for _, endpoint := range app.Endpoint {
-				err = validateAppEndpoint(endpoint)
-				if err != nil {
-					log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
-					continue vcsLoop
-				}
-				if strings.Contains(*app.Address, "/") {
-					appCore.DestNetwork = *app.Address
-				} else {
-					appCore.DestNetwork = *app.Address + "/32"
-				}
-
-				appCore.DestPortStart = *endpoint.PortStart
-				if endpoint.PortEnd != nil {
-					appCore.DestPortEnd = synchronizer.DerefUint16Ptr(endpoint.PortEnd, 0)
-				} else {
-					// no EndPort specified -- assume it's a singleton range
-					appCore.DestPortEnd = appCore.DestPortStart
-				}
-
-				protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DefaultProtocol))
-				if err != nil {
-					log.Warnf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
-					continue vcsLoop
-				}
-				appCore.Protocol = protoNum
-
-				if (appRef.Allow != nil) && (*appRef.Allow) {
-					appCore.Action = "permit"
-				} else {
-					appCore.Action = "deny"
-				}
-
-				appCore.Priority = synchronizer.DerefUint8Ptr(appRef.Priority, 0)
-			}
-			slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
-		}
-
-		data, err := json.MarshalIndent(slice, "", "  ")
-		if err != nil {
-			log.Warnf("Vcs %s failed to marshal JSON: %s", *vcs.Id, err)
-			continue vcsLoop
-		}
-
-		url := fmt.Sprintf("%s/v1/network-slice/%s", *cs.Core_5GEndpoint, *vcs.Id)
-		err = s.pusher.PushUpdate(url, data)
-		if err != nil {
-			log.Warnf("Vcs %s failed to push update: %s", *vcs.Id, err)
-			pushFailures++
+			log.Warnf("Vcs %s failed to synchronize UPF: %s", *vcs.Id, err)
 			continue vcsLoop
 		}
 	}
+
 	if pushFailures > 0 {
 		return fmt.Errorf("%d errors while pushing VCS", pushFailures)
 	}

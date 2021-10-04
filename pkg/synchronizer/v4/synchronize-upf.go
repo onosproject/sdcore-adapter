@@ -31,8 +31,8 @@ type upfSliceConfig struct {
 }
 
 // SynchronizeVcs synchronizes the VCSes to the UPF
-// Return a count of push-related errors, consistent with how other synchronization functions count errors
-func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) (uint32, error) {
+// Return a count of push-related errors
+func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) (int, error) {
 	if vcs.Upf == nil {
 		return 0, fmt.Errorf("Vcs %s has no UPFs to synchronize", *vcs.Id)
 	}

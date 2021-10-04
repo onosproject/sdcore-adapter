@@ -190,6 +190,7 @@ func BuildSampleVcs() (
 
 	appLink := &models.OnfVcs_Vcs_Vcs_Filter{
 		Allow:       aBool(true),
+		Priority:    aUint8(7),
 		Application: aStr("sample-app"),
 	}
 
@@ -326,11 +327,6 @@ func TestSynchronizeVCS(t *testing.T) {
 			  "sst": "222",
 			  "sd": "00006F"
 			},
-			"qos": {
-			  "uplink": 8765,
-			  "downlink": 4321,
-			  "traffic-class": "sample-traffic-class"
-			},
 			"site-device-group": [
 			  "sample-dg"
 			],
@@ -351,20 +347,16 @@ func TestSynchronizeVCS(t *testing.T) {
 				"upf-port": 66
 			  }
 			},
-			"deny-applications": [],
-			"permit-applications": [
-			  "sample-app"
-			],
-			"applications-information": [
-			  {
-				"app-name": "sample-app",
-				"endpoint": "1.2.3.4/32",
-				"start-port": 123,
-				"end-port": 124,
-				"protocol": 17
-			  }
-			]
-		  }`
+			"application-filtering-rules": [{
+				"rule-name": "sample-app",
+				"dest-port-start": 123,
+				"dest-port-end": 124,
+				"dest-network": "1.2.3.4/32",
+				"action": "permit",
+				"protocol": 17,
+				"priority": 7
+			}]
+		}`
 
 		require.JSONEq(t, expectedResult, json)
 	}
@@ -404,11 +396,6 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 			  "sst": "222",
 			  "sd": ""
 			},
-			"qos": {
-			  "uplink": 8765,
-			  "downlink": 4321,
-			  "traffic-class": "sample-traffic-class"
-			},
 			"site-device-group": [
 			  "sample-dg"
 			],
@@ -429,20 +416,16 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 				"upf-port": 66
 			  }
 			},
-			"deny-applications": [],
-			"permit-applications": [
-			  "sample-app"
-			],
-			"applications-information": [
-			  {
-				"app-name": "sample-app",
-				"endpoint": "1.2.3.4/32",
-				"start-port": 123,
-				"end-port": 124,
-				"protocol": 17
-			  }
-			]
-		  }`
+			"application-filtering-rules": [{
+				"rule-name": "sample-app",
+				"dest-port-start": 123,
+				"dest-port-end": 124,
+				"dest-network": "1.2.3.4/32",
+				"action": "permit",
+				"protocol": 17,
+				"priority": 7
+			}]
+		}`
 
 		require.JSONEq(t, expectedResult, json)
 	}

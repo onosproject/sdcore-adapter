@@ -30,22 +30,17 @@ const (
 )
 
 type ipDomain struct {
-	Dnn  string `json:"dnn"`
-	Pool string `json:"ue-ip-pool"`
-	// AdminStatus string `json:"admin-status"`  Dropped from current JSON
-	DNSPrimary string `json:"dns-primary"`
-	Mtu        uint16 `json:"mtu"`
+	Dnn          string `json:"dnn"`
+	Pool         string `json:"ue-ip-pool"`
+	DNSPrimary   string `json:"dns-primary"`
+	DNSSecondary string `json:"dns-secondary,omitempty"`
+	Mtu          uint16 `json:"mtu"`
 }
 
-type qos struct {
+type dgQos struct {
 	Uplink       uint64 `json:"dnn-mbr-uplink"`
 	Downlink     uint64 `json:"dnn-mbr-downlink"`
 	TrafficClass string `json:"traffic-class"`
-}
-
-type sliceQos struct {
-	Uplink   uint64 `json:"slice-mbr-uplink"`
-	Downlink uint64 `json:"skuce-mbr-downlink"`
 }
 
 type deviceGroup struct {
@@ -53,7 +48,7 @@ type deviceGroup struct {
 	IPDomainName string   `json:"ip-domain-name"`
 	SiteInfo     string   `json:"site-info"`
 	IPDomain     ipDomain `json:"ip-domain-expanded"`
-	Qos          qos      `json:"ue-dnn-qos"`
+	Qos          *dgQos   `json:"ue-dnn-qos,omitempty"`
 }
 
 type sliceIDStruct struct {
@@ -95,8 +90,6 @@ type appFilterRule struct {
 
 type slice struct {
 	ID                        sliceIDStruct   `json:"slice-id"`
-	SliceQos                  sliceQos        `json:"slice-qos"`
-	Qos                       qos             `json:"qos"`
 	DeviceGroup               []string        `json:"site-device-group"`
 	SiteInfo                  siteInfo        `json:"site-info"`
 	ApplicationFilteringRules []appFilterRule `json:"application-filtering-rules"`
@@ -199,6 +192,24 @@ func (s *Synchronizer) GetIPDomain(device *models.Device, id *string) (*models.O
 		return nil, fmt.Errorf("IpDomain %s not found", *id)
 	}
 	return ipd, nil
+}
+
+// GetReferencingVCS returns a VCS (the first one it finds) that uses a device group
+func (s *Synchronizer) GetReferencingVCS(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) *models.OnfVcs_Vcs_Vcs {
+	if device.Vcs == nil {
+		return nil
+	}
+	for _, vcs := range device.Vcs.Vcs {
+		for _, dgLink := range vcs.DeviceGroup {
+			if !*dgLink.Enable {
+				continue
+			}
+			if *dgLink.DeviceGroup == *dg.Id {
+				return vcs
+			}
+		}
+	}
+	return nil
 }
 
 // GetUpf looks up a Upf
@@ -366,12 +377,40 @@ deviceGroupLoop:
 			continue deviceGroupLoop
 		}
 
+		// TODO: This reflects that per-ue limits are modeled as part of the VCS
+		// rather than part of the DG. So we go off and look for VCS that uses
+		// this DG, and grabs its QOS settings. This will be revised.
+		vcs := s.GetReferencingVCS(device, dg)
+		if vcs != nil {
+			dgCore.Qos = &dgQos{}
+			if vcs.Device != nil {
+				if vcs.Device.Mbr != nil {
+					if vcs.Device.Mbr.Uplink != nil {
+						dgCore.Qos.Uplink = *vcs.Device.Mbr.Uplink
+					}
+					if vcs.Device.Mbr.Downlink != nil {
+						dgCore.Qos.Downlink = *vcs.Device.Mbr.Downlink
+					}
+				}
+			}
+
+			if vcs.TrafficClass != nil {
+				trafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
+				if err != nil {
+					log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
+					continue deviceGroupLoop
+				}
+				dgCore.Qos.TrafficClass = *trafficClass.Id
+			}
+		}
+
 		dgCore.IPDomainName = *ipd.Id
 		ipdCore := ipDomain{
-			Dnn:        synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
-			Pool:       *ipd.Subnet,
-			DNSPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-			Mtu:        synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
+			Dnn:          synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
+			Pool:         *ipd.Subnet,
+			DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
+			DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
+			Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
 		}
 		dgCore.IPDomain = ipdCore
 
@@ -494,26 +533,6 @@ vcsLoop:
 			slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
 		}
 
-		if vcs.Device != nil {
-			if vcs.Device.Mbr != nil {
-				if vcs.Device.Mbr.Uplink != nil {
-					slice.Qos.Uplink = *vcs.Device.Mbr.Uplink
-				}
-				if vcs.Device.Mbr.Downlink != nil {
-					slice.Qos.Downlink = *vcs.Device.Mbr.Downlink
-				}
-			}
-		}
-
-		if vcs.TrafficClass != nil {
-			trafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			slice.Qos.TrafficClass = *trafficClass.Id
-		}
-
 		for _, appRef := range vcs.Filter {
 			app, err := s.GetApplication(device, appRef.Application)
 			if err != nil {
@@ -573,6 +592,14 @@ vcsLoop:
 					continue vcsLoop
 				}
 				appCore.Protocol = protoNum
+
+				if (appRef.Allow != nil) && (*appRef.Allow) {
+					appCore.Action = "permit"
+				} else {
+					appCore.Action = "deny"
+				}
+
+				appCore.Priority = synchronizer.DerefUint8Ptr(appRef.Priority, 0)
 			}
 			slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
 		}

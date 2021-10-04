@@ -5,7 +5,6 @@
 package subproxy
 
 import (
-	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
@@ -39,10 +38,13 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	}
 
 	if !strings.HasPrefix(ueID, "imsi-") {
-		log.Debugf("Ue Id format is invalid ")
+		log.Warn("Ue Id format is invalid ")
 		c.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
+
+	//Getting gnmi context
+	s.gnmiContext = NewGnmiContext(c)
 
 	log.Debugf("Received subscriber id : %s ", ueID)
 
@@ -56,7 +58,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
 		if okay != nil {
-			log.Debug(err.Error())
+			log.Warn(err.Error())
 		}
 		c.Data(http.StatusInternalServerError, "application/json", jsonByte)
 		return
@@ -66,9 +68,9 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
 		if okay != nil {
-			log.Debug(err.Error())
+			log.Warn(err.Error())
 		}
-		c.Data(resp.StatusCode, "application/json", jsonByte)
+		c.Data(http.StatusInternalServerError, "application/json", jsonByte)
 		return
 	}
 	if resp.StatusCode != 201 {
@@ -76,7 +78,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		if err != nil {
 			jsonByte, okay := getJSONResponse(err.Error())
 			if okay != nil {
-				log.Debug(err.Error())
+				log.Warn(err.Error())
 			}
 			c.Data(http.StatusInternalServerError, "application/json", jsonByte)
 			return
@@ -84,7 +86,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 
 		bodyBytes, err = getJSONResponse(string(bodyBytes))
 		if err != nil {
-			log.Debug(err.Error())
+			log.Warn(err.Error())
 		}
 		c.Data(resp.StatusCode, "application/json", bodyBytes)
 		return
@@ -93,22 +95,47 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	c.JSON(resp.StatusCode, gin.H{"status": "success"})
 }
 
-func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
-
-	// Getting the current configuration from the ROC
-	origVal, err := s.gnmiClient.GetPath(context.Background(), "", s.AetherConfigTarget, s.AetherConfigAddress)
+func (s *subscriberProxy) getDevice() (*models.Device, error) {
+	//Getting Device Group only
+	origValDg, err := s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)
 	if err != nil {
-		return errors.NewInvalid("failed to get the current state from onos-config: %v", err)
+		return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err)
 	}
 
-	// Convert the JSON config into a Device structure
-	origJSONBytes := origVal.GetJsonVal()
+	//Getting Sites only
+	origValSite, err := s.gnmiClient.GetPath(s.gnmiContext, "/site", s.AetherConfigTarget, s.AetherConfigAddress)
+	if err != nil {
+		return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err)
+	}
+
 	device := &models.Device{}
+	// Convert the JSON config into a Device structure for Device Group
+	origJSONBytes := origValDg.GetJsonVal()
 	if len(origJSONBytes) > 0 {
 		if err := models.Unmarshal(origJSONBytes, device); err != nil {
 			log.Error("Failed to unmarshal json")
-			return errors.NewInvalid("failed to unmarshal json")
+			return nil, errors.NewInvalid("failed to unmarshal json")
 		}
+	}
+
+	// Convert the JSON config into a Device structure
+	origJSONBytes = origValSite.GetJsonVal()
+	if len(origJSONBytes) > 0 {
+		if err := models.Unmarshal(origJSONBytes, device); err != nil {
+			log.Error("Failed to unmarshal json")
+			return nil, errors.NewInvalid("failed to unmarshal json")
+		}
+	}
+
+	return device, nil
+}
+
+func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
+
+	// Getting the current configuration from the ROC for Device group and Site only.
+	device, err := s.getDevice()
+	if err != nil {
+		return err
 	}
 
 	// Check if the IMSI already exists
@@ -169,7 +196,7 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("imsi-range-from", s.AetherConfigTarget, &maskedImsi))
 
 	// Apply them
-	err = s.gnmiClient.Update(context.Background(), prefix, s.AetherConfigTarget, s.AetherConfigAddress, updates)
+	err = s.gnmiClient.Update(s.gnmiContext, prefix, s.AetherConfigTarget, s.AetherConfigAddress, updates)
 	if err != nil {
 		return errors.NewInternal("Error executing gNMI: %v", err)
 	}

@@ -20,16 +20,27 @@ var irange = ImsiRange{
 }
 
 func TestImsiRange_GetDevice(t *testing.T) {
-	dataJSON, err := ioutil.ReadFile("./testdata/deviceData.json")
+	dgJSON, err := ioutil.ReadFile("./testdata/deviceGroup.json")
+	assert.NoError(t, err)
+
+	siteJSON, err := ioutil.ReadFile("./testdata/deviceSite.json")
 	assert.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
 	gnmiClient := mocks.NewMockGnmiInterface(ctrl)
-	gnmiClient.EXPECT().GetPath(gomock.Any(), "", "connectivity-service-v3",
+	gnmiClient.EXPECT().GetPath(gomock.Any(), "/device-group", "connectivity-service-v3",
 		"onos-config.micro-onos.svc.cluster.local:5150").
 		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
 			return &gpb.TypedValue{
-				Value: &gpb.TypedValue_JsonVal{JsonVal: dataJSON},
+				Value: &gpb.TypedValue_JsonVal{JsonVal: dgJSON},
+			}, nil
+		}).AnyTimes()
+
+	gnmiClient.EXPECT().GetPath(gomock.Any(), "/site", "connectivity-service-v3",
+		"onos-config.micro-onos.svc.cluster.local:5150").
+		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
+			return &gpb.TypedValue{
+				Value: &gpb.TypedValue_JsonVal{JsonVal: siteJSON},
 			}, nil
 		}).AnyTimes()
 
@@ -46,11 +57,20 @@ func TestImsiRange_GetDevice(t *testing.T) {
 
 func TestImsiRange_CollapseImsi(t *testing.T) {
 
-	dataJSON, err := ioutil.ReadFile("./testdata/deviceData.json")
+	dgJSON, err := ioutil.ReadFile("./testdata/deviceGroup.json")
 	assert.NoError(t, err)
+
+	siteJSON, err := ioutil.ReadFile("./testdata/deviceSite.json")
+	assert.NoError(t, err)
+
 	device := &models.Device{}
-	if len(dataJSON) > 0 {
-		if err := models.Unmarshal(dataJSON, device); err != nil {
+	if len(dgJSON) > 0 {
+		if err := models.Unmarshal(dgJSON, device); err != nil {
+			assert.Error(t, err)
+		}
+	}
+	if len(siteJSON) > 0 {
+		if err := models.Unmarshal(siteJSON, device); err != nil {
 			assert.Error(t, err)
 		}
 	}

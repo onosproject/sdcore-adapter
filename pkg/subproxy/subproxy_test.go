@@ -40,17 +40,27 @@ func TestMain(m *testing.M) {
 
 func TestSubscriberProxy_addSubscriberByID(t *testing.T) {
 
-	dataJSON, err := ioutil.ReadFile("./testdata/testData.json")
+	dgJSON, err := ioutil.ReadFile("./testdata/deviceGroup.json")
+	assert.NoError(t, err)
+
+	siteJSON, err := ioutil.ReadFile("./testdata/deviceSite.json")
 	assert.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
 	gnmiMockClient := mocks.NewMockGnmiInterface(ctrl)
 	sp.gnmiClient = gnmiMockClient
 
-	gnmiMockClient.EXPECT().GetPath(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+	gnmiMockClient.EXPECT().GetPath(gomock.Any(), "/device-group", gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
 			return &gpb.TypedValue{
-				Value: &gpb.TypedValue_JsonVal{JsonVal: dataJSON},
+				Value: &gpb.TypedValue_JsonVal{JsonVal: dgJSON},
+			}, nil
+		}).AnyTimes()
+
+	gnmiMockClient.EXPECT().GetPath(gomock.Any(), "/site", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
+			return &gpb.TypedValue{
+				Value: &gpb.TypedValue_JsonVal{JsonVal: siteJSON},
 			}, nil
 		}).AnyTimes()
 
@@ -93,19 +103,66 @@ func TestSubscriberProxy_addSubscriberByID(t *testing.T) {
 	assert.Equal(t, "{\"status\":\"success\"}", string(resp))
 }
 
-func TestSubscriberProxy_updateImsiDeviceGroup(t *testing.T) {
+func TestSubscriberProxy_getDevice(t *testing.T) {
 
-	dataJSON, err := ioutil.ReadFile("./testdata/testData.json")
+	dgJSON, err := ioutil.ReadFile("./testdata/deviceGroup.json")
+	assert.NoError(t, err)
+
+	siteJSON, err := ioutil.ReadFile("./testdata/deviceSite.json")
 	assert.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
 	gnmiMockClient := mocks.NewMockGnmiInterface(ctrl)
 	sp.gnmiClient = gnmiMockClient
 
-	gnmiMockClient.EXPECT().GetPath(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+	gnmiMockClient.EXPECT().GetPath(gomock.Any(), "/device-group", gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
 			return &gpb.TypedValue{
-				Value: &gpb.TypedValue_JsonVal{JsonVal: dataJSON},
+				Value: &gpb.TypedValue_JsonVal{JsonVal: dgJSON},
+			}, nil
+		}).AnyTimes()
+
+	gnmiMockClient.EXPECT().GetPath(gomock.Any(), "/site", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
+			return &gpb.TypedValue{
+				Value: &gpb.TypedValue_JsonVal{JsonVal: siteJSON},
+			}, nil
+		}).AnyTimes()
+
+	device, err := sp.getDevice()
+	assert.NoError(t, err)
+	assert.NotNil(t, device.DeviceGroup)
+	assert.Len(t, device.DeviceGroup.DeviceGroup, 9)
+	assert.Equal(t, "defaultent-defaultsite",
+		*device.DeviceGroup.DeviceGroup["defaultent-defaultsite-default"].Site)
+	assert.NotNil(t, device.Site)
+	assert.Len(t, device.Site.Site, 4)
+	assert.Equal(t, "Seattle", *device.Site.Site["starbucks-seattle"].DisplayName)
+}
+
+func TestSubscriberProxy_updateImsiDeviceGroup(t *testing.T) {
+
+	dgJSON, err := ioutil.ReadFile("./testdata/deviceGroup.json")
+	assert.NoError(t, err)
+
+	siteJSON, err := ioutil.ReadFile("./testdata/deviceSite.json")
+	assert.NoError(t, err)
+
+	ctrl := gomock.NewController(t)
+	gnmiMockClient := mocks.NewMockGnmiInterface(ctrl)
+	sp.gnmiClient = gnmiMockClient
+
+	gnmiMockClient.EXPECT().GetPath(gomock.Any(), "/device-group", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
+			return &gpb.TypedValue{
+				Value: &gpb.TypedValue_JsonVal{JsonVal: dgJSON},
+			}, nil
+		}).AnyTimes()
+
+	gnmiMockClient.EXPECT().GetPath(gomock.Any(), "/site", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
+			return &gpb.TypedValue{
+				Value: &gpb.TypedValue_JsonVal{JsonVal: siteJSON},
 			}, nil
 		}).AnyTimes()
 

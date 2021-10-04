@@ -1,0 +1,51 @@
+{
+  "site": {
+    "site": [
+      {
+        "description": "ACME HQ",
+        "display-name": "Chicago",
+        "enterprise": "acme",
+        "id": "acme-chicago",
+        "imsi-definition": {
+          "enterprise": 1,
+          "format": "CCCNNNEEESSSSSS",
+          "mcc": "123",
+          "mnc": "456"
+        }
+      },
+      {
+        "description": "Global Default Site",
+        "display-name": "Global Default Site",
+        "enterprise": "defaultent",
+        "id": "defaultent-defaultsite",
+        "imsi-definition": {
+          "format": "SSSSSSSSSSSSSSS"
+        }
+      },
+      {
+        "description": "Starbucks New York",
+        "display-name": "New York",
+        "enterprise": "starbucks",
+        "id": "starbucks-newyork",
+        "imsi-definition": {
+          "enterprise": 2,
+          "format": "CCCNNNEEESSSSSS",
+          "mcc": "21",
+          "mnc": "32"
+        }
+      },
+      {
+        "description": "Starbucks Corp HQ",
+        "display-name": "Seattle",
+        "enterprise": "starbucks",
+        "id": "starbucks-seattle",
+        "imsi-definition": {
+          "enterprise": 2,
+          "format": "CCCNNNEEESSSSSS",
+          "mcc": "265",
+          "mnc": "122"
+        }
+      }
+    ]
+  }
+}

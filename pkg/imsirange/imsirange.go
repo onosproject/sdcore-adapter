@@ -18,18 +18,36 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-// GetDevice will getting the existing values
+// GetDevice will getting the existing values only for device group and sites
 func (irange ImsiRange) GetDevice(gnmiClient gnmiclient.GnmiInterface) (*models.Device, error) {
-	origVal, err := gnmiClient.GetPath(context.Background(), "", irange.AetherConfigTarget, irange.AetherConfigAddress)
+	//Getting Device Group only
+	origValDg, err := gnmiClient.GetPath(context.Background(), "/device-group", irange.AetherConfigTarget, irange.AetherConfigAddress)
 	if err != nil {
-		return nil, errors.NewInvalid("Failed to get the current state from onos-config: %v", err)
+		return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err)
 	}
 
-	origJSONBytes := origVal.GetJsonVal()
+	//Getting Sites only
+	origValSite, err := gnmiClient.GetPath(context.Background(), "/site", irange.AetherConfigTarget, irange.AetherConfigAddress)
+	if err != nil {
+		return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err)
+	}
+
 	device := &models.Device{}
+	// Convert the JSON config into a Device structure for Device Group
+	origJSONBytes := origValDg.GetJsonVal()
 	if len(origJSONBytes) > 0 {
 		if err := models.Unmarshal(origJSONBytes, device); err != nil {
-			return nil, errors.NewInvalid("Failed to unmarshal json")
+			log.Error("Failed to unmarshal json")
+			return nil, errors.NewInvalid("failed to unmarshal json")
+		}
+	}
+
+	// Convert the JSON config into a Device structure for Site
+	origJSONBytes = origValSite.GetJsonVal()
+	if len(origJSONBytes) > 0 {
+		if err := models.Unmarshal(origJSONBytes, device); err != nil {
+			log.Error("Failed to unmarshal json")
+			return nil, errors.NewInvalid("failed to unmarshal json")
 		}
 	}
 
@@ -253,7 +271,7 @@ func getMaskedImsies(i *models.Site_Site_Site_ImsiDefinition, firstImsi uint64, 
 
 func generateName(s *models.Site_Site_Site_ImsiDefinition, firstImsi uint64, maskedFirstImsi uint64) string {
 
-	if s.Mcc == nil {
+	if *s.Format == "SSSSSSSSSSSSSSS" {
 		rangeName := fmt.Sprintf("auto-%d", firstImsi)
 		return rangeName
 	}

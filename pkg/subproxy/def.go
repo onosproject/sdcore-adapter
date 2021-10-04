@@ -5,6 +5,7 @@
 package subproxy
 
 import (
+	"context"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/openconfig/ygot/ygot"
@@ -22,6 +23,7 @@ type subscriberProxy struct {
 	BaseWebConsoleURL   string
 	AetherConfigTarget  string
 	gnmiClient          gnmiclient.GnmiInterface
+	gnmiContext         context.Context
 	PostTimeout         time.Duration
 	retryInterval       time.Duration
 

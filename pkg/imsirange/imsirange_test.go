@@ -25,7 +25,7 @@ func TestImsiRange_GetDevice(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	gnmiClient := mocks.NewMockGnmiInterface(ctrl)
-	gnmiClient.EXPECT().GetPath(gomock.Any(), "", "connectivity-service-v3",
+	gnmiClient.EXPECT().GetPath(gomock.Any(), gomock.Any(), "connectivity-service-v3",
 		"onos-config.micro-onos.svc.cluster.local:5150").
 		DoAndReturn(func(ctx context.Context, path string, target string, addr string) (*gpb.TypedValue, error) {
 			return &gpb.TypedValue{

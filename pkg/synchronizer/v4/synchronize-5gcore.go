@@ -37,22 +37,28 @@ type ipDomain struct {
 	Mtu        uint16 `json:"mtu"`
 }
 
+type qos struct {
+	Uplink       uint64 `json:"dnn-mbr-uplink"`
+	Downlink     uint64 `json:"dnn-mbr-downlink"`
+	TrafficClass string `json:"traffic-class"`
+}
+
+type sliceQos struct {
+	Uplink   uint64 `json:"slice-mbr-uplink"`
+	Downlink uint64 `json:"skuce-mbr-downlink"`
+}
+
 type deviceGroup struct {
 	Imsis        []string `json:"imsis"`
 	IPDomainName string   `json:"ip-domain-name"`
 	SiteInfo     string   `json:"site-info"`
 	IPDomain     ipDomain `json:"ip-domain-expanded"`
+	Qos          qos      `json:"ue-dnn-qos"`
 }
 
 type sliceIDStruct struct {
 	Sst string `json:"sst"`
 	Sd  string `json:"sd"`
-}
-
-type qos struct {
-	Uplink       uint64 `json:"uplink"`
-	Downlink     uint64 `json:"downlink"`
-	TrafficClass string `json:"traffic-class"`
 }
 
 type gNodeB struct {
@@ -77,22 +83,23 @@ type siteInfo struct {
 	Upf      upf      `json:"upf"`
 }
 
-type application struct {
-	Name      string `json:"app-name"`
-	Endpoint  string `json:"endpoint"`
-	StartPort uint16 `json:"start-port"`
-	EndPort   uint16 `json:"end-port"`
-	Protocol  uint32 `json:"protocol"`
+type appFilterRule struct {
+	Name          string `json:"rule-name"`
+	Priority      uint8  `json:"priority"`
+	Action        string `json:"action"`
+	DestNetwork   string `json:"dest-network"`
+	DestPortStart uint16 `json:"dest-port-start"`
+	DestPortEnd   uint16 `json:"dest-port-end"`
+	Protocol      uint32 `json:"protocol"`
 }
 
 type slice struct {
-	ID                sliceIDStruct `json:"slice-id"`
-	Qos               qos           `json:"qos"`
-	DeviceGroup       []string      `json:"site-device-group"`
-	SiteInfo          siteInfo      `json:"site-info"`
-	DenyApplication   []string      `json:"deny-applications"`
-	PermitApplication []string      `json:"permit-applications"`
-	Applications      []application `json:"applications-information"`
+	ID                        sliceIDStruct   `json:"slice-id"`
+	SliceQos                  sliceQos        `json:"slice-qos"`
+	Qos                       qos             `json:"qos"`
+	DeviceGroup               []string        `json:"site-device-group"`
+	SiteInfo                  siteInfo        `json:"site-info"`
+	ApplicationFilteringRules []appFilterRule `json:"application-filtering-rules"`
 }
 
 // SynchronizeDevice synchronizes a device
@@ -478,10 +485,9 @@ vcsLoop:
 		}
 
 		slice := slice{
-			ID:                sliceID,
-			SiteInfo:          siteInfo,
-			PermitApplication: []string{},
-			DenyApplication:   []string{},
+			ID:                        sliceID,
+			SiteInfo:                  siteInfo,
+			ApplicationFilteringRules: []appFilterRule{},
 		}
 
 		for _, dg := range dgList {
@@ -514,14 +520,22 @@ vcsLoop:
 				log.Warnf("Vcs %s unable to determine application: %s", *vcs.Id, err)
 				continue vcsLoop
 			}
-			if *appRef.Allow {
-				slice.PermitApplication = append(slice.PermitApplication, *app.Id)
-			} else {
-				slice.DenyApplication = append(slice.DenyApplication, *app.Id)
-			}
-			appCore := application{
+			appCore := appFilterRule{
 				Name: *app.Id,
 			}
+
+			/*
+				type appFilterRule struct {
+					Name          string `json:"rule-name"`
+					Priority      uint8  `json:"priority"`
+					Action        string `json:"action"`
+					DestNetwork   string `json:"dest-network"`
+					DestPortStart uint16 `json:"dest-port-start"`
+					DestPortEnd   uint16 `json:"dest-port-end"`
+					Protocol      uint32 `json:"protocol"`
+				}
+			*/
+
 			if (app.Address == nil) || (*app.Address == "") {
 				// this is a temporary restriction
 				log.Warnf("Vcs %s Application %s has empty address", *vcs.Id, *app.Id)
@@ -540,17 +554,17 @@ vcsLoop:
 					continue vcsLoop
 				}
 				if strings.Contains(*app.Address, "/") {
-					appCore.Endpoint = *app.Address
+					appCore.DestNetwork = *app.Address
 				} else {
-					appCore.Endpoint = *app.Address + "/32"
+					appCore.DestNetwork = *app.Address + "/32"
 				}
 
-				appCore.StartPort = *endpoint.PortStart
+				appCore.DestPortStart = *endpoint.PortStart
 				if endpoint.PortEnd != nil {
-					appCore.EndPort = synchronizer.DerefUint16Ptr(endpoint.PortEnd, 0)
+					appCore.DestPortEnd = synchronizer.DerefUint16Ptr(endpoint.PortEnd, 0)
 				} else {
 					// no EndPort specified -- assume it's a singleton range
-					appCore.EndPort = appCore.StartPort
+					appCore.DestPortEnd = appCore.DestPortStart
 				}
 
 				protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DefaultProtocol))
@@ -560,7 +574,7 @@ vcsLoop:
 				}
 				appCore.Protocol = protoNum
 			}
-			slice.Applications = append(slice.Applications, appCore)
+			slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
 		}
 
 		data, err := json.MarshalIndent(slice, "", "  ")

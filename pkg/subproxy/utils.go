@@ -6,13 +6,22 @@ package subproxy
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
+	"google.golang.org/grpc/metadata"
 	"net/http"
 	"time"
+)
+
+const (
+	authorization = "Authorization"
+	host          = "Host"
+	userAgent     = "User-Agent"
+	remoteAddr    = "remoteAddr"
 )
 
 //get logger
@@ -145,4 +154,14 @@ func postToWebConsole(postURI string, payload []byte, postTimeout time.Duration)
 	defer resp.Body.Close()
 
 	return resp, nil
+}
+
+// NewGnmiContext - convert the gin context in to a gRPC Context
+func NewGnmiContext(httpContext *gin.Context) context.Context {
+
+	return metadata.AppendToOutgoingContext(context.Background(),
+		authorization, httpContext.Request.Header.Get(authorization),
+		host, httpContext.Request.Host,
+		"ua", httpContext.Request.Header.Get(userAgent), // `User-Agent` would be over written by gRPC
+		remoteAddr, httpContext.Request.RemoteAddr)
 }

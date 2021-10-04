@@ -38,7 +38,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	}
 
 	if !strings.HasPrefix(ueID, "imsi-") {
-		log.Debugf("Ue Id format is invalid ")
+		log.Warn("Ue Id format is invalid ")
 		c.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
@@ -58,7 +58,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
 		if okay != nil {
-			log.Debug(err.Error())
+			log.Warn(err.Error())
 		}
 		c.Data(http.StatusInternalServerError, "application/json", jsonByte)
 		return
@@ -68,7 +68,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
 		if okay != nil {
-			log.Debug(err.Error())
+			log.Warn(err.Error())
 		}
 		c.Data(http.StatusInternalServerError, "application/json", jsonByte)
 		return
@@ -78,7 +78,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		if err != nil {
 			jsonByte, okay := getJSONResponse(err.Error())
 			if okay != nil {
-				log.Debug(err.Error())
+				log.Warn(err.Error())
 			}
 			c.Data(http.StatusInternalServerError, "application/json", jsonByte)
 			return
@@ -86,7 +86,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 
 		bodyBytes, err = getJSONResponse(string(bodyBytes))
 		if err != nil {
-			log.Debug(err.Error())
+			log.Warn(err.Error())
 		}
 		c.Data(resp.StatusCode, "application/json", bodyBytes)
 		return

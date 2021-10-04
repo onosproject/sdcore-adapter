@@ -281,8 +281,8 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.OnfD
 	return site, nil
 }
 
-// GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it, and the Site.
-func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, *models.OnfSite_Site_Site, error) {
+// GetVcsDG given a VCS, return the set of DeviceGroup attached to it
+func (s *Synchronizer) GetVcsDG(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, error) {
 	dgList := []*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{}
 	for _, dgLink := range vcs.DeviceGroup {
 		if !*dgLink.Enable {
@@ -290,21 +290,31 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs
 		}
 		dg, okay := device.DeviceGroup.DeviceGroup[*dgLink.DeviceGroup]
 		if !okay {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
+			return nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
 		}
 		if (dg.Site == nil) || (*dg.Site == "") {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
+			return nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
 		}
 
 		dgList = append(dgList, dg)
 
 		if *dgList[0].Site != *dg.Site {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
+			return nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
 		}
 	}
 
 	if len(dgList) == 0 {
-		return nil, nil, fmt.Errorf("VCS %s has no deviceGroups", *vcs.Id)
+		return nil, fmt.Errorf("VCS %s has no deviceGroups", *vcs.Id)
+	}
+
+	return dgList, nil
+}
+
+// GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it, and the Site.
+func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, *models.OnfSite_Site_Site, error) {
+	dgList, err := s.GetVcsDG(device, vcs)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	site, err := s.GetDeviceGroupSite(device, dgList[0])
@@ -312,7 +322,7 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs
 		return nil, nil, err
 	}
 
-	return dgList, site, err
+	return dgList, site, nil
 }
 
 // SynchronizeDeviceGroups synchronizes the device groups

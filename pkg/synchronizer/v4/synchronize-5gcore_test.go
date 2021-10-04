@@ -352,12 +352,18 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 			  "dnn": "5ginternet",
 			  "ue-ip-pool": "1.2.3.4/24",
 			  "dns-primary": "8.8.8.8",
-			  "mtu": 1492
-			},
-			"ue-dnn-qos": {
-				"dnn-mbr-downlink": 4321,
-				"dnn-mbr-uplink": 8765,
-				"traffic-class": "sample-traffic-class"
+				"mtu": 1492,
+				"ue-dnn-qos": {
+					"dnn-mbr-downlink": 4321,
+					"dnn-mbr-uplink": 8765,
+					"traffic-class": {
+						"name": "sample-traffic-class",
+						"arp": 3,
+						"pdb": 300,
+						"pelr": 6,
+						"qci": 55
+					}
+				}
 			}
 		  }`
 		require.JSONEq(t, expectedResult, json)

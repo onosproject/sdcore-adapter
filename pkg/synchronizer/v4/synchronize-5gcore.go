@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/openconfig/ygot/ygot"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -29,18 +30,27 @@ const (
 	DefaultProtocol = "TCP"
 )
 
-type ipDomain struct {
-	Dnn          string `json:"dnn"`
-	Pool         string `json:"ue-ip-pool"`
-	DNSPrimary   string `json:"dns-primary"`
-	DNSSecondary string `json:"dns-secondary,omitempty"`
-	Mtu          uint16 `json:"mtu"`
+type ipdTrafficClass struct {
+	Name string `json:"name"`
+	QCI  uint8  `json:"qci"`
+	ARP  uint8  `json:"arp"`
+	PDB  uint16 `json:"pdb"`
+	PELR uint8  `json:"pelr"`
 }
 
-type dgQos struct {
-	Uplink       uint64 `json:"dnn-mbr-uplink"`
-	Downlink     uint64 `json:"dnn-mbr-downlink"`
-	TrafficClass string `json:"traffic-class"`
+type ipdQos struct {
+	Uplink       uint64          `json:"dnn-mbr-uplink"`
+	Downlink     uint64          `json:"dnn-mbr-downlink"`
+	TrafficClass ipdTrafficClass `json:"traffic-class"`
+}
+
+type ipDomain struct {
+	Dnn          string  `json:"dnn"`
+	Pool         string  `json:"ue-ip-pool"`
+	DNSPrimary   string  `json:"dns-primary"`
+	DNSSecondary string  `json:"dns-secondary,omitempty"`
+	Mtu          uint16  `json:"mtu"`
+	Qos          *ipdQos `json:"ue-dnn-qos,omitempty"`
 }
 
 type deviceGroup struct {
@@ -48,7 +58,6 @@ type deviceGroup struct {
 	IPDomainName string   `json:"ip-domain-name"`
 	SiteInfo     string   `json:"site-info"`
 	IPDomain     ipDomain `json:"ip-domain-expanded"`
-	Qos          *dgQos   `json:"ue-dnn-qos,omitempty"`
 }
 
 type sliceIDStruct struct {
@@ -377,19 +386,29 @@ deviceGroupLoop:
 			continue deviceGroupLoop
 		}
 
+		dgCore.IPDomainName = *ipd.Id
+		ipdCore := ipDomain{
+			Dnn:          synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
+			Pool:         *ipd.Subnet,
+			DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
+			DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
+			Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
+		}
+		dgCore.IPDomain = ipdCore
+
 		// TODO: This reflects that per-ue limits are modeled as part of the VCS
 		// rather than part of the DG. So we go off and look for VCS that uses
 		// this DG, and grabs its QOS settings. This will be revised.
 		vcs := s.GetReferencingVCS(device, dg)
 		if vcs != nil {
-			dgCore.Qos = &dgQos{}
+			dgCore.IPDomain.Qos = &ipdQos{}
 			if vcs.Device != nil {
 				if vcs.Device.Mbr != nil {
 					if vcs.Device.Mbr.Uplink != nil {
-						dgCore.Qos.Uplink = *vcs.Device.Mbr.Uplink
+						dgCore.IPDomain.Qos.Uplink = *vcs.Device.Mbr.Uplink
 					}
 					if vcs.Device.Mbr.Downlink != nil {
-						dgCore.Qos.Downlink = *vcs.Device.Mbr.Downlink
+						dgCore.IPDomain.Qos.Downlink = *vcs.Device.Mbr.Downlink
 					}
 				}
 			}
@@ -400,19 +419,13 @@ deviceGroupLoop:
 					log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
 					continue deviceGroupLoop
 				}
-				dgCore.Qos.TrafficClass = *trafficClass.Id
+				dgCore.IPDomain.Qos.TrafficClass.Name = *trafficClass.Id
+				dgCore.IPDomain.Qos.TrafficClass.PDB = 300 // synchronizer.DerefUint16Ptr(trafficClass.PDB,300)
+				dgCore.IPDomain.Qos.TrafficClass.PELR = 6  // synchronizer.DerefUint8Ptr(trafficClass.PELR,6)
+				dgCore.IPDomain.Qos.TrafficClass.QCI = synchronizer.DerefUint8Ptr(trafficClass.Qci, 9)
+				dgCore.IPDomain.Qos.TrafficClass.ARP = synchronizer.DerefUint8Ptr(trafficClass.Arp, 9)
 			}
 		}
-
-		dgCore.IPDomainName = *ipd.Id
-		ipdCore := ipDomain{
-			Dnn:          synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
-			Pool:         *ipd.Subnet,
-			DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-			DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
-			Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
-		}
-		dgCore.IPDomain = ipdCore
 
 		data, err := json.MarshalIndent(dgCore, "", "  ")
 		if err != nil {
@@ -533,7 +546,15 @@ vcsLoop:
 			slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
 		}
 
-		for _, appRef := range vcs.Filter {
+		// be deterministic...
+		appKeys := []string{}
+		for k, _ := range vcs.Filter {
+			appKeys = append(appKeys, k)
+		}
+		sort.Strings(appKeys)
+
+		for _, k := range appKeys {
+			appRef := vcs.Filter[k]
 			app, err := s.GetApplication(device, appRef.Application)
 			if err != nil {
 				log.Warnf("Vcs %s unable to determine application: %s", *vcs.Id, err)

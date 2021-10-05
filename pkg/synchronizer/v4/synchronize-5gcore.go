@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/openconfig/ygot/ygot"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -29,12 +30,27 @@ const (
 	DefaultProtocol = "TCP"
 )
 
+type ipdTrafficClass struct {
+	Name string `json:"name"`
+	QCI  uint8  `json:"qci"`
+	ARP  uint8  `json:"arp"`
+	PDB  uint16 `json:"pdb"`
+	PELR uint8  `json:"pelr"`
+}
+
+type ipdQos struct {
+	Uplink       uint64          `json:"dnn-mbr-uplink"`
+	Downlink     uint64          `json:"dnn-mbr-downlink"`
+	TrafficClass ipdTrafficClass `json:"traffic-class"`
+}
+
 type ipDomain struct {
-	Dnn  string `json:"dnn"`
-	Pool string `json:"ue-ip-pool"`
-	// AdminStatus string `json:"admin-status"`  Dropped from current JSON
-	DNSPrimary string `json:"dns-primary"`
-	Mtu        uint16 `json:"mtu"`
+	Dnn          string  `json:"dnn"`
+	Pool         string  `json:"ue-ip-pool"`
+	DNSPrimary   string  `json:"dns-primary"`
+	DNSSecondary string  `json:"dns-secondary,omitempty"`
+	Mtu          uint16  `json:"mtu"`
+	Qos          *ipdQos `json:"ue-dnn-qos,omitempty"`
 }
 
 type deviceGroup struct {
@@ -47,12 +63,6 @@ type deviceGroup struct {
 type sliceIDStruct struct {
 	Sst string `json:"sst"`
 	Sd  string `json:"sd"`
-}
-
-type qos struct {
-	Uplink       uint64 `json:"uplink"`
-	Downlink     uint64 `json:"downlink"`
-	TrafficClass string `json:"traffic-class"`
 }
 
 type gNodeB struct {
@@ -77,22 +87,21 @@ type siteInfo struct {
 	Upf      upf      `json:"upf"`
 }
 
-type application struct {
-	Name      string `json:"app-name"`
-	Endpoint  string `json:"endpoint"`
-	StartPort uint16 `json:"start-port"`
-	EndPort   uint16 `json:"end-port"`
-	Protocol  uint32 `json:"protocol"`
+type appFilterRule struct {
+	Name          string `json:"rule-name"`
+	Priority      uint8  `json:"priority"`
+	Action        string `json:"action"`
+	DestNetwork   string `json:"dest-network"`
+	DestPortStart uint16 `json:"dest-port-start"`
+	DestPortEnd   uint16 `json:"dest-port-end"`
+	Protocol      uint32 `json:"protocol"`
 }
 
 type slice struct {
-	ID                sliceIDStruct `json:"slice-id"`
-	Qos               qos           `json:"qos"`
-	DeviceGroup       []string      `json:"site-device-group"`
-	SiteInfo          siteInfo      `json:"site-info"`
-	DenyApplication   []string      `json:"deny-applications"`
-	PermitApplication []string      `json:"permit-applications"`
-	Applications      []application `json:"applications-information"`
+	ID                        sliceIDStruct   `json:"slice-id"`
+	DeviceGroup               []string        `json:"site-device-group"`
+	SiteInfo                  siteInfo        `json:"site-info"`
+	ApplicationFilteringRules []appFilterRule `json:"application-filtering-rules"`
 }
 
 // SynchronizeDevice synchronizes a device
@@ -194,6 +203,24 @@ func (s *Synchronizer) GetIPDomain(device *models.Device, id *string) (*models.O
 	return ipd, nil
 }
 
+// GetReferencingVCS returns a VCS (the first one it finds) that uses a device group
+func (s *Synchronizer) GetReferencingVCS(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) *models.OnfVcs_Vcs_Vcs {
+	if device.Vcs == nil {
+		return nil
+	}
+	for _, vcs := range device.Vcs.Vcs {
+		for _, dgLink := range vcs.DeviceGroup {
+			if !*dgLink.Enable {
+				continue
+			}
+			if *dgLink.DeviceGroup == *dg.Id {
+				return vcs
+			}
+		}
+	}
+	return nil
+}
+
 // GetUpf looks up a Upf
 func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.OnfUpf_Upf_Upf, error) {
 	if device.Upf == nil {
@@ -254,8 +281,8 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.OnfD
 	return site, nil
 }
 
-// GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it, and the Site.
-func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, *models.OnfSite_Site_Site, error) {
+// GetVcsDG given a VCS, return the set of DeviceGroup attached to it
+func (s *Synchronizer) GetVcsDG(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, error) {
 	dgList := []*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{}
 	for _, dgLink := range vcs.DeviceGroup {
 		if !*dgLink.Enable {
@@ -263,21 +290,31 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs
 		}
 		dg, okay := device.DeviceGroup.DeviceGroup[*dgLink.DeviceGroup]
 		if !okay {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
+			return nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
 		}
 		if (dg.Site == nil) || (*dg.Site == "") {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
+			return nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
 		}
 
 		dgList = append(dgList, dg)
 
 		if *dgList[0].Site != *dg.Site {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
+			return nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
 		}
 	}
 
 	if len(dgList) == 0 {
-		return nil, nil, fmt.Errorf("VCS %s has no deviceGroups", *vcs.Id)
+		return nil, fmt.Errorf("VCS %s has no deviceGroups", *vcs.Id)
+	}
+
+	return dgList, nil
+}
+
+// GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it, and the Site.
+func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, *models.OnfSite_Site_Site, error) {
+	dgList, err := s.GetVcsDG(device, vcs)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	site, err := s.GetDeviceGroupSite(device, dgList[0])
@@ -285,7 +322,7 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs
 		return nil, nil, err
 	}
 
-	return dgList, site, err
+	return dgList, site, nil
 }
 
 // SynchronizeDeviceGroups synchronizes the device groups
@@ -361,12 +398,44 @@ deviceGroupLoop:
 
 		dgCore.IPDomainName = *ipd.Id
 		ipdCore := ipDomain{
-			Dnn:        synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
-			Pool:       *ipd.Subnet,
-			DNSPrimary: synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-			Mtu:        synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
+			Dnn:          synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
+			Pool:         *ipd.Subnet,
+			DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
+			DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
+			Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
 		}
 		dgCore.IPDomain = ipdCore
+
+		// TODO: This reflects that per-ue limits are modeled as part of the VCS
+		// rather than part of the DG. So we go off and look for VCS that uses
+		// this DG, and grabs its QOS settings. This will be revised.
+		vcs := s.GetReferencingVCS(device, dg)
+		if vcs != nil {
+			dgCore.IPDomain.Qos = &ipdQos{}
+			if vcs.Device != nil {
+				if vcs.Device.Mbr != nil {
+					if vcs.Device.Mbr.Uplink != nil {
+						dgCore.IPDomain.Qos.Uplink = *vcs.Device.Mbr.Uplink
+					}
+					if vcs.Device.Mbr.Downlink != nil {
+						dgCore.IPDomain.Qos.Downlink = *vcs.Device.Mbr.Downlink
+					}
+				}
+			}
+
+			if vcs.TrafficClass != nil {
+				trafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
+				if err != nil {
+					log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
+					continue deviceGroupLoop
+				}
+				dgCore.IPDomain.Qos.TrafficClass.Name = *trafficClass.Id
+				dgCore.IPDomain.Qos.TrafficClass.PDB = 300 // synchronizer.DerefUint16Ptr(trafficClass.PDB,300)
+				dgCore.IPDomain.Qos.TrafficClass.PELR = 6  // synchronizer.DerefUint8Ptr(trafficClass.PELR,6)
+				dgCore.IPDomain.Qos.TrafficClass.QCI = synchronizer.DerefUint8Ptr(trafficClass.Qci, 9)
+				dgCore.IPDomain.Qos.TrafficClass.ARP = synchronizer.DerefUint8Ptr(trafficClass.Arp, 9)
+			}
+		}
 
 		data, err := json.MarshalIndent(dgCore, "", "  ")
 		if err != nil {
@@ -388,195 +457,190 @@ deviceGroupLoop:
 	return nil
 }
 
+// SynchronizeVcsCore synchronizes the VCSes
+// Return a count of push-related errors
+func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
+	dgList, site, err := s.GetVcsDGAndSite(device, vcs)
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s unable to determine site: %s", *vcs.Id, err)
+	}
+	valid, okay := validEnterpriseIds[*site.Enterprise]
+	if (!okay) || (!valid) {
+		return 0, fmt.Errorf("VCS %s is not part of ConnectivityService %s", *vcs.Id, *cs.Id)
+	}
+
+	err = validateVcs(vcs)
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s is invalid: %s", *vcs.Id, err)
+	}
+
+	if site.ImsiDefinition == nil {
+		return 0, fmt.Errorf("Vcs %s has nnil Site.ImsiDefinition", *vcs.Id)
+	}
+	err = validateImsiDefinition(site.ImsiDefinition)
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
+	}
+	plmn := plmn{
+		Mcc: *site.ImsiDefinition.Mcc,
+		Mnc: *site.ImsiDefinition.Mnc,
+	}
+	siteInfo := siteInfo{
+		SiteName: *site.Id,
+		Plmn:     plmn,
+	}
+
+	if site.SmallCell != nil {
+		for _, ap := range site.SmallCell {
+			err = validateSmallCell(ap)
+			if err != nil {
+				return 0, fmt.Errorf("SmallCell invalid: %s", err)
+			}
+			if *ap.Enable {
+				tac, err := strconv.ParseUint(*ap.Tac, 16, 32)
+				if err != nil {
+					return 0, fmt.Errorf("SmallCell Failed to convert tac %s to integer: %v", *ap.Tac, err)
+				}
+				gNodeB := gNodeB{
+					Name: *ap.Address,
+					Tac:  uint32(tac),
+				}
+				siteInfo.GNodeBs = append(siteInfo.GNodeBs, gNodeB)
+			}
+		}
+	}
+
+	if vcs.Upf != nil {
+		aUpf, err := s.GetUpf(device, vcs.Upf)
+		if err != nil {
+			return 0, fmt.Errorf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
+		}
+		err = validateUpf(aUpf)
+		if err != nil {
+			return 0, fmt.Errorf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
+		}
+		siteInfo.Upf = upf{
+			Name: *aUpf.Address,
+			Port: *aUpf.Port,
+		}
+	}
+
+	sliceID := sliceIDStruct{
+		Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
+	}
+
+	// If the SD is unset, then do not set SD in the output. If it is set,
+	// then emit it as a string of six hex digits.
+	if vcs.Sd != nil {
+		sliceID.Sd = fmt.Sprintf("%06X", *vcs.Sd)
+	}
+
+	slice := slice{
+		ID:                        sliceID,
+		SiteInfo:                  siteInfo,
+		ApplicationFilteringRules: []appFilterRule{},
+	}
+
+	for _, dg := range dgList {
+		slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
+	}
+
+	// be deterministic...
+	appKeys := []string{}
+	for k := range vcs.Filter {
+		appKeys = append(appKeys, k)
+	}
+	sort.Strings(appKeys)
+
+	for _, k := range appKeys {
+		appRef := vcs.Filter[k]
+		app, err := s.GetApplication(device, appRef.Application)
+		if err != nil {
+			return 0, fmt.Errorf("Vcs %s unable to determine application: %s", *vcs.Id, err)
+		}
+		appCore := appFilterRule{
+			Name: *app.Id,
+		}
+
+		if (app.Address == nil) || (*app.Address == "") {
+			// this is a temporary restriction
+			return 0, fmt.Errorf("Vcs %s Application %s has empty address", *vcs.Id, *app.Id)
+		}
+		if len(app.Endpoint) > 1 {
+			// this is a temporary restriction
+			return 0, fmt.Errorf("Vcs %s Application %s has more endpoints than are allowed", *vcs.Id, *app.Id)
+		}
+		// there can be at most one at this point...
+		for _, endpoint := range app.Endpoint {
+			err = validateAppEndpoint(endpoint)
+			if err != nil {
+				log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
+			}
+			if strings.Contains(*app.Address, "/") {
+				appCore.DestNetwork = *app.Address
+			} else {
+				appCore.DestNetwork = *app.Address + "/32"
+			}
+
+			appCore.DestPortStart = *endpoint.PortStart
+			if endpoint.PortEnd != nil {
+				appCore.DestPortEnd = synchronizer.DerefUint16Ptr(endpoint.PortEnd, 0)
+			} else {
+				// no EndPort specified -- assume it's a singleton range
+				appCore.DestPortEnd = appCore.DestPortStart
+			}
+
+			protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DefaultProtocol))
+			if err != nil {
+				return 0, fmt.Errorf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
+			}
+			appCore.Protocol = protoNum
+
+			if (appRef.Allow != nil) && (*appRef.Allow) {
+				appCore.Action = "permit"
+			} else {
+				appCore.Action = "deny"
+			}
+
+			appCore.Priority = synchronizer.DerefUint8Ptr(appRef.Priority, 0)
+		}
+		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
+	}
+
+	data, err := json.MarshalIndent(slice, "", "  ")
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s failed to marshal JSON: %s", *vcs.Id, err)
+	}
+
+	url := fmt.Sprintf("%s/v1/network-slice/%s", *cs.Core_5GEndpoint, *vcs.Id)
+	err = s.pusher.PushUpdate(url, data)
+	if err != nil {
+		return 1, fmt.Errorf("Vcs %s failed to push update: %s", *vcs.Id, err)
+	}
+
+	return 0, nil
+}
+
 // SynchronizeVcs synchronizes the VCSes
 func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
 	pushFailures := 0
 vcsLoop:
 	for _, vcs := range device.Vcs.Vcs {
-		dgList, site, err := s.GetVcsDGAndSite(device, vcs)
+		corePushFailures, err := s.SynchronizeVcsCore(device, vcs, cs, validEnterpriseIds)
+		pushFailures += corePushFailures
 		if err != nil {
-			log.Warnf("Vcs %s unable to determine site: %s", *vcs.Id, err)
-			continue vcsLoop
-		}
-		valid, okay := validEnterpriseIds[*site.Enterprise]
-		if (!okay) || (!valid) {
-			log.Infof("VCS %s is not part of ConnectivityService %s.", *vcs.Id, *cs.Id)
+			log.Warnf("Vcs %s failed to synchronize Core: %s", *vcs.Id, err)
 			continue vcsLoop
 		}
 
-		err = validateVcs(vcs)
+		upfPushFailures, err := s.SynchronizeVcsUPF(device, vcs)
+		pushFailures += upfPushFailures
 		if err != nil {
-			log.Warnf("Vcs %s is invalid: %s", err)
-			continue vcsLoop
-		}
-
-		if site.ImsiDefinition == nil {
-			log.Warn("Vcs %s has nnil Site.ImsiDefinition", *vcs.Id)
-			continue vcsLoop
-		}
-		err = validateImsiDefinition(site.ImsiDefinition)
-		if err != nil {
-			log.Warnf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
-			continue vcsLoop
-		}
-		plmn := plmn{
-			Mcc: *site.ImsiDefinition.Mcc,
-			Mnc: *site.ImsiDefinition.Mnc,
-		}
-		siteInfo := siteInfo{
-			SiteName: *site.Id,
-			Plmn:     plmn,
-		}
-
-		if site.SmallCell != nil {
-			for _, ap := range site.SmallCell {
-				err = validateSmallCell(ap)
-				if err != nil {
-					log.Warnf("SmallCell invalid: %s", err)
-					continue vcsLoop
-				}
-				if *ap.Enable {
-					tac, err := strconv.ParseUint(*ap.Tac, 16, 32)
-					if err != nil {
-						log.Warnf("SmallCell Failed to convert tac %s to integer: %v", *ap.Tac, err)
-						continue vcsLoop
-					}
-					gNodeB := gNodeB{
-						Name: *ap.Address,
-						Tac:  uint32(tac),
-					}
-					siteInfo.GNodeBs = append(siteInfo.GNodeBs, gNodeB)
-				}
-			}
-		}
-
-		if vcs.Upf != nil {
-			aUpf, err := s.GetUpf(device, vcs.Upf)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			err = validateUpf(aUpf)
-			if err != nil {
-				log.Warnf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			siteInfo.Upf = upf{
-				Name: *aUpf.Address,
-				Port: *aUpf.Port,
-			}
-		}
-
-		sliceID := sliceIDStruct{
-			Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
-		}
-
-		// If the SD is unset, then do not set SD in the output. If it is set,
-		// then emit it as a string of six hex digits.
-		if vcs.Sd != nil {
-			sliceID.Sd = fmt.Sprintf("%06X", *vcs.Sd)
-		}
-
-		slice := slice{
-			ID:                sliceID,
-			SiteInfo:          siteInfo,
-			PermitApplication: []string{},
-			DenyApplication:   []string{},
-		}
-
-		for _, dg := range dgList {
-			slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
-		}
-
-		if vcs.Device != nil {
-			if vcs.Device.Mbr != nil {
-				if vcs.Device.Mbr.Uplink != nil {
-					slice.Qos.Uplink = *vcs.Device.Mbr.Uplink
-				}
-				if vcs.Device.Mbr.Downlink != nil {
-					slice.Qos.Downlink = *vcs.Device.Mbr.Downlink
-				}
-			}
-		}
-
-		if vcs.TrafficClass != nil {
-			trafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			slice.Qos.TrafficClass = *trafficClass.Id
-		}
-
-		for _, appRef := range vcs.Filter {
-			app, err := s.GetApplication(device, appRef.Application)
-			if err != nil {
-				log.Warnf("Vcs %s unable to determine application: %s", *vcs.Id, err)
-				continue vcsLoop
-			}
-			if *appRef.Allow {
-				slice.PermitApplication = append(slice.PermitApplication, *app.Id)
-			} else {
-				slice.DenyApplication = append(slice.DenyApplication, *app.Id)
-			}
-			appCore := application{
-				Name: *app.Id,
-			}
-			if (app.Address == nil) || (*app.Address == "") {
-				// this is a temporary restriction
-				log.Warnf("Vcs %s Application %s has empty address", *vcs.Id, *app.Id)
-				continue vcsLoop
-			}
-			if len(app.Endpoint) > 1 {
-				// this is a temporary restriction
-				log.Warnf("Vcs %s Application %s has more endpoints than are allowed", *vcs.Id, *app.Id)
-				continue vcsLoop
-			}
-			// there can be at most one at this point...
-			for _, endpoint := range app.Endpoint {
-				err = validateAppEndpoint(endpoint)
-				if err != nil {
-					log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
-					continue vcsLoop
-				}
-				if strings.Contains(*app.Address, "/") {
-					appCore.Endpoint = *app.Address
-				} else {
-					appCore.Endpoint = *app.Address + "/32"
-				}
-
-				appCore.StartPort = *endpoint.PortStart
-				if endpoint.PortEnd != nil {
-					appCore.EndPort = synchronizer.DerefUint16Ptr(endpoint.PortEnd, 0)
-				} else {
-					// no EndPort specified -- assume it's a singleton range
-					appCore.EndPort = appCore.StartPort
-				}
-
-				protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DefaultProtocol))
-				if err != nil {
-					log.Warnf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
-					continue vcsLoop
-				}
-				appCore.Protocol = protoNum
-			}
-			slice.Applications = append(slice.Applications, appCore)
-		}
-
-		data, err := json.MarshalIndent(slice, "", "  ")
-		if err != nil {
-			log.Warnf("Vcs %s failed to marshal JSON: %s", *vcs.Id, err)
-			continue vcsLoop
-		}
-
-		url := fmt.Sprintf("%s/v1/network-slice/%s", *cs.Core_5GEndpoint, *vcs.Id)
-		err = s.pusher.PushUpdate(url, data)
-		if err != nil {
-			log.Warnf("Vcs %s failed to push update: %s", *vcs.Id, err)
-			pushFailures++
+			log.Warnf("Vcs %s failed to synchronize UPF: %s", *vcs.Id, err)
 			continue vcsLoop
 		}
 	}
+
 	if pushFailures > 0 {
 		return fmt.Errorf("%d errors while pushing VCS", pushFailures)
 	}

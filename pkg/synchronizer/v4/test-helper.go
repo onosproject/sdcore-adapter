@@ -42,7 +42,7 @@ func aUint64(u uint64) *uint64 {
 
 // TODO: Refactor to use mockgen and/or sample data files ?
 
-// populate an Enterprise structure
+// MakeEnterprise populates an Enterprise structure for unit tests
 func MakeEnterprise(desc string, displayName string, id string, cs []string) *models.OnfEnterprise_Enterprise_Enterprise {
 	csList := map[string]*models.OnfEnterprise_Enterprise_Enterprise_ConnectivityService{}
 
@@ -63,6 +63,7 @@ func MakeEnterprise(desc string, displayName string, id string, cs []string) *mo
 	return &ent
 }
 
+// MakeCs makes a connectivity service structure for unit tests
 func MakeCs(desc string, displayName string, id string) *models.OnfConnectivityService_ConnectivityService_ConnectivityService {
 	cs := models.OnfConnectivityService_ConnectivityService_ConnectivityService{
 		Description:     aStr(desc),
@@ -74,6 +75,7 @@ func MakeCs(desc string, displayName string, id string) *models.OnfConnectivityS
 	return &cs
 }
 
+// BuildSampleDeviceGroup builds a sample device group for unit testing
 func BuildSampleDeviceGroup() (
 	*models.OnfEnterprise_Enterprise_Enterprise,
 	*models.OnfConnectivityService_ConnectivityService_ConnectivityService,
@@ -127,6 +129,7 @@ func BuildSampleDeviceGroup() (
 	return ent, cs, ipd, site, dg
 }
 
+// BuildSampleVcs builds a sample vcs for testing
 func BuildSampleVcs() (
 	map[string]*models.OnfApplication_Application_Application,
 	*models.OnfTemplate_Template_Template,

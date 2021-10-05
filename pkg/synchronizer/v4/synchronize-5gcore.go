@@ -457,7 +457,7 @@ deviceGroupLoop:
 	return nil
 }
 
-// SynchronizeVcs synchronizes the VCSes
+// SynchronizeVcsCore synchronizes the VCSes
 // Return a count of push-related errors
 func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
 	dgList, site, err := s.GetVcsDGAndSite(device, vcs)
@@ -466,7 +466,7 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 	}
 	valid, okay := validEnterpriseIds[*site.Enterprise]
 	if (!okay) || (!valid) {
-		return 0, fmt.Errorf("VCS %s is not part of ConnectivityService %s.", *vcs.Id, *cs.Id)
+		return 0, fmt.Errorf("VCS %s is not part of ConnectivityService %s", *vcs.Id, *cs.Id)
 	}
 
 	err = validateVcs(vcs)
@@ -547,7 +547,7 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 
 	// be deterministic...
 	appKeys := []string{}
-	for k, _ := range vcs.Filter {
+	for k := range vcs.Filter {
 		appKeys = append(appKeys, k)
 	}
 	sort.Strings(appKeys)

@@ -30,7 +30,7 @@ type upfSliceConfig struct {
 	UEResourceInfo []ueResourceInfo `json:"ueResourceInfo"`
 }
 
-// SynchronizeVcs synchronizes the VCSes to the UPF
+// SynchronizeVcsUPF synchronizes the VCSes to the UPF
 // Return a count of push-related errors
 func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) (int, error) {
 	if vcs.Upf == nil {

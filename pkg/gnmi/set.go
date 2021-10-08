@@ -12,6 +12,7 @@ import (
 	"time"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 	"google.golang.org/grpc/codes"
@@ -95,7 +96,7 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 	} else {
 		// If the Yang entry is a uint64, then we need to store it as a string in the JSON Tree
 		// instead of as a uint.
-		intAsString := (entry.Type != nil) && (entry.Type.Name == "uint64")
+		intAsString := (entry.Type != nil) && ((entry.Type.Kind == yang.Yuint64) || (entry.Type.Kind == yang.Yint64))
 		if intAsString {
 			log.Infof("IntAsString %s %s", entry.Name, entry.Type.Name)
 		}

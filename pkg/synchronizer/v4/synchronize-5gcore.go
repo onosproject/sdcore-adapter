@@ -30,7 +30,7 @@ const (
 	DefaultProtocol = "TCP"
 )
 
-type ipdTrafficClass struct {
+type trafficClass struct {
 	Name string `json:"name"`
 	QCI  uint8  `json:"qci"`
 	ARP  uint8  `json:"arp"`
@@ -39,9 +39,9 @@ type ipdTrafficClass struct {
 }
 
 type ipdQos struct {
-	Uplink       uint64          `json:"dnn-mbr-uplink"`
-	Downlink     uint64          `json:"dnn-mbr-downlink"`
-	TrafficClass ipdTrafficClass `json:"traffic-class"`
+	Uplink       uint64        `json:"dnn-mbr-uplink"`
+	Downlink     uint64        `json:"dnn-mbr-downlink"`
+	TrafficClass *trafficClass `json:"traffic-class,omitempty"`
 }
 
 type ipDomain struct {
@@ -88,13 +88,14 @@ type siteInfo struct {
 }
 
 type appFilterRule struct {
-	Name          string `json:"rule-name"`
-	Priority      uint8  `json:"priority"`
-	Action        string `json:"action"`
-	DestNetwork   string `json:"dest-network"`
-	DestPortStart uint16 `json:"dest-port-start"`
-	DestPortEnd   uint16 `json:"dest-port-end"`
-	Protocol      uint32 `json:"protocol"`
+	Name          string        `json:"rule-name"`
+	Priority      uint8         `json:"priority"`
+	Action        string        `json:"action"`
+	DestNetwork   string        `json:"dest-network"`
+	DestPortStart uint16        `json:"dest-port-start"`
+	DestPortEnd   uint16        `json:"dest-port-end"`
+	Protocol      uint32        `json:"protocol"`
+	TrafficClass  *trafficClass `json:"traffic-class,omitempty"`
 }
 
 type slice struct {
@@ -175,13 +176,15 @@ func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs 
 	if device.DeviceGroup != nil {
 		err := s.SynchronizeDeviceGroups(device, cs, validEnterpriseIds)
 		if err != nil {
-			return err
+			// nonfatal error -- we still want to try to synchronize VCS
+			log.Warnf("DeviceGroup Synchronization Error: %v", err)
 		}
 	}
 	if device.Vcs != nil {
 		err := s.SynchronizeVcs(device, cs, validEnterpriseIds)
 		if err != nil {
-			return err
+			// nofatal error
+			log.Warnf("DeviceGroup Synchronization Error: %v", err)
 		}
 	}
 
@@ -424,16 +427,17 @@ deviceGroupLoop:
 			}
 
 			if vcs.TrafficClass != nil {
-				trafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
+				rocTrafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
 				if err != nil {
 					log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
 					continue deviceGroupLoop
 				}
-				dgCore.IPDomain.Qos.TrafficClass.Name = *trafficClass.Id
-				dgCore.IPDomain.Qos.TrafficClass.PDB = 300 // synchronizer.DerefUint16Ptr(trafficClass.PDB,300)
-				dgCore.IPDomain.Qos.TrafficClass.PELR = 6  // synchronizer.DerefUint8Ptr(trafficClass.PELR,6)
-				dgCore.IPDomain.Qos.TrafficClass.QCI = synchronizer.DerefUint8Ptr(trafficClass.Qci, 9)
-				dgCore.IPDomain.Qos.TrafficClass.ARP = synchronizer.DerefUint8Ptr(trafficClass.Arp, 9)
+				tcCore := &trafficClass{Name: *rocTrafficClass.Id,
+					PDB:  300,
+					PELR: 6,
+					QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
+					ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
+				dgCore.IPDomain.Qos.TrafficClass = tcCore
 			}
 		}
 

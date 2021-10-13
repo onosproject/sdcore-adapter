@@ -263,6 +263,7 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 			}
 			if matchingKeys == len(elems[0].Key) {
 				childInstance = childMap
+				break
 			}
 		}
 	} else {
@@ -287,8 +288,8 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 		childInstanceIf := interface{}(childInstance)
 		return addObject(&childInstanceIf, elems[1:], isPrefix, val, "", "")
 	}
-	childSliceIf := interface{}(childSlice)
-	return &childSliceIf, nil
+	childInstanceIf := interface{}(childInstance)
+	return &childInstanceIf, nil
 }
 
 func keepSuffix(elemsLen int, suffix string) string {

@@ -153,12 +153,26 @@ func BuildSampleVcs() (
 		Enterprise:  aStr("sample-ent"),
 	}
 
+	mbr := &models.OnfApplication_Application_Application_Endpoint_Mbr{
+		Uplink:   aUint64(11223344),
+		Downlink: aUint64(55667788),
+	}
+
+	ep2 := &models.OnfApplication_Application_Application_Endpoint{
+		Name:         aStr("sample-app-ep"),
+		PortStart:    aUint16(123),
+		PortEnd:      aUint16(124),
+		Protocol:     aStr("UDP"),
+		Mbr:          mbr,
+		TrafficClass: aStr("sample-traffic-class"),
+	}
+
 	app2 := &models.OnfApplication_Application_Application{
 		Id:          aStr("sample-app2"),
 		Description: aStr("sample-app2-desc"),
 		DisplayName: aStr("sample-app2-dn"),
 		Address:     aStr("1.2.3.5"),
-		Endpoint:    map[string]*models.OnfApplication_Application_Application_Endpoint{"sample-app2-ep": ep},
+		Endpoint:    map[string]*models.OnfApplication_Application_Application_Endpoint{"sample-app2-ep": ep2},
 		Enterprise:  aStr("sample-ent"),
 	}
 

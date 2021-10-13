@@ -88,6 +88,57 @@ func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
 	}
 }
 
+func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
+
+	m := NewMemPusher()
+	s := Synchronizer{}
+	s.SetPusher(m)
+
+	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
+
+	dgDevMbr := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device_Mbr{
+		Downlink: aUint64(4321),
+		Uplink:   aUint64(8765),
+	}
+	dgDev := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device{
+		Mbr: dgDevMbr,
+	}
+	dg.Device = dgDev
+
+	device := models.Device{
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
+	}
+	err := s.SynchronizeDevice(&device)
+	assert.Nil(t, err)
+
+	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	assert.True(t, okay)
+	if okay {
+		expectedResult := `{
+			"imsis": [
+			  "123456789000001"
+			],
+			"ip-domain-name": "sample-ipd",
+			"site-info": "sample-site",
+			"ip-domain-expanded": {
+			  "dnn": "5ginternet",
+			  "ue-ip-pool": "1.2.3.4/24",
+			  "dns-primary": "8.8.8.8",
+				"mtu": 1492,
+				"ue-dnn-qos": {
+					"dnn-mbr-downlink": 4321,
+					"dnn-mbr-uplink": 8765
+				}				
+			}
+		  }`
+		require.JSONEq(t, expectedResult, json)
+	}
+}
+
 func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 
 	m := NewMemPusher()
@@ -212,7 +263,16 @@ func TestSynchronizeVCS(t *testing.T) {
 				"dest-network": "1.2.3.5/32",
 				"action": "deny",
 				"protocol": 17,
-				"priority": 8
+				"priority": 8,
+				"app-mbr-downlink": 55667788,
+				"app-mbr-uplink": 11223344,
+				"traffic-class": {
+					"name": "sample-traffic-class",
+					"arp": 3,
+					"pdb": 300,
+					"pelr": 6,
+					"qci": 55
+				}
 			}]
 		}`
 
@@ -290,7 +350,16 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 				"dest-network": "1.2.3.5/32",
 				"action": "deny",
 				"protocol": 17,
-				"priority": 8
+				"priority": 8,
+				"app-mbr-downlink": 55667788,
+				"app-mbr-uplink": 11223344,
+				"traffic-class": {
+					"name": "sample-traffic-class",
+					"arp": 3,
+					"pdb": 300,
+					"pelr": 6,
+					"qci": 55
+				}
 			}]
 		}`
 

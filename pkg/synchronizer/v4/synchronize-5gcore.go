@@ -412,12 +412,27 @@ deviceGroupLoop:
 		dgCore.IPDomain = ipdCore
 
 		if (dg.Device != nil) && (dg.Device.Mbr != nil) {
+			// The per-Device QoS Settings and Traffic Class are defined by for the
+			// Device-Group. Use them.
 			dgCore.IPDomain.Qos = &ipdQos{}
 			if dg.Device.Mbr.Uplink != nil {
 				dgCore.IPDomain.Qos.Uplink = *dg.Device.Mbr.Uplink
 			}
 			if dg.Device.Mbr.Downlink != nil {
 				dgCore.IPDomain.Qos.Downlink = *dg.Device.Mbr.Downlink
+			}
+			if dg.Device.TrafficClass != nil {
+				rocTrafficClass, err := s.GetTrafficClass(device, dg.Device.TrafficClass)
+				if err != nil {
+					log.Warnf("DG %s unable to determine traffic class: %s", *dg.Id, err)
+					continue deviceGroupLoop
+				}
+				tcCore := &trafficClass{Name: *rocTrafficClass.Id,
+					PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
+					PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
+					QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
+					ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
+				dgCore.IPDomain.Qos.TrafficClass = tcCore
 			}
 		} else {
 			// TODO: This reflects that per-ue limits are modeled as part of the VCS
@@ -444,8 +459,8 @@ deviceGroupLoop:
 						continue deviceGroupLoop
 					}
 					tcCore := &trafficClass{Name: *rocTrafficClass.Id,
-						PDB:  300,
-						PELR: 6,
+						PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
+						PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
 						QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
 						ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
 					dgCore.IPDomain.Qos.TrafficClass = tcCore
@@ -633,8 +648,8 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 					return 0, fmt.Errorf("Vcs %s application %s unable to determine traffic class: %s", *vcs.Id, *app.Id, err)
 				}
 				tcCore := &trafficClass{Name: *rocTrafficClass.Id,
-					PDB:  300,
-					PELR: 6,
+					PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
+					PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
 					QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
 					ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
 				appCore.TrafficClass = tcCore

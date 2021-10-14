@@ -95,6 +95,8 @@ type appFilterRule struct {
 	DestPortStart uint16        `json:"dest-port-start"`
 	DestPortEnd   uint16        `json:"dest-port-end"`
 	Protocol      uint32        `json:"protocol"`
+	Uplink        uint64        `json:"app-mbr-uplink,omitempty"`
+	Downlink      uint64        `json:"app-mbr-downlink,omitempty"`
 	TrafficClass  *trafficClass `json:"traffic-class,omitempty"`
 }
 
@@ -409,35 +411,45 @@ deviceGroupLoop:
 		}
 		dgCore.IPDomain = ipdCore
 
-		// TODO: This reflects that per-ue limits are modeled as part of the VCS
-		// rather than part of the DG. So we go off and look for VCS that uses
-		// this DG, and grabs its QOS settings. This will be revised.
-		vcs := s.GetReferencingVCS(device, dg)
-		if vcs != nil {
+		if (dg.Device != nil) && (dg.Device.Mbr != nil) {
 			dgCore.IPDomain.Qos = &ipdQos{}
-			if vcs.Device != nil {
-				if vcs.Device.Mbr != nil {
-					if vcs.Device.Mbr.Uplink != nil {
-						dgCore.IPDomain.Qos.Uplink = *vcs.Device.Mbr.Uplink
-					}
-					if vcs.Device.Mbr.Downlink != nil {
-						dgCore.IPDomain.Qos.Downlink = *vcs.Device.Mbr.Downlink
-					}
-				}
+			if dg.Device.Mbr.Uplink != nil {
+				dgCore.IPDomain.Qos.Uplink = *dg.Device.Mbr.Uplink
 			}
-
-			if vcs.TrafficClass != nil {
-				rocTrafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
-				if err != nil {
-					log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
-					continue deviceGroupLoop
+			if dg.Device.Mbr.Downlink != nil {
+				dgCore.IPDomain.Qos.Downlink = *dg.Device.Mbr.Downlink
+			}
+		} else {
+			// TODO: This reflects that per-ue limits are modeled as part of the VCS
+			// rather than part of the DG. So we go off and look for VCS that uses
+			// this DG, and grabs its QOS settings. This will be revised.
+			vcs := s.GetReferencingVCS(device, dg)
+			if vcs != nil {
+				dgCore.IPDomain.Qos = &ipdQos{}
+				if vcs.Device != nil {
+					if vcs.Device.Mbr != nil {
+						if vcs.Device.Mbr.Uplink != nil {
+							dgCore.IPDomain.Qos.Uplink = *vcs.Device.Mbr.Uplink
+						}
+						if vcs.Device.Mbr.Downlink != nil {
+							dgCore.IPDomain.Qos.Downlink = *vcs.Device.Mbr.Downlink
+						}
+					}
 				}
-				tcCore := &trafficClass{Name: *rocTrafficClass.Id,
-					PDB:  300,
-					PELR: 6,
-					QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
-					ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
-				dgCore.IPDomain.Qos.TrafficClass = tcCore
+
+				if vcs.TrafficClass != nil {
+					rocTrafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
+					if err != nil {
+						log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
+						continue deviceGroupLoop
+					}
+					tcCore := &trafficClass{Name: *rocTrafficClass.Id,
+						PDB:  300,
+						PELR: 6,
+						QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
+						ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
+					dgCore.IPDomain.Qos.TrafficClass = tcCore
+				}
 			}
 		}
 
@@ -606,8 +618,31 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 				appCore.Action = "deny"
 			}
 
+			if endpoint.Mbr != nil {
+				if endpoint.Mbr.Uplink != nil {
+					appCore.Uplink = *endpoint.Mbr.Uplink
+				}
+				if endpoint.Mbr.Downlink != nil {
+					appCore.Downlink = *endpoint.Mbr.Downlink
+				}
+			}
+
+			if endpoint.TrafficClass != nil {
+				rocTrafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
+				if err != nil {
+					return 0, fmt.Errorf("Vcs %s application %s unable to determine traffic class: %s", *vcs.Id, *app.Id, err)
+				}
+				tcCore := &trafficClass{Name: *rocTrafficClass.Id,
+					PDB:  300,
+					PELR: 6,
+					QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
+					ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
+				appCore.TrafficClass = tcCore
+			}
+
 			appCore.Priority = synchronizer.DerefUint8Ptr(appRef.Priority, 0)
 		}
+
 		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
 	}
 

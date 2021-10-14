@@ -20,6 +20,11 @@ func aBool(b bool) *bool {
 	return &b
 }
 
+// to facilitate easy declaring of pointers to int8
+func aInt8(u int8) *int8 {
+	return &u
+}
+
 // to facilitate easy declaring of pointers to uint8
 func aUint8(u uint8) *uint8 {
 	return &u

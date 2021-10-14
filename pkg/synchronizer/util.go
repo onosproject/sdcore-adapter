@@ -36,8 +36,16 @@ func DerefUint16Ptr(u *uint16, def uint16) uint16 {
 	return *u
 }
 
-// DerefUint8Ptr dereference a uint16 pointer, returning default if it is nil
+// DerefUint8Ptr dereference a uint8 pointer, returning default if it is nil
 func DerefUint8Ptr(u *uint8, def uint8) uint8 {
+	if u == nil {
+		return def
+	}
+	return *u
+}
+
+// DerefInt8Ptr dereference an int8 pointer, returning default if it is nil
+func DerefInt8Ptr(u *int8, def int8) int8 {
 	if u == nil {
 		return def
 	}

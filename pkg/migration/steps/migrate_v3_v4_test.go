@@ -420,4 +420,60 @@ func Test_MigrateV3V4(t *testing.T) {
 			t.Errorf("Unexpected UPF Profile ID %s", vcsID)
 		}
 	}
+
+	//Expecting actions 40-42 to be Device Group (device and traffic-class migration)- order is changeable
+	for idx := 40; idx <= 42; idx++ {
+		deviceGrouproupAction := actions[idx]
+		assert.Empty(t, deviceGrouproupAction.DeletePrefix)
+		assert.Equal(t, "device-group", deviceGrouproupAction.UpdatePrefix.GetElem()[0].GetName(),
+			"unexpected type for %d", idx)
+		dgname, ok := deviceGrouproupAction.UpdatePrefix.Elem[1].Key["id"]
+		assert.True(t, ok)
+		assert.Len(t, deviceGrouproupAction.Deletes, 1)
+		assert.Len(t, deviceGrouproupAction.Updates, 3)
+		switch dgname {
+		case "acme-chicago-robots":
+			assert.Equal(t, "device", deviceGrouproupAction.Updates[0].GetPath().GetElem()[0].GetName())
+			assert.Equal(t, "class-2", deviceGrouproupAction.Updates[2].Val.GetStringVal())
+		case "starbucks-newyork-cameras":
+			assert.Equal(t, "mbr", deviceGrouproupAction.Updates[1].GetPath().GetElem()[1].GetName())
+			assert.Equal(t, "class-1", deviceGrouproupAction.Updates[2].Val.GetStringVal())
+		case "starbucks-seattle-cameras":
+			assert.Equal(t, "cs4", deviceGrouproupAction.Updates[1].GetPath().GetTarget())
+			assert.Equal(t, "traffic-class", deviceGrouproupAction.Updates[2].GetPath().GetElem()[0].GetName())
+		default:
+			t.Errorf("unexpected device group: %s", dgname)
+		}
+	}
+
+	//Expecting actions 43-45 to be Applications (traffic-class migration)- order is changeable
+	for idx := 43; idx <= 45; idx++ {
+		applicationAction := actions[idx]
+		assert.Empty(t, applicationAction.DeletePrefix)
+		assert.Len(t, applicationAction.Deletes, 1)
+		assert.Len(t, applicationAction.Updates, 1)
+		assert.Equal(t, "traffic-class", applicationAction.Updates[0].GetPath().GetElem()[0].GetName())
+		assert.Equal(t, "cs4", applicationAction.Updates[0].GetPath().GetTarget())
+	}
+
+	// Expecting actions 46-48 to be Upf (site)  - order is changeable
+	for idx := 46; idx <= 48; idx++ {
+		upfAction := actions[idx]
+		assert.Empty(t, upfAction.DeletePrefix)
+		upfID, ok := upfAction.UpdatePrefix.GetElem()[1].GetKey()["id"]
+		assert.True(t, ok)
+		assert.Len(t, upfAction.Deletes, 1)
+		assert.Len(t, upfAction.Updates, 1)
+		assert.Equal(t, "site", upfAction.Updates[0].GetPath().GetElem()[0].GetName())
+		switch upfID {
+		case "acme-chicago-robots":
+			assert.Equal(t, "acme-chicago", upfAction.Updates[0].Val.GetStringVal())
+		case "starbucks-newyork-cameras":
+			assert.Equal(t, "starbucks-newyork", upfAction.Updates[0].Val.GetStringVal())
+		case "starbucks-seattle-cameras":
+			assert.Equal(t, "starbucks-seattle", upfAction.Updates[0].Val.GetStringVal())
+		default:
+			t.Errorf("Unexpected UPF Profile ID %s", upfID)
+		}
+	}
 }

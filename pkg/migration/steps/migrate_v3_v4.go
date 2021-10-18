@@ -201,7 +201,6 @@ func MigrateV3V4(step *migration.MigrationStep, fromTarget string, toTarget stri
 			for _, v := range srcDevice.Vcs.Vcs {
 				for _, ap := range v.Application {
 					apID := ap.Application
-					fmt.Println(*apID)
 					action, err := migrateV3V4VcsTcToDG(fromTarget, toTarget, apID, v)
 					if err != nil {
 						log.Warn(err.Error())
@@ -222,9 +221,7 @@ func MigrateV3V4(step *migration.MigrationStep, fromTarget string, toTarget stri
 					dgID = dg.DeviceGroup
 					break
 				}
-				fmt.Println(*dgID)
 				siteID := srcDevice.DeviceGroup.DeviceGroup[*dgID].Site
-				fmt.Println(siteID)
 				upfID := v.Upf
 				action, err := migrateV3V4VcssiteToUpf(fromTarget, toTarget, upfID, siteID)
 				if err != nil {

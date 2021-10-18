@@ -178,6 +178,63 @@ func MigrateV3V4(step *migration.MigrationStep, fromTarget string, toTarget stri
 		}
 	}
 
+	if srcDevice.DeviceGroup != nil {
+		log.Warn("Migrating vcs mbr and traffic-class to Device Group")
+		if srcDevice.Vcs != nil {
+			for _, v := range srcDevice.Vcs.Vcs {
+				for _, dg := range v.DeviceGroup {
+					dgID := srcDevice.DeviceGroup.DeviceGroup[*dg.DeviceGroup].Id
+					action, err := migrateV3V4VcsMbrTcToDG(fromTarget, toTarget, dgID, v)
+					if err != nil {
+						log.Warn(err.Error())
+						continue
+					}
+					allActions = append(allActions, action)
+				}
+			}
+		}
+	}
+
+	if srcDevice.Application != nil {
+		log.Warn("Migrating vcs traffic-class to Application")
+		if srcDevice.Vcs != nil {
+			for _, v := range srcDevice.Vcs.Vcs {
+				for _, ap := range v.Application {
+					apID := ap.Application
+					fmt.Println(*apID)
+					action, err := migrateV3V4VcsTcToDG(fromTarget, toTarget, apID, v)
+					if err != nil {
+						log.Warn(err.Error())
+						continue
+					}
+					allActions = append(allActions, action)
+				}
+			}
+		}
+	}
+
+	if srcDevice.Upf != nil {
+		log.Warn("Migrating vcs device-group's site to Upf")
+		if srcDevice.Vcs != nil {
+			for _, v := range srcDevice.Vcs.Vcs {
+				var dgID *string
+				for _, dg := range v.DeviceGroup {
+					dgID = dg.DeviceGroup
+					break
+				}
+				fmt.Println(*dgID)
+				siteID := srcDevice.DeviceGroup.DeviceGroup[*dgID].Site
+				fmt.Println(siteID)
+				upfID := v.Upf
+				action, err := migrateV3V4VcssiteToUpf(fromTarget, toTarget, upfID, siteID)
+				if err != nil {
+					log.Warn(err.Error())
+					continue
+				}
+				allActions = append(allActions, action)
+			}
+		}
+	}
 	return allActions, nil
 }
 
@@ -384,5 +441,33 @@ func migrateV3V4Vcs(fromTarget string, toTarget string, vc *modelsv3.Vcs_Vcs_Vcs
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("vcs/vcs[id=%s]", *vc.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("vcs/vcs[id=%s]", *vc.Id), fromTarget)
 
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+}
+
+func migrateV3V4VcsMbrTcToDG(fromTarget string, toTarget string, dg *string, vc *modelsv3.Vcs_Vcs_Vcs) (*migration.MigrationActions, error) {
+	var updates []*gpb.Update
+	uplink := uint64(*vc.Uplink * 1000000)
+	downlink := uint64(*vc.Downlink * 1000000)
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("device/mbr/uplink", toTarget, &uplink))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("device/mbr/downlink", toTarget, &downlink))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("traffic-class", toTarget, vc.TrafficClass))
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]", *dg), toTarget)
+	deletePath := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]", *dg), fromTarget)
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+}
+
+func migrateV3V4VcsTcToDG(fromTarget string, toTarget string, ap *string, vc *modelsv3.Vcs_Vcs_Vcs) (*migration.MigrationActions, error) {
+	var updates []*gpb.Update
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("traffic-class", toTarget, vc.TrafficClass))
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("application/application[id=%s]", *ap), toTarget)
+	deletePath := gnmiclient.StringToPath(fmt.Sprintf("application/application[id=%s]", *ap), fromTarget)
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+}
+
+func migrateV3V4VcssiteToUpf(fromTarget string, toTarget string, upfID *string, siteID *string) (*migration.MigrationActions, error) {
+	var updates []*gpb.Update
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("site", toTarget, siteID))
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("upf/upf[id=%s]", *upfID), toTarget)
+	deletePath := gnmiclient.StringToPath(fmt.Sprintf("upf/upf[id=%s]", *upfID), fromTarget)
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }

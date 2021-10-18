@@ -62,7 +62,7 @@ func Test_MigrateV3V4(t *testing.T) {
 
 	actions, err := MigrateV3V4(migrateV3V4Step, "cs3", "cs4", srcValJSON, dstValJSON)
 	assert.NoError(t, err)
-	assert.Len(t, actions, 40, "unexpected: actions is %d items", len(actions))
+	assert.Len(t, actions, 49, "unexpected: actions is %d items", len(actions))
 
 	// Expecting action 0-1 to be connectivity-service order is changeable
 	for idx := 0; idx <= 1; idx++ {

@@ -22,6 +22,8 @@ import (
 	modelpluginv21 "github.com/onosproject/config-models/modelplugin/aether-2.1.0/modelplugin"
 	modelsv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	modelpluginv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/modelplugin"
+	modelsv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
+	modelpluginv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/modelplugin"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration/steps"
@@ -87,10 +89,19 @@ func main() {
 		map[string]map[int64]ygot.EnumDefinition{},
 	)
 
+	v4Models := gnmi.NewModel(modelpluginv4.ModelData,
+		reflect.TypeOf((*modelsv4.Device)(nil)),
+		modelsv4.SchemaTree["Device"],
+		modelsv4.Unmarshal,
+		//models.ΛEnum  // NOTE: There is no Enum in the aether models? So use a blank map.
+		map[string]map[int64]ygot.EnumDefinition{},
+	)
+
 	// Initialize the migration engine and register migration steps.
 	mig := migration.NewMigrator(gnmiClient)
 	mig.AddMigrationStep("1.0.0", v1Models, "2.0.0", v2Models, steps.MigrateV1V2)
 	mig.AddMigrationStep("2.1.0", v21Models, "3.0.0", v3Models, steps.MigrateV21V3)
+	mig.AddMigrationStep("3.0.0", v3Models, "4.0.0", v4Models, steps.MigrateV3V4)
 
 	if *fromVersion == "" {
 		log.Fatalf("--from-version not specified. Supports: %s", strings.Join(mig.SupportedVersions(), ", "))

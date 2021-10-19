@@ -79,6 +79,42 @@ func UpdateString(path string, target string, val *string) *gpb.Update {
 	}
 }
 
+//UpdateUInt8 creates a gpb.Update for a uint8 value
+func UpdateUInt8(path string, target string, val *uint8) *gpb.Update {
+	if val == nil {
+		return nil
+	}
+
+	return &gpb.Update{
+		Path: StringToPath(path, target),
+		Val:  &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: uint64(*val)}},
+	}
+}
+
+//UpdateInt8 creates a gpb.Update for a int8 value
+func UpdateInt8(path string, target string, val *int8) *gpb.Update {
+	if val == nil {
+		return nil
+	}
+
+	return &gpb.Update{
+		Path: StringToPath(path, target),
+		Val:  &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: uint64(*val)}},
+	}
+}
+
+//UpdateUInt16 creates a gpb.Update for a uint16 value
+func UpdateUInt16(path string, target string, val *uint16) *gpb.Update {
+	if val == nil {
+		return nil
+	}
+
+	return &gpb.Update{
+		Path: StringToPath(path, target),
+		Val:  &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: uint64(*val)}},
+	}
+}
+
 // UpdateUInt32 creates a gpb.Update for a uint32 value
 func UpdateUInt32(path string, target string, val *uint32) *gpb.Update {
 	if val == nil {

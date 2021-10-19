@@ -27,12 +27,9 @@ func Test_MigrateV3V4(t *testing.T) {
 			JsonVal: srcJSON,
 		},
 	}
-	destJSON, err := ioutil.ReadFile("./testdata/mega_patch_400_dest.json")
-	assert.NoError(t, err)
+
 	dstValJSON := &gpb.TypedValue{
-		Value: &gpb.TypedValue_JsonVal{
-			JsonVal: destJSON,
-		},
+		Value: &gpb.TypedValue_JsonVal{},
 	}
 
 	v3Models := gnmi.NewModel(modelpluginv3.ModelData,

@@ -401,20 +401,20 @@ func Test_MigrateV3V4(t *testing.T) {
 		assert.Equal(t, "vcs", vcsAction.UpdatePrefix.GetElem()[0].GetName(), "expected upf for %d", idx)
 		vcsID, ok := vcsAction.UpdatePrefix.GetElem()[1].GetKey()["id"]
 		assert.Len(t, vcsAction.Deletes, 1)
-		assert.Len(t, vcsAction.Updates, 15)
+		assert.Len(t, vcsAction.Updates, 13)
 		assert.True(t, ok)
 		switch vcsID {
 		case "acme-chicago-robots":
 			assert.Equal(t, "Chicago Robots VCS", vcsAction.Updates[1].Val.GetStringVal())
 			assert.Equal(t, "upf", vcsAction.Updates[3].GetPath().GetElem()[0].GetName())
-			assert.Equal(t, "mbr", vcsAction.Updates[13].GetPath().GetElem()[1].GetName())
+			assert.Equal(t, "mbr", vcsAction.Updates[12].GetPath().GetElem()[1].GetName())
 		case "starbucks-newyork-cameras":
 			assert.Equal(t, "starbucks-newyork-cameras", vcsAction.Updates[3].Val.GetStringVal())
 			assert.Equal(t, "sst", vcsAction.Updates[5].GetPath().GetElem()[0].GetName())
 			assert.Equal(t, "template-1", vcsAction.Updates[2].Val.GetStringVal())
 		case "starbucks-seattle-cameras":
 			assert.Equal(t, "starbucks", vcsAction.Updates[4].Val.GetStringVal())
-			assert.Equal(t, "cs4", vcsAction.Updates[13].GetPath().GetTarget())
+			assert.Equal(t, "cs4", vcsAction.Updates[12].GetPath().GetTarget())
 			assert.Equal(t, "traffic-class", vcsAction.Updates[7].GetPath().GetElem()[0].GetName())
 		default:
 			t.Errorf("Unexpected UPF Profile ID %s", vcsID)

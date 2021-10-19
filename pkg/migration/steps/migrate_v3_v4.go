@@ -430,8 +430,6 @@ func migrateV3V4Vcs(fromTarget string, toTarget string, vc *modelsv3.Vcs_Vcs_Vcs
 
 	uplink := uint64(*vc.Uplink * 1000000)
 	downlink := uint64(*vc.Downlink * 1000000)
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("device/mbr/uplink", toTarget, &uplink))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("device/mbr/downlink", toTarget, &downlink))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("slice/mbr/uplink", toTarget, &uplink))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("slice/mbr/downlink", toTarget, &downlink))
 

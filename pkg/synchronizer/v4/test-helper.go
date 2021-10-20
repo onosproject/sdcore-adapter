@@ -84,11 +84,20 @@ func MakeCs(desc string, displayName string, id string) *models.OnfConnectivityS
 func BuildSampleDeviceGroup() (
 	*models.OnfEnterprise_Enterprise_Enterprise,
 	*models.OnfConnectivityService_ConnectivityService_ConnectivityService,
+	map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass,
 	*models.OnfIpDomain_IpDomain_IpDomain,
 	*models.OnfSite_Site_Site,
 	*models.OnfDeviceGroup_DeviceGroup_DeviceGroup) {
 	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
 	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
+
+	tc := &models.OnfTrafficClass_TrafficClass_TrafficClass{
+		Id:          aStr("sample-traffic-class"),
+		Description: aStr("sample-traffic-class-desc"),
+		DisplayName: aStr("sample-traffic-class-dn"),
+		Qci:         aUint8(55),
+		Arp:         aUint8(3),
+	}
 
 	ipd := &models.OnfIpDomain_IpDomain_IpDomain{
 		Description: aStr("sample-ipd-desc"),
@@ -122,6 +131,10 @@ func BuildSampleDeviceGroup() (
 	imsi := models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{
 		ImsiRangeFrom: aUint64(1),
 	}
+	dgDevMbr := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device_Mbr{
+		Downlink: aUint64(4321),
+		Uplink:   aUint64(8765),
+	}
 	dg := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup{
 		//Description: aStr("sample-dg-desc"),
 		DisplayName: aStr("sample-dg-dn"),
@@ -129,16 +142,18 @@ func BuildSampleDeviceGroup() (
 		Site:        aStr("sample-site"),
 		IpDomain:    aStr("sample-ipd"),
 		Imsis:       map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{"sample-imsi": &imsi},
+		Device:      &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device{Mbr: dgDevMbr, TrafficClass: tc.Id},
 	}
 
-	return ent, cs, ipd, site, dg
+	tcList := map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}
+
+	return ent, cs, tcList, ipd, site, dg
 }
 
 // BuildSampleVcs builds a sample vcs for testing
 func BuildSampleVcs() (
 	map[string]*models.OnfApplication_Application_Application,
 	*models.OnfTemplate_Template_Template,
-	*models.OnfTrafficClass_TrafficClass_TrafficClass,
 	*models.OnfUpf_Upf_Upf,
 	*models.OnfVcs_Vcs_Vcs) {
 
@@ -198,30 +213,12 @@ func BuildSampleVcs() (
 		Enable:      aBool(true),
 	}
 
-	tpDevMbr := &models.OnfTemplate_Template_Template_Device_Mbr{
-		Downlink: aUint64(4321),
-		Uplink:   aUint64(8765),
-	}
-	tpDev := &models.OnfTemplate_Template_Template_Device{
-		Mbr: tpDevMbr,
-	}
-
 	tp := &models.OnfTemplate_Template_Template{
-		Id:           aStr("sample-template"),
-		Description:  aStr("sample-template-desc"),
-		DisplayName:  aStr("sample-template-dn"),
-		Device:       tpDev,
-		Sd:           aUint32(111),
-		Sst:          aUint8(222),
-		TrafficClass: aStr("sample-traffic-class"),
-	}
-
-	tc := &models.OnfTrafficClass_TrafficClass_TrafficClass{
-		Id:          aStr("sample-traffic-class"),
-		Description: aStr("sample-traffic-class-desc"),
-		DisplayName: aStr("sample-traffic-class-dn"),
-		Qci:         aUint8(55),
-		Arp:         aUint8(3),
+		Id:          aStr("sample-template"),
+		Description: aStr("sample-template-desc"),
+		DisplayName: aStr("sample-template-dn"),
+		Sd:          aUint32(111),
+		Sst:         aUint8(222),
 	}
 
 	upf := &models.OnfUpf_Upf_Upf{
@@ -233,33 +230,22 @@ func BuildSampleVcs() (
 		Port:           aUint16(66),
 	}
 
-	vcDevMbr := &models.OnfVcs_Vcs_Vcs_Device_Mbr{
-		Downlink: aUint64(4321),
-		Uplink:   aUint64(8765),
-	}
-	vcDev := &models.OnfVcs_Vcs_Vcs_Device{
-		Mbr: vcDevMbr,
-	}
-
 	sliceQosMbr := &models.OnfVcs_Vcs_Vcs_Slice_Mbr{Uplink: aUint64(333), Downlink: aUint64(444)}
 	sliceQos := &models.OnfVcs_Vcs_Vcs_Slice{Mbr: sliceQosMbr}
 
 	vcs := &models.OnfVcs_Vcs_Vcs{
-		Filter:       map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink, "sample-app2": app2Link},
-		Description:  aStr("sample-vcs-desc"),
-		DeviceGroup:  map[string]*models.OnfVcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
-		DisplayName:  aStr("sample-app-dn"),
-		Device:       vcDev,
-		Id:           aStr("sample-vcs"),
-		Sd:           aUint32(111),
-		Sst:          aUint8(222),
-		Slice:        sliceQos,
-		Template:     aStr("sample-template"),
-		TrafficClass: aStr("sample-traffic-class"),
-		Upf:          aStr("sample-upf"),
+		Filter:      map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink, "sample-app2": app2Link},
+		Description: aStr("sample-vcs-desc"),
+		DeviceGroup: map[string]*models.OnfVcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
+		DisplayName: aStr("sample-app-dn"),
+		Id:          aStr("sample-vcs"),
+		Sd:          aUint32(111),
+		Sst:         aUint8(222),
+		Slice:       sliceQos,
+		Upf:         aStr("sample-upf"),
 	}
 
 	apps := map[string]*models.OnfApplication_Application_Application{*app1.Id: app1, *app2.Id: app2}
 
-	return apps, tp, tc, upf, vcs
+	return apps, tp, upf, vcs
 }

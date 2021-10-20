@@ -16,8 +16,8 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 	s := Synchronizer{}
 	s.SetPusher(m)
 
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, tc, upf, vcs := BuildSampleVcs()
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+	apps, tp, upf, vcs := BuildSampleVcs()
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -27,7 +27,7 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
 		Application:         &models.OnfApplication_Application{Application: apps},
 		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
@@ -62,8 +62,8 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 	s := Synchronizer{}
 	s.SetPusher(m)
 
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, tc, upf, vcs := BuildSampleVcs()
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+	apps, tp, upf, vcs := BuildSampleVcs()
 
 	vcs.Slice = nil // remove the slice QoS
 
@@ -75,7 +75,7 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
 		Application:         &models.OnfApplication_Application{Application: apps},
 		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}

@@ -50,69 +50,13 @@ func TestSynchronizeDeviceCSEnt(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestSynchronizeDeviceDeviceGroup(t *testing.T) {
-
-	m := NewMemPusher()
-	s := Synchronizer{}
-	s.SetPusher(m)
-
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-
-	device := models.Device{
-		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
-		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
-		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
-		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
-	}
-	err := s.SynchronizeDevice(&device)
-	assert.Nil(t, err)
-
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
-	assert.True(t, okay)
-	if okay {
-		expectedResult := `{
-			"imsis": [
-			  "123456789000001"
-			],
-			"ip-domain-name": "sample-ipd",
-			"site-info": "sample-site",
-			"ip-domain-expanded": {
-			  "dnn": "5ginternet",
-			  "ue-ip-pool": "1.2.3.4/24",
-			  "dns-primary": "8.8.8.8",
-			  "mtu": 1492
-			}
-		  }`
-		require.JSONEq(t, expectedResult, json)
-	}
-}
-
 func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 
 	m := NewMemPusher()
 	s := Synchronizer{}
 	s.SetPusher(m)
 
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-
-	tc := &models.OnfTrafficClass_TrafficClass_TrafficClass{
-		Id:          aStr("sample-traffic-class2"),
-		Description: aStr("sample-traffic-class2-desc"),
-		DisplayName: aStr("sample-traffic-class2-dn"),
-		Qci:         aUint8(66),
-		Arp:         aUint8(4),
-	}
-
-	dgDevMbr := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device_Mbr{
-		Downlink: aUint64(4321),
-		Uplink:   aUint64(8765),
-	}
-	dgDev := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device{
-		Mbr:          dgDevMbr,
-		TrafficClass: aStr("sample-traffic-class2"),
-	}
-	dg.Device = dgDev
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -120,7 +64,7 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
 		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 	}
 	err := s.SynchronizeDevice(&device)
 	assert.Nil(t, err)
@@ -143,11 +87,11 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 					"dnn-mbr-downlink": 4321,
 					"dnn-mbr-uplink": 8765,
 					"traffic-class": {
-						"name": "sample-traffic-class2",
-						"arp": 4,
+						"name": "sample-traffic-class",
+						"arp": 3,
 						"pdb": 300,
 						"pelr": 6,
-						"qci": 66
+						"qci": 55
 					}					
 				}				
 			}
@@ -162,27 +106,10 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 	s := Synchronizer{}
 	s.SetPusher(m)
 
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 
-	tc := &models.OnfTrafficClass_TrafficClass_TrafficClass{
-		Id:          aStr("sample-traffic-class2"),
-		Description: aStr("sample-traffic-class2-desc"),
-		DisplayName: aStr("sample-traffic-class2-dn"),
-		Qci:         aUint8(66),
-		Arp:         aUint8(4),
-		Pelr:        aInt8(3),
-		Pdb:         aUint16(400),
-	}
-
-	dgDevMbr := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device_Mbr{
-		Downlink: aUint64(4321),
-		Uplink:   aUint64(8765),
-	}
-	dgDev := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device{
-		Mbr:          dgDevMbr,
-		TrafficClass: aStr("sample-traffic-class2"),
-	}
-	dg.Device = dgDev
+	tcList["sample-traffic-class"].Pelr = aInt8(3)
+	tcList["sample-traffic-class"].Pdb = aUint16(400)
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -190,7 +117,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
 		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 	}
 	err := s.SynchronizeDevice(&device)
 	assert.Nil(t, err)
@@ -213,11 +140,11 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 					"dnn-mbr-downlink": 4321,
 					"dnn-mbr-uplink": 8765,
 					"traffic-class": {
-						"name": "sample-traffic-class2",
-						"arp": 4,
+						"name": "sample-traffic-class",
+						"arp": 3,
 						"pdb": 400,
 						"pelr": 3,
-						"qci": 66
+						"qci": 55
 					}					
 				}				
 			}
@@ -232,16 +159,9 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 	s := Synchronizer{}
 	s.SetPusher(m)
 
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 
-	dgDevMbr := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device_Mbr{
-		Downlink: aUint64(4321),
-		Uplink:   aUint64(8765),
-	}
-	dgDev := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device{
-		Mbr: dgDevMbr,
-	}
-	dg.Device = dgDev
+	dg.Device.TrafficClass = nil
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -249,32 +169,15 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
 		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 	}
 	err := s.SynchronizeDevice(&device)
 	assert.Nil(t, err)
 
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
-	assert.True(t, okay)
-	if okay {
-		expectedResult := `{
-			"imsis": [
-			  "123456789000001"
-			],
-			"ip-domain-name": "sample-ipd",
-			"site-info": "sample-site",
-			"ip-domain-expanded": {
-			  "dnn": "5ginternet",
-			  "ue-ip-pool": "1.2.3.4/24",
-			  "dns-primary": "8.8.8.8",
-				"mtu": 1492,
-				"ue-dnn-qos": {
-					"dnn-mbr-downlink": 4321,
-					"dnn-mbr-uplink": 8765		
-				}				
-			}
-		  }`
-		require.JSONEq(t, expectedResult, json)
-	}
+	// The above will fail synchronization with a nonfatal error because TrafficClass is missing
+
+	_, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	assert.False(t, okay)
 }
 
 func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
@@ -283,8 +186,8 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 	s := Synchronizer{}
 	s.SetPusher(m)
 
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, tc, upf, vcs := BuildSampleVcs()
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+	apps, tp, upf, vcs := BuildSampleVcs()
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -294,7 +197,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
 		Application:         &models.OnfApplication_Application{Application: apps},
 		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
@@ -339,8 +242,8 @@ func TestSynchronizeVCS(t *testing.T) {
 	s := Synchronizer{}
 	s.SetPusher(m)
 
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, tc, upf, vcs := BuildSampleVcs()
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+	apps, tp, upf, vcs := BuildSampleVcs()
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -350,7 +253,7 @@ func TestSynchronizeVCS(t *testing.T) {
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
 		Application:         &models.OnfApplication_Application{Application: apps},
 		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
@@ -423,8 +326,8 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 	s := Synchronizer{}
 	s.SetPusher(m)
 
-	ent, cs, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, tc, upf, vcs := BuildSampleVcs()
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+	apps, tp, upf, vcs := BuildSampleVcs()
 
 	// Set the SD to nil.
 	vcs.Sd = nil
@@ -437,7 +340,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
 		Application:         &models.OnfApplication_Application{Application: apps},
 		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}

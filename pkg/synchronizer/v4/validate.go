@@ -89,3 +89,27 @@ func validateImsiDefinition(i *models.OnfSite_Site_Site_ImsiDefinition) error {
 
 	return nil
 }
+
+func validateDeviceGroup(dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) error {
+	if dg.Device == nil {
+		return fmt.Errorf("DG %s has no per-Device settings", *dg.Id)
+	}
+
+	if dg.Device.Mbr == nil {
+		return fmt.Errorf("DG %s has per-Device settings, but no MBR", *dg.Id)
+	}
+
+	if dg.Device.Mbr.Uplink == nil {
+		return fmt.Errorf("DG %s Device.MBR.Uplink is unset", *dg.Id)
+	}
+
+	if dg.Device.Mbr.Downlink == nil {
+		return fmt.Errorf("DG %s Device.MBR.Downlink is unset", *dg.Id)
+	}
+
+	if dg.Device.TrafficClass == nil {
+		return fmt.Errorf("Device-Group %s has no Device.Traffic-Class", *dg.Id)
+	}
+
+	return nil
+}

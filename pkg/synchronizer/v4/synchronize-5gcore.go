@@ -335,11 +335,18 @@ func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models
 	pushFailures := 0
 deviceGroupLoop:
 	for _, dg := range device.DeviceGroup.DeviceGroup {
+		err := validateDeviceGroup(dg)
+		if err != nil {
+			log.Warnf("DeviceGroup %s failed validation: %v", *dg.Id, err)
+			continue deviceGroupLoop
+		}
+
 		site, err := s.GetDeviceGroupSite(device, dg)
 		if err != nil {
 			log.Warnf("DeviceGroup %s unable to determine site: %s", *dg.Id, err)
 			continue deviceGroupLoop
 		}
+
 		valid, okay := validEnterpriseIds[*site.Enterprise]
 		if (!okay) || (!valid) {
 			log.Infof("DeviceGroup %s is not part of ConnectivityService %s.", *dg.Id, *cs.Id)
@@ -408,65 +415,21 @@ deviceGroupLoop:
 			DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
 			DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
 			Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
+			Qos:          &ipdQos{Uplink: *dg.Device.Mbr.Uplink, Downlink: *dg.Device.Mbr.Downlink},
 		}
 		dgCore.IPDomain = ipdCore
 
-		if (dg.Device != nil) && (dg.Device.Mbr != nil) {
-			// The per-Device QoS Settings and Traffic Class are defined by for the
-			// Device-Group. Use them.
-			dgCore.IPDomain.Qos = &ipdQos{}
-			if dg.Device.Mbr.Uplink != nil {
-				dgCore.IPDomain.Qos.Uplink = *dg.Device.Mbr.Uplink
-			}
-			if dg.Device.Mbr.Downlink != nil {
-				dgCore.IPDomain.Qos.Downlink = *dg.Device.Mbr.Downlink
-			}
-			if dg.Device.TrafficClass != nil {
-				rocTrafficClass, err := s.GetTrafficClass(device, dg.Device.TrafficClass)
-				if err != nil {
-					log.Warnf("DG %s unable to determine traffic class: %s", *dg.Id, err)
-					continue deviceGroupLoop
-				}
-				tcCore := &trafficClass{Name: *rocTrafficClass.Id,
-					PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
-					PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
-					QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
-					ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
-				dgCore.IPDomain.Qos.TrafficClass = tcCore
-			}
-		} else {
-			// TODO: This reflects that per-ue limits are modeled as part of the VCS
-			// rather than part of the DG. So we go off and look for VCS that uses
-			// this DG, and grabs its QOS settings. This will be revised.
-			vcs := s.GetReferencingVCS(device, dg)
-			if vcs != nil {
-				dgCore.IPDomain.Qos = &ipdQos{}
-				if vcs.Device != nil {
-					if vcs.Device.Mbr != nil {
-						if vcs.Device.Mbr.Uplink != nil {
-							dgCore.IPDomain.Qos.Uplink = *vcs.Device.Mbr.Uplink
-						}
-						if vcs.Device.Mbr.Downlink != nil {
-							dgCore.IPDomain.Qos.Downlink = *vcs.Device.Mbr.Downlink
-						}
-					}
-				}
-
-				if vcs.TrafficClass != nil {
-					rocTrafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
-					if err != nil {
-						log.Warnf("Vcs %s unable to determine traffic class: %s", *vcs.Id, err)
-						continue deviceGroupLoop
-					}
-					tcCore := &trafficClass{Name: *rocTrafficClass.Id,
-						PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
-						PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
-						QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
-						ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
-					dgCore.IPDomain.Qos.TrafficClass = tcCore
-				}
-			}
+		rocTrafficClass, err := s.GetTrafficClass(device, dg.Device.TrafficClass)
+		if err != nil {
+			log.Warnf("DG %s unable to determine traffic class: %s", *dg.Id, err)
+			continue deviceGroupLoop
 		}
+		tcCore := &trafficClass{Name: *rocTrafficClass.Id,
+			PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
+			PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
+			QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
+			ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
+		dgCore.IPDomain.Qos.TrafficClass = tcCore
 
 		data, err := json.MarshalIndent(dgCore, "", "  ")
 		if err != nil {
@@ -643,7 +606,7 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 			}
 
 			if endpoint.TrafficClass != nil {
-				rocTrafficClass, err := s.GetTrafficClass(device, vcs.TrafficClass)
+				rocTrafficClass, err := s.GetTrafficClass(device, endpoint.TrafficClass)
 				if err != nil {
 					return 0, fmt.Errorf("Vcs %s application %s unable to determine traffic class: %s", *vcs.Id, *app.Id, err)
 				}

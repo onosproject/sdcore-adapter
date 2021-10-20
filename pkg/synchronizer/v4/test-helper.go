@@ -234,15 +234,16 @@ func BuildSampleVcs() (
 	sliceQos := &models.OnfVcs_Vcs_Vcs_Slice{Mbr: sliceQosMbr}
 
 	vcs := &models.OnfVcs_Vcs_Vcs{
-		Filter:      map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink, "sample-app2": app2Link},
-		Description: aStr("sample-vcs-desc"),
-		DeviceGroup: map[string]*models.OnfVcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
-		DisplayName: aStr("sample-app-dn"),
-		Id:          aStr("sample-vcs"),
-		Sd:          aUint32(111),
-		Sst:         aUint8(222),
-		Slice:       sliceQos,
-		Upf:         aStr("sample-upf"),
+		Filter:          map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink, "sample-app2": app2Link},
+		Description:     aStr("sample-vcs-desc"),
+		DeviceGroup:     map[string]*models.OnfVcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
+		DisplayName:     aStr("sample-app-dn"),
+		Id:              aStr("sample-vcs"),
+		Sd:              aUint32(111),
+		Sst:             aUint8(222),
+		Slice:           sliceQos,
+		Upf:             aStr("sample-upf"),
+		DefaultBehavior: aStr("DENY-ALL"),
 	}
 
 	apps := map[string]*models.OnfApplication_Application_Application{*app1.Id: app1, *app2.Id: app2}

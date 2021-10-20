@@ -22,6 +22,9 @@ func validateVcs(vcs *models.OnfVcs_Vcs_Vcs) error {
 	if vcs.Sst == nil {
 		return fmt.Errorf("Sst is nil")
 	}
+	if vcs.DefaultBehavior == nil {
+		return fmt.Errorf("DefaultBehavior is nil")
+	}
 	return nil
 }
 
@@ -92,23 +95,23 @@ func validateImsiDefinition(i *models.OnfSite_Site_Site_ImsiDefinition) error {
 
 func validateDeviceGroup(dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) error {
 	if dg.Device == nil {
-		return fmt.Errorf("DG %s has no per-Device settings", *dg.Id)
+		return fmt.Errorf("has no per-Device settings")
 	}
 
 	if dg.Device.Mbr == nil {
-		return fmt.Errorf("DG %s has per-Device settings, but no MBR", *dg.Id)
+		return fmt.Errorf("has per-Device settings, but no MBR")
 	}
 
 	if dg.Device.Mbr.Uplink == nil {
-		return fmt.Errorf("DG %s Device.MBR.Uplink is unset", *dg.Id)
+		return fmt.Errorf("Device.MBR.Uplink is unset")
 	}
 
 	if dg.Device.Mbr.Downlink == nil {
-		return fmt.Errorf("DG %s Device.MBR.Downlink is unset", *dg.Id)
+		return fmt.Errorf("Device.MBR.Downlink is unset")
 	}
 
 	if dg.Device.TrafficClass == nil {
-		return fmt.Errorf("Device-Group %s has no Device.Traffic-Class", *dg.Id)
+		return fmt.Errorf("has no Device.Traffic-Class")
 	}
 
 	return nil

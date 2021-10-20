@@ -142,8 +142,8 @@ func MaskSubscriberImsiDef(i *models.OnfSite_Site_Site_ImsiDefinition, sub uint6
 }
 
 // ProtoStringToProtoNumber converts a protocol name to a number
-func ProtoStringToProtoNumber(s string) (uint32, error) {
-	n, okay := map[string]uint32{"TCP": 6, "UDP": 17}[s]
+func ProtoStringToProtoNumber(s string) (uint8, error) {
+	n, okay := map[string]uint8{"TCP": 6, "UDP": 17}[s]
 	if !okay {
 		return 0, fmt.Errorf("Unknown protocol %s", s)
 	}

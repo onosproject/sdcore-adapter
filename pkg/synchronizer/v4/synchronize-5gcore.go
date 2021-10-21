@@ -91,10 +91,10 @@ type appFilterRule struct {
 	Name          string        `json:"rule-name"`
 	Priority      uint8         `json:"priority"`
 	Action        string        `json:"action"`
-	DestNetwork   string        `json:"dest-network"`
-	DestPortStart uint16        `json:"dest-port-start"`
-	DestPortEnd   uint16        `json:"dest-port-end"`
-	Protocol      uint32        `json:"protocol"`
+	Endpoint      string        `json:"endpoint"`
+	DestPortStart *uint16       `json:"dest-port-start,omitempty"`
+	DestPortEnd   *uint16       `json:"dest-port-end,omitempty"`
+	Protocol      *uint8        `json:"protocol,omitempty"`
 	Uplink        uint64        `json:"app-mbr-uplink,omitempty"`
 	Downlink      uint64        `json:"app-mbr-downlink,omitempty"`
 	TrafficClass  *trafficClass `json:"traffic-class,omitempty"`
@@ -571,24 +571,26 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 				log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
 			}
 			if strings.Contains(*app.Address, "/") {
-				appCore.DestNetwork = *app.Address
+				appCore.Endpoint = *app.Address
 			} else {
-				appCore.DestNetwork = *app.Address + "/32"
+				appCore.Endpoint = *app.Address + "/32"
 			}
 
-			appCore.DestPortStart = *endpoint.PortStart
+			appCore.DestPortStart = endpoint.PortStart
 			if endpoint.PortEnd != nil {
-				appCore.DestPortEnd = synchronizer.DerefUint16Ptr(endpoint.PortEnd, 0)
+				appCore.DestPortEnd = endpoint.PortEnd
 			} else {
 				// no EndPort specified -- assume it's a singleton range
 				appCore.DestPortEnd = appCore.DestPortStart
 			}
 
-			protoNum, err := ProtoStringToProtoNumber(synchronizer.DerefStrPtr(endpoint.Protocol, DefaultProtocol))
-			if err != nil {
-				return 0, fmt.Errorf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
+			if endpoint.Protocol != nil {
+				protoNum, err := ProtoStringToProtoNumber(*endpoint.Protocol)
+				if err != nil {
+					return 0, fmt.Errorf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
+				}
+				appCore.Protocol = &protoNum
 			}
-			appCore.Protocol = protoNum
 
 			if (appRef.Allow != nil) && (*appRef.Allow) {
 				appCore.Action = "permit"
@@ -622,6 +624,26 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 		}
 
 		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
+	}
+
+	switch *vcs.DefaultBehavior {
+	case "ALLOW-ALL":
+		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: 250, Endpoint: "0.0.0.0/0"}
+		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, allowAll)
+	case "DENY-ALL":
+		denyAll := appFilterRule{Name: "DENY-ALL", Action: "deny", Priority: 250, Endpoint: "0.0.0.0/0"}
+		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyAll)
+	case "ALLOW-PUBLIC":
+		denyClassA := appFilterRule{Name: "DENY-CLASS-A", Action: "deny", Priority: 250, Endpoint: "10.0.0.0/8"}
+		denyClassB := appFilterRule{Name: "DENY-CLASS-B", Action: "deny", Priority: 251, Endpoint: "172.16.0.0/12"}
+		denyClassC := appFilterRule{Name: "DENY-CLASS-C", Action: "deny", Priority: 252, Endpoint: "192.168.0.0/16"}
+		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: 253, Endpoint: "0.0.0.0/0"}
+		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassA)
+		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassB)
+		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassC)
+		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, allowAll)
+	default:
+		return 0, fmt.Errorf("Vcs %s has invalid defauilt-behavior %s", *vcs.Id, *vcs.DefaultBehavior)
 	}
 
 	data, err := json.MarshalIndent(slice, "", "  ")

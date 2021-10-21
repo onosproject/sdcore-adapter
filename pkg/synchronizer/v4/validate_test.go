@@ -14,21 +14,24 @@ import (
 
 func TestValidateVcs(t *testing.T) {
 	v := &models_v4.OnfVcs_Vcs_Vcs{
-		Sst: aUint8(123),
-		Sd:  aUint32(456),
+		Sst:             aUint8(123),
+		Sd:              aUint32(456),
+		DefaultBehavior: aStr("DENY-ALL"),
 	}
 	err := validateVcs(v)
 	assert.Nil(t, err)
 
 	v = &models_v4.OnfVcs_Vcs_Vcs{
-		Sd: aUint32(456),
+		Sd:              aUint32(456),
+		DefaultBehavior: aStr("DENY-ALL"),
 	}
 	err = validateVcs(v)
 	assert.EqualError(t, err, "Sst is nil")
 
 	// SD is optional
 	v = &models_v4.OnfVcs_Vcs_Vcs{
-		Sst: aUint8(123),
+		Sst:             aUint8(123),
+		DefaultBehavior: aStr("DENY-ALL"),
 	}
 	err = validateVcs(v)
 	assert.Nil(t, err)

@@ -292,7 +292,7 @@ func TestSynchronizeVCS(t *testing.T) {
 				"rule-name": "sample-app",
 				"dest-port-start": 123,
 				"dest-port-end": 124,
-				"dest-network": "1.2.3.4/32",
+				"endpoint": "1.2.3.4/32",
 				"action": "permit",
 				"protocol": 17,
 				"priority": 7
@@ -301,7 +301,7 @@ func TestSynchronizeVCS(t *testing.T) {
 				"rule-name": "sample-app2",
 				"dest-port-start": 123,
 				"dest-port-end": 124,
-				"dest-network": "1.2.3.5/32",
+				"endpoint": "1.2.3.5/32",
 				"action": "deny",
 				"protocol": 17,
 				"priority": 8,
@@ -314,6 +314,12 @@ func TestSynchronizeVCS(t *testing.T) {
 					"pelr": 6,
 					"qci": 55
 				}
+			},
+			{
+				"rule-name": "DENY-ALL",
+				"endpoint": "0.0.0.0/0",
+				"priority": 250,
+				"action": "deny"
 			}]
 		}`
 
@@ -379,7 +385,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 				"rule-name": "sample-app",
 				"dest-port-start": 123,
 				"dest-port-end": 124,
-				"dest-network": "1.2.3.4/32",
+				"endpoint": "1.2.3.4/32",
 				"action": "permit",
 				"protocol": 17,
 				"priority": 7
@@ -388,7 +394,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 				"rule-name": "sample-app2",
 				"dest-port-start": 123,
 				"dest-port-end": 124,
-				"dest-network": "1.2.3.5/32",
+				"endpoint": "1.2.3.5/32",
 				"action": "deny",
 				"protocol": 17,
 				"priority": 8,
@@ -401,6 +407,12 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 					"pelr": 6,
 					"qci": 55
 				}
+			},
+			{
+				"rule-name": "DENY-ALL",
+				"endpoint": "0.0.0.0/0",
+				"priority": 250,
+				"action": "deny"
 			}]
 		}`
 

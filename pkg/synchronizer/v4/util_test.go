@@ -124,11 +124,11 @@ func TestFormatImsiDef(t *testing.T) {
 func TestProtoStringToProtoNumber(t *testing.T) {
 	n, err := ProtoStringToProtoNumber("UDP")
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(17), n)
+	assert.Equal(t, uint8(17), n)
 
 	n, err = ProtoStringToProtoNumber("TCP")
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(6), n)
+	assert.Equal(t, uint8(6), n)
 
 	_, err = ProtoStringToProtoNumber("MQTT")
 	assert.EqualError(t, err, "Unknown protocol MQTT")

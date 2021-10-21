@@ -107,19 +107,20 @@ type slice struct {
 	ApplicationFilteringRules []appFilterRule `json:"application-filtering-rules"`
 }
 
-// SynchronizeDevice synchronizes a device
-// NOTE: This function is nearly identical with the v2 synchronizer. Refactor?
-func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
+// SynchronizeDevice synchronizes a device. Two sets of error state are returned:
+//   1) pushFailures -- a count of pushes that failed to the core. Synchronizer should retry again later.
+//   2) error -- a fatal error that occurred during synchronization.
+func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, error) {
 	device := config.(*models.Device)
 
 	if device.Enterprise == nil {
 		log.Info("No enteprises")
-		return nil
+		return 0, nil
 	}
 
 	if device.ConnectivityService == nil {
 		log.Info("No connectivity services")
-		return nil
+		return 0, nil
 	}
 
 	// For a given ConnectivityService, we want to know the list of Enterprises
@@ -137,6 +138,7 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 		}
 	}
 
+	pushFailures := 0
 	errors := []error{}
 	for csID, cs := range device.ConnectivityService.ConnectivityService {
 		if (cs.Core_5GEndpoint == nil) || (*cs.Core_5GEndpoint == "") {
@@ -153,7 +155,8 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 		tStart := time.Now()
 		synchronizer.KpiSynchronizationTotal.WithLabelValues(csID).Inc()
 
-		err := s.SynchronizeConnectivityService(device, cs, m)
+		csPushFailures, err := s.SynchronizeConnectivityService(device, cs, m)
+		pushFailures += csPushFailures
 		if err != nil {
 			synchronizer.KpiSynchronizationFailedTotal.WithLabelValues(csID).Inc()
 			// If there are errors, then build a list of them and continue to try
@@ -165,32 +168,36 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) error {
 	}
 
 	if len(errors) == 0 {
-		return nil
+		return pushFailures, nil
 	}
 
-	return fmt.Errorf("synchronization errors: %v", errors)
+	return pushFailures, fmt.Errorf("synchronization errors: %v", errors)
 }
 
 // SynchronizeConnectivityService synchronizes a connectivity service
-func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
 	log.Infof("Synchronizing Connectivity Service %s", *cs.Id)
 
+	var err error
+	var dgPushFailures int
+	var vcsPushFailures int
+
 	if device.DeviceGroup != nil {
-		err := s.SynchronizeDeviceGroups(device, cs, validEnterpriseIds)
+		dgPushFailures, err = s.SynchronizeAllDeviceGroups(device, cs, validEnterpriseIds)
 		if err != nil {
 			// nonfatal error -- we still want to try to synchronize VCS
-			log.Warnf("DeviceGroup Synchronization Error: %v", err)
+			log.Warnf("ConnectivityService %s DeviceGroup Synchronization Error: %v", *cs.Id, err)
 		}
 	}
 	if device.Vcs != nil {
-		err := s.SynchronizeVcs(device, cs, validEnterpriseIds)
+		vcsPushFailures, err = s.SynchronizeAllVcs(device, cs, validEnterpriseIds)
 		if err != nil {
 			// nofatal error
-			log.Warnf("DeviceGroup Synchronization Error: %v", err)
+			log.Warnf("ConnectivityService %s VCS Synchronization Error: %v", *cs.Id, err)
 		}
 	}
 
-	return nil
+	return dgPushFailures + vcsPushFailures, nil
 }
 
 // GetIPDomain looks up an IpDomain
@@ -331,124 +338,103 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs
 }
 
 // SynchronizeDeviceGroups synchronizes the device groups
-func (s *Synchronizer) SynchronizeDeviceGroups(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
-	pushFailures := 0
-deviceGroupLoop:
-	for _, dg := range device.DeviceGroup.DeviceGroup {
-		err := validateDeviceGroup(dg)
+func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
+	err := validateDeviceGroup(dg)
+	if err != nil {
+		return 0, fmt.Errorf("DeviceGroup %s failed validation: %v", *dg.Id, err)
+	}
+
+	site, err := s.GetDeviceGroupSite(device, dg)
+	if err != nil {
+		return 0, fmt.Errorf("DeviceGroup %s unable to determine site: %s", *dg.Id, err)
+	}
+
+	valid, okay := validEnterpriseIds[*site.Enterprise]
+	if (!okay) || (!valid) {
+		return 0, fmt.Errorf("DeviceGroup %s is not part of ConnectivityService %s.", *dg.Id, *cs.Id)
+	}
+
+	dgCore := deviceGroup{
+		IPDomainName: *dg.Id,
+		SiteInfo:     *dg.Site,
+	}
+
+	if site.ImsiDefinition == nil {
+		return 0, fmt.Errorf("DeviceGroup %s site has nil ImsiDefinition", *dg.Id)
+	}
+	err = validateImsiDefinition(site.ImsiDefinition)
+	if err != nil {
+		return 0, fmt.Errorf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.Id, err)
+	}
+
+	// populate the imsi list
+	for _, imsiBlock := range dg.Imsis {
+		if imsiBlock.ImsiRangeFrom == nil {
+			return 0, fmt.Errorf("imsiBlock has blank ImsiRangeFrom: %v", imsiBlock)
+		}
+		var firstImsi uint64
+		firstImsi, err = FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeFrom)
 		if err != nil {
-			log.Warnf("DeviceGroup %s failed validation: %v", *dg.Id, err)
-			continue deviceGroupLoop
+			return 0, fmt.Errorf("Failed to format IMSI in dg %s: %v", *dg.Id, err)
 		}
-
-		site, err := s.GetDeviceGroupSite(device, dg)
-		if err != nil {
-			log.Warnf("DeviceGroup %s unable to determine site: %s", *dg.Id, err)
-			continue deviceGroupLoop
-		}
-
-		valid, okay := validEnterpriseIds[*site.Enterprise]
-		if (!okay) || (!valid) {
-			log.Infof("DeviceGroup %s is not part of ConnectivityService %s.", *dg.Id, *cs.Id)
-			continue deviceGroupLoop
-		}
-
-		dgCore := deviceGroup{
-			IPDomainName: *dg.Id,
-			SiteInfo:     *dg.Site,
-		}
-
-		if site.ImsiDefinition == nil {
-			log.Warnf("DeviceGroup %s site has nil ImsiDefinition", *dg.Id)
-			continue deviceGroupLoop
-		}
-		err = validateImsiDefinition(site.ImsiDefinition)
-		if err != nil {
-			log.Warnf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.Id, err)
-			continue deviceGroupLoop
-		}
-
-		// populate the imsi list
-		for _, imsiBlock := range dg.Imsis {
-			if imsiBlock.ImsiRangeFrom == nil {
-				log.Infof("imsiBlock has blank ImsiRangeFrom: %v", imsiBlock)
-				continue deviceGroupLoop
-			}
-			var firstImsi uint64
-			firstImsi, err = FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeFrom)
+		var lastImsi uint64
+		if imsiBlock.ImsiRangeTo == nil {
+			lastImsi = firstImsi
+		} else {
+			lastImsi, err = FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeTo)
 			if err != nil {
-				log.Infof("Failed to format IMSI in dg %s: %v", *dg.Id, err)
-				continue deviceGroupLoop
+				return 0, fmt.Errorf("Failed to format IMSI in dg %s: %v", *dg.Id, err)
 			}
-			var lastImsi uint64
-			if imsiBlock.ImsiRangeTo == nil {
-				lastImsi = firstImsi
-			} else {
-				lastImsi, err = FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeTo)
-				if err != nil {
-					log.Infof("Failed to format IMSI in dg %s: %v", *dg.Id, err)
-					continue deviceGroupLoop
-				}
 
-			}
-			for i := firstImsi; i <= lastImsi; i++ {
-				dgCore.Imsis = append(dgCore.Imsis, fmt.Sprintf("%015d", i))
-			}
 		}
-
-		ipd, err := s.GetIPDomain(device, dg.IpDomain)
-		if err != nil {
-			log.Warnf("DeviceGroup %s failed to get IpDomain: %s", *dg.Id, err)
-			continue deviceGroupLoop
-		}
-
-		err = validateIPDomain(ipd)
-		if err != nil {
-			log.Warnf("DeviceGroup %s invalid: %s", *dg.Id, err)
-			continue deviceGroupLoop
-		}
-
-		dgCore.IPDomainName = *ipd.Id
-		ipdCore := ipDomain{
-			Dnn:          synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
-			Pool:         *ipd.Subnet,
-			DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-			DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
-			Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
-			Qos:          &ipdQos{Uplink: *dg.Device.Mbr.Uplink, Downlink: *dg.Device.Mbr.Downlink},
-		}
-		dgCore.IPDomain = ipdCore
-
-		rocTrafficClass, err := s.GetTrafficClass(device, dg.Device.TrafficClass)
-		if err != nil {
-			log.Warnf("DG %s unable to determine traffic class: %s", *dg.Id, err)
-			continue deviceGroupLoop
-		}
-		tcCore := &trafficClass{Name: *rocTrafficClass.Id,
-			PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
-			PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
-			QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
-			ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
-		dgCore.IPDomain.Qos.TrafficClass = tcCore
-
-		data, err := json.MarshalIndent(dgCore, "", "  ")
-		if err != nil {
-			log.Warnf("DeviceGroup %s failed to Marshal Json: %s", *dg.Id, err)
-			continue deviceGroupLoop
-		}
-
-		url := fmt.Sprintf("%s/v1/device-group/%s", *cs.Core_5GEndpoint, *dg.Id)
-		err = s.pusher.PushUpdate(url, data)
-		if err != nil {
-			log.Warnf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
-			pushFailures++
-			continue deviceGroupLoop
+		for i := firstImsi; i <= lastImsi; i++ {
+			dgCore.Imsis = append(dgCore.Imsis, fmt.Sprintf("%015d", i))
 		}
 	}
-	if pushFailures > 0 {
-		return fmt.Errorf("%d errors while pushing DeviceGroups", pushFailures)
+
+	ipd, err := s.GetIPDomain(device, dg.IpDomain)
+	if err != nil {
+		return 0, fmt.Errorf("DeviceGroup %s failed to get IpDomain: %s", *dg.Id, err)
 	}
-	return nil
+
+	err = validateIPDomain(ipd)
+	if err != nil {
+		return 0, fmt.Errorf("DeviceGroup %s invalid: %s", *dg.Id, err)
+	}
+
+	dgCore.IPDomainName = *ipd.Id
+	ipdCore := ipDomain{
+		Dnn:          synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
+		Pool:         *ipd.Subnet,
+		DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
+		DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
+		Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
+		Qos:          &ipdQos{Uplink: *dg.Device.Mbr.Uplink, Downlink: *dg.Device.Mbr.Downlink},
+	}
+	dgCore.IPDomain = ipdCore
+
+	rocTrafficClass, err := s.GetTrafficClass(device, dg.Device.TrafficClass)
+	if err != nil {
+		return 0, fmt.Errorf("DG %s unable to determine traffic class: %s", *dg.Id, err)
+	}
+	tcCore := &trafficClass{Name: *rocTrafficClass.Id,
+		PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
+		PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
+		QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
+		ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
+	dgCore.IPDomain.Qos.TrafficClass = tcCore
+
+	data, err := json.MarshalIndent(dgCore, "", "  ")
+	if err != nil {
+		return 0, fmt.Errorf("DeviceGroup %s failed to Marshal Json: %s", *dg.Id, err)
+	}
+
+	url := fmt.Sprintf("%s/v1/device-group/%s", *cs.Core_5GEndpoint, *dg.Id)
+	err = s.pusher.PushUpdate(url, data)
+	if err != nil {
+		return 1, fmt.Errorf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
+	}
+	return 0, nil
 }
 
 // SynchronizeVcsCore synchronizes the VCSes
@@ -660,8 +646,23 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 	return 0, nil
 }
 
-// SynchronizeVcs synchronizes the VCSes
-func (s *Synchronizer) SynchronizeVcs(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) error {
+// SynchronizeAllDeviceGroups synchronizes the device groups
+func (s *Synchronizer) SynchronizeAllDeviceGroups(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
+	pushFailures := 0
+deviceGroupLoop:
+	for _, dg := range device.DeviceGroup.DeviceGroup {
+		dgFailures, err := s.SynchronizeDeviceGroup(device, dg, cs, validEnterpriseIds)
+		pushFailures += dgFailures
+		if err != nil {
+			log.Warnf("DG %s failed to synchronize Core: %s", *dg.Id, err)
+			continue deviceGroupLoop
+		}
+	}
+	return pushFailures, nil
+}
+
+// SynchronizeAllVcs synchronizes the VCSes
+func (s *Synchronizer) SynchronizeAllVcs(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
 	pushFailures := 0
 vcsLoop:
 	for _, vcs := range device.Vcs.Vcs {
@@ -680,9 +681,5 @@ vcsLoop:
 		}
 	}
 
-	if pushFailures > 0 {
-		return fmt.Errorf("%d errors while pushing VCS", pushFailures)
-	}
-
-	return nil
+	return pushFailures, nil
 }

@@ -26,7 +26,8 @@ func TestSynchronizeDeviceEmpty(t *testing.T) {
 	s := Synchronizer{}
 	s.SetOutputFileName(tempFileName)
 	device := models.Device{}
-	err = s.SynchronizeDevice(&device)
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
 	content, err := ioutil.ReadFile(tempFileName)
@@ -46,7 +47,8 @@ func TestSynchronizeDeviceCSEnt(t *testing.T) {
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
 		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
 	}
-	err := s.SynchronizeDevice(&device)
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 }
 
@@ -66,7 +68,8 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
 		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 	}
-	err := s.SynchronizeDevice(&device)
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
 	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
@@ -119,7 +122,8 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
 		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 	}
-	err := s.SynchronizeDevice(&device)
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
 	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
@@ -171,7 +175,8 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
 		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 	}
-	err := s.SynchronizeDevice(&device)
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
 	// The above will fail synchronization with a nonfatal error because TrafficClass is missing
@@ -201,7 +206,8 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
-	err := s.SynchronizeDevice(&device)
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
 	// Note: With an associated VCS, we'll pick up the QoS settings
@@ -258,7 +264,8 @@ func TestSynchronizeVCS(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	err := s.SynchronizeDevice(&device)
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 	json, okay := m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
@@ -351,7 +358,8 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	err := s.SynchronizeDevice(&device)
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 	json, okay := m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)

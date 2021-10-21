@@ -6,7 +6,6 @@
 package synchronizerv4
 
 import (
-	"fmt"
 	"github.com/openconfig/ygot/ygot"
 	"time"
 
@@ -46,7 +45,10 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, er
 	}
 
 	pushFailures := 0
-	errors := []error{}
+
+	// All errors are treated as nonfatal, logged, and synchronization continues with the next connectivity service.
+	// PushFailures are counted and reported to the caller, who can decide whether to retry.
+
 	for csID, cs := range device.ConnectivityService.ConnectivityService {
 		if (cs.Core_5GEndpoint == nil) || (*cs.Core_5GEndpoint == "") {
 			log.Warnf("Skipping connectivity service %s because it has no 5G Endpoint", *cs.Id)
@@ -62,47 +64,30 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, er
 		tStart := time.Now()
 		synchronizer.KpiSynchronizationTotal.WithLabelValues(csID).Inc()
 
-		csPushFailures, err := s.SynchronizeConnectivityService(device, cs, m)
-		pushFailures += csPushFailures
-		if err != nil {
-			synchronizer.KpiSynchronizationFailedTotal.WithLabelValues(csID).Inc()
-			// If there are errors, then build a list of them and continue to try
-			// to synchronize other connectivity services.
-			errors = append(errors, err)
-		} else {
-			synchronizer.KpiSynchronizationDuration.WithLabelValues(csID).Observe(time.Since(tStart).Seconds())
-		}
+		pushFailures += s.SynchronizeConnectivityService(device, cs, m)
+
+		synchronizer.KpiSynchronizationDuration.WithLabelValues(csID).Observe(time.Since(tStart).Seconds())
 	}
 
-	if len(errors) == 0 {
-		return pushFailures, nil
-	}
-
-	return pushFailures, fmt.Errorf("synchronization errors: %v", errors)
+	return pushFailures, nil
 }
 
 // SynchronizeConnectivityService synchronizes a connectivity service
-func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
+func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) int {
 	log.Infof("Synchronizing Connectivity Service %s", *cs.Id)
 
-	var err error
-	var dgPushFailures int
-	var vcsPushFailures int
+	pushFailures := 0
+
+	// All errors are treated as nonfatal, logged, and synchronization continues with the next model.
+	// PushFailures are counted and reported to the caller, who can decide whether to retry.
 
 	if device.DeviceGroup != nil {
-		dgPushFailures, err = s.SynchronizeAllDeviceGroups(device, cs, validEnterpriseIds)
-		if err != nil {
-			// nonfatal error -- we still want to try to synchronize VCS
-			log.Warnf("ConnectivityService %s DeviceGroup Synchronization Error: %v", *cs.Id, err)
-		}
-	}
-	if device.Vcs != nil {
-		vcsPushFailures, err = s.SynchronizeAllVcs(device, cs, validEnterpriseIds)
-		if err != nil {
-			// nofatal error
-			log.Warnf("ConnectivityService %s VCS Synchronization Error: %v", *cs.Id, err)
-		}
+		pushFailures += s.SynchronizeAllDeviceGroups(device, cs, validEnterpriseIds)
 	}
 
-	return dgPushFailures + vcsPushFailures, nil
+	if device.Vcs != nil {
+		pushFailures += s.SynchronizeAllVcs(device, cs, validEnterpriseIds)
+	}
+
+	return pushFailures
 }

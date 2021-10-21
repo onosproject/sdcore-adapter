@@ -226,9 +226,11 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 }
 
 // SynchronizeAllVcs synchronizes the VCSes
-func (s *Synchronizer) SynchronizeAllVcs(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
+func (s *Synchronizer) SynchronizeAllVcs(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) int {
 	pushFailures := 0
 vcsLoop:
+	// All errors are treated as nonfatal, logged, and synchronization continues with the next VCS.
+	// PushFailures are counted and reported to the caller, who can decide whether to retry.
 	for _, vcs := range device.Vcs.Vcs {
 		corePushFailures, err := s.SynchronizeVcsCore(device, vcs, cs, validEnterpriseIds)
 		pushFailures += corePushFailures
@@ -245,5 +247,5 @@ vcsLoop:
 		}
 	}
 
-	return pushFailures, nil
+	return pushFailures
 }

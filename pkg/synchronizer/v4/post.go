@@ -42,7 +42,7 @@ func (p *RESTPusher) PushUpdate(endpoint string, data []byte) error {
 
 	log.Infof("Put returned status %s", resp.Status)
 
-	if resp.StatusCode != 200 {
+	if (resp.StatusCode < 200) || (resp.StatusCode >= 300) {
 		return fmt.Errorf("Put returned error %s", resp.Status)
 	}
 

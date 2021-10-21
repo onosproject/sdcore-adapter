@@ -13,7 +13,7 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
-// SynchronizeDeviceGroups synchronizes the device groups
+// SynchronizeDeviceGroup synchronizes a device group
 func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
 	err := validateDeviceGroup(dg)
 	if err != nil {
@@ -27,7 +27,7 @@ func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.
 
 	valid, okay := validEnterpriseIds[*site.Enterprise]
 	if (!okay) || (!valid) {
-		return 0, fmt.Errorf("DeviceGroup %s is not part of ConnectivityService %s.", *dg.Id, *cs.Id)
+		return 0, fmt.Errorf("DeviceGroup %s is not part of ConnectivityService %s", *dg.Id, *cs.Id)
 	}
 
 	dgCore := deviceGroup{
@@ -114,9 +114,11 @@ func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.
 }
 
 // SynchronizeAllDeviceGroups synchronizes the device groups
-func (s *Synchronizer) SynchronizeAllDeviceGroups(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
+func (s *Synchronizer) SynchronizeAllDeviceGroups(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) int {
 	pushFailures := 0
 deviceGroupLoop:
+	// All errors are treated as nonfatal, logged, and synchronization continues with the next device-group.
+	// PushFailures are counted and reported to the caller, who can decide whether to retry.
 	for _, dg := range device.DeviceGroup.DeviceGroup {
 		dgFailures, err := s.SynchronizeDeviceGroup(device, dg, cs, validEnterpriseIds)
 		pushFailures += dgFailures
@@ -125,5 +127,5 @@ deviceGroupLoop:
 			continue deviceGroupLoop
 		}
 	}
-	return pushFailures, nil
+	return pushFailures
 }

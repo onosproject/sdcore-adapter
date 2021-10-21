@@ -40,10 +40,12 @@ func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
 			return
 		}
 
-		log.Infof("Synchronization success, %d push errors", pushErrors)
 		if pushErrors == 0 {
+			log.Infof("Synchronization success")
 			return
 		}
+
+		log.Infof("Synchronization encountered %d push errors, scheduling retry", pushErrors)
 
 		// We failed to push something to the core. Sleep before trying again.
 		// Implements a fixed interval for now; We can go exponential should it prove to

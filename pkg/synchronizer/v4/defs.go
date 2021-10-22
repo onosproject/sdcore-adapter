@@ -33,7 +33,7 @@ type Synchronizer struct {
 	busy int32
 
 	// used for ease of mocking
-	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) error
+	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) (int, error)
 }
 
 // SynchronizerUpdate holds the configuration for a particular synchronization request

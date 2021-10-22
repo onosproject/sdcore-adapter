@@ -34,16 +34,20 @@ func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
 			return
 		}
 
-		err := s.synchronizeDeviceFunc(update.config)
-		if err == nil {
-			// Success!
+		pushErrors, err := s.synchronizeDeviceFunc(update.config)
+		if err != nil {
+			log.Errorf("Synchronization error: %v", err)
+			return
+		}
+
+		if pushErrors == 0 {
 			log.Infof("Synchronization success")
 			return
 		}
 
-		log.Infof("Synchronization error: %v", err)
+		log.Infof("Synchronization encountered %d push errors, scheduling retry", pushErrors)
 
-		// We erred. Sleep before trying again.
+		// We failed to push something to the core. Sleep before trying again.
 		// Implements a fixed interval for now; We can go exponential should it prove to
 		// be a problem.
 		time.Sleep(s.retryInterval)

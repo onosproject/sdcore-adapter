@@ -12,9 +12,9 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201217104719-f0b4f4c16f49
 	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180505-6d1bbdac02b2
-	github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.8.5
-	github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.8.5
-	github.com/onosproject/config-models/modelplugin/aether-4.0.0 v0.8.5
+	github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.8.6
+	github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.8.6
+	github.com/onosproject/config-models/modelplugin/aether-4.0.0 v0.8.6
 	github.com/onosproject/onos-lib-go v0.7.18
 	github.com/openconfig/gnmi v0.0.0-20210707145734-c69a5df04b53
 	github.com/openconfig/goyang v0.2.9

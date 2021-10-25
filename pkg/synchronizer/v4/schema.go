@@ -91,7 +91,7 @@ type appFilterRule struct {
 
 type slice struct {
 	ID                        sliceIDStruct   `json:"slice-id"`
-	DeviceGroup               []string        `json:"site-device-group"`
+	DeviceGroup               []string        `json:"site-device-group,omitempty"`
 	SiteInfo                  siteInfo        `json:"site-info"`
 	ApplicationFilteringRules []appFilterRule `json:"application-filtering-rules"`
 }

@@ -27,7 +27,7 @@ type ueResourceInfo struct {
 type upfSliceConfig struct {
 	SliceName      string           `json:"sliceName"`
 	SliceQos       sliceQos         `json:"sliceQos"`
-	UEResourceInfo []ueResourceInfo `json:"ueResourceInfo"`
+	UEResourceInfo []ueResourceInfo `json:"ueResourceInfo,omitempty"`
 }
 
 // SynchronizeVcsUPF synchronizes the VCSes to the UPF
@@ -63,7 +63,7 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 		}
 	}
 
-	dgList, err := s.GetVcsDG(device, vcs)
+	dgList, _, err := s.GetVcsDGAndSite(device, vcs)
 	if err != nil {
 		return 0, fmt.Errorf("Vcs %s unable to determine dgList: %s", *vcs.Id, err)
 	}

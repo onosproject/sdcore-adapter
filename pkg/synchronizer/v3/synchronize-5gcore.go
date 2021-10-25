@@ -88,7 +88,7 @@ type application struct {
 type slice struct {
 	ID                sliceIDStruct `json:"slice-id"`
 	Qos               qos           `json:"qos"`
-	DeviceGroup       []string      `json:"site-device-group"`
+	DeviceGroup       []string      `json:"site-device-group,omitempty"`
 	SiteInfo          siteInfo      `json:"site-info"`
 	DenyApplication   []string      `json:"deny-applications"`
 	PermitApplication []string      `json:"permit-applications"`
@@ -269,13 +269,12 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.Devi
 	return site, nil
 }
 
-// GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it, and the Site.
+// GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it
 func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vcs_Vcs) ([]*models.DeviceGroup_DeviceGroup_DeviceGroup, *models.Site_Site_Site, error) {
 	dgList := []*models.DeviceGroup_DeviceGroup_DeviceGroup{}
+	var site *models.Site_Site_Site
+	var err error
 	for _, dgLink := range vcs.DeviceGroup {
-		if !*dgLink.Enable {
-			continue
-		}
 		dg, okay := device.DeviceGroup.DeviceGroup[*dgLink.DeviceGroup]
 		if !okay {
 			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
@@ -284,23 +283,29 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.Vcs_Vc
 			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
 		}
 
-		dgList = append(dgList, dg)
-
-		if *dgList[0].Site != *dg.Site {
+		if len(dgList) > 0 && (*dgList[0].Site != *dg.Site) {
 			return nil, nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
+		}
+
+		// Use the device-group to determine the site, even if it is disabled.
+		if site == nil {
+			site, err = s.GetDeviceGroupSite(device, dg)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		// Only add it to the list if it's enabled
+		if *dgLink.Enable {
+			dgList = append(dgList, dg)
 		}
 	}
 
-	if len(dgList) == 0 {
-		return nil, nil, fmt.Errorf("VCS %s has no deviceGroups", *vcs.Id)
+	if site == nil {
+		return nil, nil, fmt.Errorf("Vcs %s unable to determine site", *vcs.Id)
 	}
 
-	site, err := s.GetDeviceGroupSite(device, dgList[0])
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return dgList, site, err
+	return dgList, site, nil
 }
 
 // SynchronizeDeviceGroups synchronizes the device groups

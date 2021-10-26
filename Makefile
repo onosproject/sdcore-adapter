@@ -91,7 +91,7 @@ publish: # @HELP publish version on github and dockerhub
 
 jenkins-publish: build-tools jenkins-tools # @HELP Jenkins calls this to publish artifacts
 	./build/bin/push-images
-	../build-tools/release-merge-commit
+	BASE_BRANCH=aether-1.5 ../build-tools/release-merge-commit
 
 clean: # @HELP remove all the build artifacts
 	rm -rf ./build/_output

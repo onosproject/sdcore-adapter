@@ -117,20 +117,25 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 		if err != nil {
 			return 0, fmt.Errorf("Vcs %s unable to determine application: %s", *vcs.Id, err)
 		}
-		appCore := appFilterRule{
-			Name: *app.Id,
-		}
 
 		if (app.Address == nil) || (*app.Address == "") {
 			// this is a temporary restriction
 			return 0, fmt.Errorf("Vcs %s Application %s has empty address", *vcs.Id, *app.Id)
 		}
-		if len(app.Endpoint) > 1 {
-			// this is a temporary restriction
-			return 0, fmt.Errorf("Vcs %s Application %s has more endpoints than are allowed", *vcs.Id, *app.Id)
+
+		// be deterministic...
+		epKeys := []string{}
+		for k := range app.Endpoint {
+			epKeys = append(epKeys, k)
 		}
-		// there can be at most one at this point...
-		for _, endpoint := range app.Endpoint {
+		sort.Strings(epKeys)
+
+		for _, epName := range epKeys {
+			endpoint := app.Endpoint[epName]
+			appCore := appFilterRule{
+				Name: fmt.Sprintf("%s-%s", *app.Id, epName),
+			}
+
 			err = validateAppEndpoint(endpoint)
 			if err != nil {
 				log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
@@ -163,13 +168,20 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 				appCore.Action = "deny"
 			}
 
+			hasQos := false
 			if endpoint.Mbr != nil {
 				if endpoint.Mbr.Uplink != nil {
 					appCore.Uplink = *endpoint.Mbr.Uplink
+					hasQos = true
 				}
 				if endpoint.Mbr.Downlink != nil {
 					appCore.Downlink = *endpoint.Mbr.Downlink
+					hasQos = true
 				}
+			}
+
+			if hasQos {
+				appCore.Unit = aStr(DefaultBitrateUnit)
 			}
 
 			if endpoint.TrafficClass != nil {
@@ -186,9 +198,8 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 			}
 
 			appCore.Priority = synchronizer.DerefUint8Ptr(appRef.Priority, 0)
+			slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
 		}
-
-		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
 	}
 
 	switch *vcs.DefaultBehavior {

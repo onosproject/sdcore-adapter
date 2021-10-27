@@ -13,10 +13,11 @@ import (
 )
 
 type sliceQos struct {
-	Uplink        uint64 `json:"uplinkMBR,omitempty"`
-	Downlink      uint64 `json:"downlinkMBR,omitempty"`
-	UplinkBurst   uint64 `json:"uplinkBurstSize,omitempty"`
-	DownlinkBurst uint64 `json:"downlinkBurstSize,omitempty"`
+	Uplink        uint64  `json:"uplinkMBR,omitempty"`
+	Downlink      uint64  `json:"downlinkMBR,omitempty"`
+	UplinkBurst   uint64  `json:"uplinkBurstSize,omitempty"`
+	DownlinkBurst uint64  `json:"downlinkBurstSize,omitempty"`
+	Unit          *string `json:"bitrateUnit,omitempty"`
 }
 
 type ueResourceInfo struct {
@@ -54,13 +55,19 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 		SliceName: *vcs.Id,
 	}
 
+	hasQos := false
 	if (vcs.Slice != nil) && (vcs.Slice.Mbr != nil) {
 		if vcs.Slice.Mbr.Uplink != nil {
 			sc.SliceQos.Uplink = *vcs.Slice.Mbr.Uplink
+			hasQos = true
 		}
 		if vcs.Slice.Mbr.Downlink != nil {
 			sc.SliceQos.Downlink = *vcs.Slice.Mbr.Downlink
+			hasQos = true
 		}
+	}
+	if hasQos {
+		sc.SliceQos.Unit = aStr(DefaultBitrateUnit)
 	}
 
 	dgList, _, err := s.GetVcsDGAndSite(device, vcs)

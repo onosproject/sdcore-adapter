@@ -10,41 +10,6 @@ import (
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 )
 
-// to facilitate easy declaring of pointers to strings
-func aStr(s string) *string {
-	return &s
-}
-
-// to facilitate easy declaring of pointers to bools
-func aBool(b bool) *bool {
-	return &b
-}
-
-// to facilitate easy declaring of pointers to int8
-func aInt8(u int8) *int8 {
-	return &u
-}
-
-// to facilitate easy declaring of pointers to uint8
-func aUint8(u uint8) *uint8 {
-	return &u
-}
-
-// to facilitate easy declaring of pointers to uint16
-func aUint16(u uint16) *uint16 {
-	return &u
-}
-
-// to facilitate easy declaring of pointers to uint32
-func aUint32(u uint32) *uint32 {
-	return &u
-}
-
-// to facilitate easy declaring of pointers to uint64
-func aUint64(u uint64) *uint64 {
-	return &u
-}
-
 // TODO: Refactor to use mockgen and/or sample data files ?
 
 // MakeEnterprise populates an Enterprise structure for unit tests

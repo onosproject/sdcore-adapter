@@ -74,9 +74,11 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 			return 0, fmt.Errorf("DeviceGroup %s failed to get IpDomain: %s", *dg.Id, err)
 		}
 
-		ueRes := ueResourceInfo{Pool: *dg.Id,
-			DNN: *ipd.Dnn}
-		sc.UEResourceInfo = append(sc.UEResourceInfo, ueRes)
+		if ipd.Dnn != nil {
+			ueRes := ueResourceInfo{Pool: *dg.Id,
+				DNN: *ipd.Dnn}
+			sc.UEResourceInfo = append(sc.UEResourceInfo, ueRes)
+		}
 	}
 
 	data, err := json.MarshalIndent(sc, "", "  ")

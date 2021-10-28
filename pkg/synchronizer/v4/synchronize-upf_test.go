@@ -5,16 +5,20 @@
 package synchronizerv4
 
 import (
+	"github.com/golang/mock/gomock"
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
+	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestSynchronizeVcsUPF(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	m := NewMemPusher()
 	s := Synchronizer{}
-	s.SetPusher(m)
+	s.SetPusher(mockPusher)
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -32,14 +36,7 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
-	assert.Nil(t, err)
-	t.Logf("%+v", m.Pushes)
-	json, okay := m.Pushes["http://upf/v1/config/network-slices"]
-	assert.True(t, okay)
-	assert.Equal(t, 0, pushFailures)
-	if okay {
-		expectedResult := `{
+	jsonData := `{
 			"sliceName": "sample-vcs",
 			"sliceQos": {
 				"uplinkMBR": 333,
@@ -52,15 +49,27 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 				}
 			]
 		}`
+	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		m.Pushes[endpoint] = jsonData
+		return nil
+	}).AnyTimes()
 
-		require.JSONEq(t, expectedResult, json)
+	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
+	assert.Nil(t, err)
+	json, okay := m.Pushes["http://upf/v1/config/network-slices"]
+	assert.True(t, okay)
+	assert.Equal(t, 0, pushFailures)
+	if okay {
+		require.JSONEq(t, jsonData, json)
 	}
 }
 
 func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	m := NewMemPusher()
 	s := Synchronizer{}
-	s.SetPusher(m)
+	s.SetPusher(mockPusher)
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -80,14 +89,7 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
-	assert.Nil(t, err)
-	t.Logf("%+v", m.Pushes)
-	json, okay := m.Pushes["http://upf/v1/config/network-slices"]
-	assert.True(t, okay)
-	assert.Equal(t, 0, pushFailures)
-	if okay {
-		expectedResult := `{
+	jsonData := `{
 			"sliceName": "sample-vcs",
 			"sliceQos": {},
 			"ueResourceInfo": [
@@ -97,7 +99,17 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 				}
 			]
 		}`
-
-		require.JSONEq(t, expectedResult, json)
+	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		m.Pushes[endpoint] = jsonData
+		return nil
+	}).AnyTimes()
+	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
+	assert.Nil(t, err)
+	t.Logf("%+v", m.Pushes)
+	json, okay := m.Pushes["http://upf/v1/config/network-slices"]
+	assert.True(t, okay)
+	assert.Equal(t, 0, pushFailures)
+	if okay {
+		require.JSONEq(t, jsonData, json)
 	}
 }

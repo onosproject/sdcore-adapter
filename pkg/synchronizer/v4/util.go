@@ -149,3 +149,38 @@ func ProtoStringToProtoNumber(s string) (uint8, error) {
 	}
 	return n, nil
 }
+
+// aStr facilitates easy declaring of pointers to strings
+func aStr(s string) *string {
+	return &s
+}
+
+// aBool facilitates easy declaring of pointers to bools
+func aBool(b bool) *bool {
+	return &b
+}
+
+// aInt8 facilitates easy declaring of pointers to int8
+func aInt8(u int8) *int8 {
+	return &u
+}
+
+// aUint8 facilitates easy declaring of pointers to uint8
+func aUint8(u uint8) *uint8 {
+	return &u
+}
+
+// aUint16 facilitates easy declaring of pointers to uint16
+func aUint16(u uint16) *uint16 {
+	return &u
+}
+
+// aUint32 facilitates easy declaring of pointers to uint32
+func aUint32(u uint32) *uint32 {
+	return &u
+}
+
+// aUint64 facilitates easy declaring of pointers to uint64
+func aUint64(u uint64) *uint64 {
+	return &u
+}

@@ -15,6 +15,9 @@ const (
 
 	// DefaultProtocol is the default for the Protocol field
 	DefaultProtocol = "TCP"
+
+	// DefaultBitrateUnit is the unit we use for bitrates
+	DefaultBitrateUnit = "bps"
 )
 
 // The following structures define the JSON schema used by the SD-Core.
@@ -30,6 +33,7 @@ type trafficClass struct {
 type ipdQos struct {
 	Uplink       uint64        `json:"dnn-mbr-uplink"`
 	Downlink     uint64        `json:"dnn-mbr-downlink"`
+	Unit         *string       `json:"bitrate-unit"`
 	TrafficClass *trafficClass `json:"traffic-class,omitempty"`
 }
 
@@ -86,6 +90,7 @@ type appFilterRule struct {
 	Protocol      *uint8        `json:"protocol,omitempty"`
 	Uplink        uint64        `json:"app-mbr-uplink,omitempty"`
 	Downlink      uint64        `json:"app-mbr-downlink,omitempty"`
+	Unit          *string       `json:"bitrate-unit,omitempty"`
 	TrafficClass  *trafficClass `json:"traffic-class,omitempty"`
 }
 

@@ -85,7 +85,7 @@ func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.
 		DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
 		DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
 		Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
-		Qos:          &ipdQos{Uplink: *dg.Device.Mbr.Uplink, Downlink: *dg.Device.Mbr.Downlink},
+		Qos:          &ipdQos{Uplink: *dg.Device.Mbr.Uplink, Downlink: *dg.Device.Mbr.Downlink, Unit: aStr(DefaultBitrateUnit)},
 	}
 	dgCore.IPDomain = ipdCore
 

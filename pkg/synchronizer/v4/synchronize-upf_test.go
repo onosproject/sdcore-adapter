@@ -53,14 +53,26 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 			]
 		}`
 
-		require.JSONEq(t, expectedResult, json)
+	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		pushes[endpoint] = jsonData
+		return nil
+	}).AnyTimes()
+	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
+	assert.Nil(t, err)
+	json, okay := pushes["http://upf/v1/config/network-slices"]
+	assert.True(t, okay)
+	assert.Equal(t, 0, pushFailures)
+	if okay {
+		require.JSONEq(t, jsonData, json)
 	}
 }
 
 func TestSynchronizeVcsUPFWithBurst(t *testing.T) {
-	m := NewMemPusher()
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
+	pushes := make(map[string]string)
 	s := Synchronizer{}
-	s.SetPusher(m)
+	s.SetPusher(mockPusher)
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -81,14 +93,7 @@ func TestSynchronizeVcsUPFWithBurst(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
-	assert.Nil(t, err)
-	t.Logf("%+v", m.Pushes)
-	json, okay := m.Pushes["http://upf/v1/config/network-slices"]
-	assert.True(t, okay)
-	assert.Equal(t, 0, pushFailures)
-	if okay {
-		expectedResult := `{
+	jsonData := `{
 			"sliceName": "sample-vcs",
 			"sliceQos": {
 				"uplinkMBR": 333,

@@ -38,12 +38,13 @@ func TestSynchronizeDeviceEmpty(t *testing.T) {
 }
 
 func TestSynchronizeDeviceCSEnt(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
 	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
 
-	m := &MemPusher{}
 	s := Synchronizer{}
-	s.SetPusher(m)
+	s.SetPusher(mockPusher)
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -179,9 +180,11 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 
 func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 
-	m := NewMemPusher()
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
+	pushes := make(map[string]string)
 	s := Synchronizer{}
-	s.SetPusher(m)
+	s.SetPusher(mockPusher)
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 
@@ -201,7 +204,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 
 	// The above will fail synchronization with a nonfatal error because TrafficClass is missing
 
-	_, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	_, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.False(t, okay)
 }
 

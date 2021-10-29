@@ -10,13 +10,14 @@ import (
 	"fmt"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
+	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 type sliceQos struct {
 	Uplink        uint64  `json:"uplinkMBR,omitempty"`
 	Downlink      uint64  `json:"downlinkMBR,omitempty"`
-	UplinkBurst   uint64  `json:"uplinkBurstSize,omitempty"`
-	DownlinkBurst uint64  `json:"downlinkBurstSize,omitempty"`
+	UplinkBurst   uint32  `json:"uplinkBurstSize,omitempty"`
+	DownlinkBurst uint32  `json:"downlinkBurstSize,omitempty"`
 	Unit          *string `json:"bitrateUnit,omitempty"`
 }
 
@@ -59,14 +60,17 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 	if (vcs.Slice != nil) && (vcs.Slice.Mbr != nil) {
 		if vcs.Slice.Mbr.Uplink != nil {
 			sc.SliceQos.Uplink = *vcs.Slice.Mbr.Uplink
+			sc.SliceQos.UplinkBurst = synchronizer.DerefUint32Ptr(vcs.Slice.Mbr.UplinkBurstSize, DefaultUplinkBurst)
 			hasQos = true
 		}
 		if vcs.Slice.Mbr.Downlink != nil {
 			sc.SliceQos.Downlink = *vcs.Slice.Mbr.Downlink
+			sc.SliceQos.DownlinkBurst = synchronizer.DerefUint32Ptr(vcs.Slice.Mbr.DownlinkBurstSize, DefaultDownlinkBurst)
 			hasQos = true
 		}
 	}
 	if hasQos {
+		// Only specify units if we actually included a bitrate setting
 		sc.SliceQos.Unit = aStr(DefaultBitrateUnit)
 	}
 

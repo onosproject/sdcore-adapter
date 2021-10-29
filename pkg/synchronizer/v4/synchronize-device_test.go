@@ -58,7 +58,7 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -99,14 +99,14 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 			}
 		  }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonData
+		pushes[endpoint] = jsonData
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonData, json)
@@ -117,7 +117,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -162,7 +162,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 		  }`
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = jsonDataDg
 		return nil
 	}).AnyTimes()
 
@@ -170,7 +170,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataDg, json)
@@ -209,7 +209,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -331,33 +331,34 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = jsonDataDg
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = jsonDataVcs
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = jsonDataSlice
 		return nil
 	}).AnyTimes()
+
 	pushErrors, err := s.SynchronizeDevice(&device)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
 	// Note: With an associated VCS, we'll pick up the QoS settings
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataDg, json)
 	}
-	json, okay = m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataVcs, json)
 	}
-	json, okay = m.Pushes["http://upf/v1/config/network-slices"]
+	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataSlice, json)
@@ -367,7 +368,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 func TestSynchronizeVCS(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -488,32 +489,32 @@ func TestSynchronizeVCS(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = jsonDataDg
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = jsonDataVcs
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = jsonDataSlice
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataDg, json)
 	}
-	json, okay = m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataVcs, json)
 	}
-	json, okay = m.Pushes["http://upf/v1/config/network-slices"]
+	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataSlice, json)
@@ -523,7 +524,7 @@ func TestSynchronizeVCS(t *testing.T) {
 func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -678,32 +679,32 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = jsonDataDg
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = jsonDataVcs
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = jsonDataSlice
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataDg, json)
 	}
-	json, okay = m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataVcs, json)
 	}
-	json, okay = m.Pushes["http://upf/v1/config/network-slices"]
+	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataSlice, json)
@@ -713,7 +714,7 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 func TestSynchronizeVCSEmptySD(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -872,31 +873,31 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = jsonDataDg
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = jsonDataVcs
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = jsonDataSlice
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataDg, json)
 	}
-	json, okay = m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataVcs, json)
 	}
-	json, okay = m.Pushes["http://upf/v1/config/network-slices"]
+	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataSlice, json)
@@ -906,7 +907,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 func TestSynchronizeVCSDisabledDG(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -1058,31 +1059,31 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = jsonDataDg
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = jsonDataVcs
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = jsonDataSlice
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
-	json, okay := m.Pushes["http://5gcore/v1/device-group/sample-dg"]
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataDg, json)
 	}
-	json, okay = m.Pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataVcs, json)
 	}
-	json, okay = m.Pushes["http://upf/v1/config/network-slices"]
+	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
 		require.JSONEq(t, jsonDataSlice, json)

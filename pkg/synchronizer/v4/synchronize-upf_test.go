@@ -16,7 +16,7 @@ import (
 func TestSynchronizeVcsUPF(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -51,13 +51,13 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 			]
 		}`
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonData
+		pushes[endpoint] = jsonData
 		return nil
 	}).AnyTimes()
 
 	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
 	assert.Nil(t, err)
-	json, okay := m.Pushes["http://upf/v1/config/network-slices"]
+	json, okay := pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	assert.Equal(t, 0, pushFailures)
 	if okay {
@@ -68,7 +68,7 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	m := NewMemPusher()
+	pushes := make(map[string]string)
 	s := Synchronizer{}
 	s.SetPusher(mockPusher)
 
@@ -102,13 +102,12 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 			]
 		}`
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		m.Pushes[endpoint] = jsonData
+		pushes[endpoint] = jsonData
 		return nil
 	}).AnyTimes()
 	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
 	assert.Nil(t, err)
-	t.Logf("%+v", m.Pushes)
-	json, okay := m.Pushes["http://upf/v1/config/network-slices"]
+	json, okay := pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	assert.Equal(t, 0, pushFailures)
 	if okay {

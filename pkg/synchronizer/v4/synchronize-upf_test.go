@@ -54,7 +54,6 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 		pushes[endpoint] = jsonData
 		return nil
 	}).AnyTimes()
-
 	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
 	assert.Nil(t, err)
 	json, okay := pushes["http://upf/v1/config/network-slices"]

@@ -40,7 +40,8 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 			"sliceName": "sample-vcs",
 			"sliceQos": {
 				"uplinkMBR": 333,
-				"downlinkMBR": 444
+				"downlinkMBR": 444,
+				"bitrateUnit": "bps"
 			},
 			"ueResourceInfo": [
 				{
@@ -91,7 +92,8 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 
 	jsonData := `{
 			"sliceName": "sample-vcs",
-			"sliceQos": {},
+			"sliceQos": {
+			},
 			"ueResourceInfo": [
 				{
 					"uePoolId": "sample-dg",

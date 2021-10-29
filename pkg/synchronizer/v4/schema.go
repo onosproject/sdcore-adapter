@@ -18,6 +18,12 @@ const (
 
 	// DefaultBitrateUnit is the unit we use for bitrates
 	DefaultBitrateUnit = "bps"
+
+	// DefaultUplinkBurst is the default Uplink Burst Size for Slice MBR
+	DefaultUplinkBurst = 625000
+
+	// DefaultDownlinkBurst is the default Downlink Burst Size for Slice MBR
+	DefaultDownlinkBurst = 625000
 )
 
 // The following structures define the JSON schema used by the SD-Core.

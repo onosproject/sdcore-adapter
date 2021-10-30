@@ -207,6 +207,7 @@ func BuildSampleVcs() (
 		Sd:              aUint32(111),
 		Sst:             aUint8(222),
 		Slice:           sliceQos,
+		Site:            aStr("sample-site"),
 		Upf:             aStr("sample-upf"),
 		DefaultBehavior: aStr("DENY-ALL"),
 	}

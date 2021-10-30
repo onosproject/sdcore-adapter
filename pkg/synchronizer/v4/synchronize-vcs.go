@@ -19,10 +19,16 @@ import (
 // SynchronizeVcsCore synchronizes the VCSes
 // Return a count of push-related errors
 func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
-	dgList, site, err := s.GetVcsDGAndSite(device, vcs)
+	dgList, err := s.GetVcsDG(device, vcs)
 	if err != nil {
 		return 0, fmt.Errorf("Vcs %s unable to determine site: %s", *vcs.Id, err)
 	}
+
+	site, err := s.GetSite(device, vcs.Site)
+	if err != nil {
+		return 0, fmt.Errorf("Vcs %s unable to determine site: %s", *vcs.Id, err)
+	}
+
 	valid, okay := validEnterpriseIds[*site.Enterprise]
 	if (!okay) || (!valid) {
 		return 0, fmt.Errorf("VCS %s is not part of ConnectivityService %s", *vcs.Id, *cs.Id)

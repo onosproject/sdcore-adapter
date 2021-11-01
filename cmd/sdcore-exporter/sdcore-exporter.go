@@ -14,9 +14,10 @@ import (
 )
 
 func main() {
-	collector.RecordSiteMetrics(3*time.Minute, "ace-acme-chicago")
-	collector.RecordSiteMetrics(3*time.Minute, "ace-starbucks-seattle")
-	collector.RecordSiteMetrics(3*time.Minute, "ace-starbucks-newyork")
+	collector.RecordSiteMetrics(3*time.Minute, "acme-chicago-monitoring-pi-1")
+	collector.RecordSiteMetrics(3*time.Minute, "acme-chicago-monitoring-pi-2")
+	collector.RecordSiteMetrics(3*time.Minute, "starbucks-seattle-monitoring-pi-1")
+	collector.RecordSiteMetrics(3*time.Minute, "starbucks-newyork-monitoring-pi-1")
 
 	collector.RecordMetrics(2*time.Second, "starbucks-newyork-cameras")
 	collector.RecordMetrics(2*time.Second, "starbucks-seattle-cameras")

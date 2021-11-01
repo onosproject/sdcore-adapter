@@ -41,6 +41,17 @@ func RecordSiteMetrics(period time.Duration, siteID string) {
 	}()
 }
 
+// RecordSmallCellMetrics records status of eNB at Site
+func RecordSmallCellMetrics(period time.Duration, enbname string) {
+	go func() {
+		for {
+			count := float64(rand.Intn(10))
+			smallCellStatus.WithLabelValues("Active", enbname).Set(count);
+			time.Sleep(period)
+		}
+	}()
+}
+
 // RecordMetrics records VCS-based metrics
 func RecordMetrics(period time.Duration, vcdID string) {
 	vcsLatency.WithLabelValues(vcdID).Set(21.0)
@@ -160,6 +171,10 @@ var (
 		Name: "aetheredge_in_maintenance_window",
 		Help: "Edge Site in Maintenance",
 	}, []string{"name"})
+	smallCellStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "mme_number_of_enb_attached",
+		Help: "ENB Status",
+	}, []string{"enb_state", "enbname"})
 	//VCS-based metrics
 	vcsLatency = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "vcs_latency",

@@ -19,6 +19,11 @@ func main() {
 	collector.RecordSiteMetrics(3*time.Minute, "starbucks-seattle-monitoring-pi-1")
 	collector.RecordSiteMetrics(3*time.Minute, "starbucks-newyork-monitoring-pi-1")
 
+	collector.RecordSmallCellMetrics(2*time.Second, "cell1")
+	collector.RecordSmallCellMetrics(2*time.Second, "cell2")
+	collector.RecordSmallCellMetrics(2*time.Second, "cell3")
+	collector.RecordSmallCellMetrics(2*time.Second, "cell4")
+
 	collector.RecordMetrics(2*time.Second, "starbucks-newyork-cameras")
 	collector.RecordMetrics(2*time.Second, "starbucks-seattle-cameras")
 	collector.RecordMetrics(2*time.Second, "acme-chicago-robots")

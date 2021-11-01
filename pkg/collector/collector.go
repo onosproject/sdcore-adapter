@@ -46,7 +46,7 @@ func RecordSmallCellMetrics(period time.Duration, enbname string) {
 	go func() {
 		for {
 			count := float64(rand.Intn(10))
-			smallCellStatus.WithLabelValues("Active", enbname).Set(count);
+			smallCellStatus.WithLabelValues("Active", enbname).Set(count)
 			time.Sleep(period)
 		}
 	}()

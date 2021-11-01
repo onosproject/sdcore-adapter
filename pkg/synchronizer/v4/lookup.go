@@ -71,6 +71,21 @@ func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*mode
 	return tc, nil
 }
 
+// GetSite looks up a Site
+func (s *Synchronizer) GetSite(device *models.Device, id *string) (*models.OnfSite_Site_Site, error) {
+	if (id == nil) || (*id == "") {
+		return nil, fmt.Errorf("Site id is blank")
+	}
+	site, okay := device.Site.Site[*id]
+	if !okay {
+		return nil, fmt.Errorf("Site %s not found", *id)
+	}
+	if (site.Enterprise == nil) || (*site.Enterprise == "") {
+		return nil, fmt.Errorf("Site %s has no enterprise", *id)
+	}
+	return site, nil
+}
+
 // GetDeviceGroupSite gets the site for a DeviceGroup
 func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) (*models.OnfSite_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
@@ -86,30 +101,20 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.OnfD
 	return site, nil
 }
 
-// GetVcsDGAndSite given a VCS, return the set of DeviceGroup attached to it
-func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, *models.OnfSite_Site_Site, error) {
+// GetVcsDG given a VCS, return the set of DeviceGroup attached to it
+func (s *Synchronizer) GetVcsDG(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, error) {
 	dgList := []*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{}
-	var site *models.OnfSite_Site_Site
-	var err error
 	for _, dgLink := range vcs.DeviceGroup {
 		dg, okay := device.DeviceGroup.DeviceGroup[*dgLink.DeviceGroup]
 		if !okay {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
+			return nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
 		}
 		if (dg.Site == nil) || (*dg.Site == "") {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
+			return nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
 		}
 
 		if len(dgList) > 0 && (*dgList[0].Site != *dg.Site) {
-			return nil, nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
-		}
-
-		// Use the device-group to determine the site, even if it is disabled.
-		if site == nil {
-			site, err = s.GetDeviceGroupSite(device, dg)
-			if err != nil {
-				return nil, nil, err
-			}
+			return nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
 		}
 
 		// Only add it to the list if it's enabled
@@ -118,9 +123,5 @@ func (s *Synchronizer) GetVcsDGAndSite(device *models.Device, vcs *models.OnfVcs
 		}
 	}
 
-	if site == nil {
-		return nil, nil, fmt.Errorf("Vcs %s unable to determine site", *vcs.Id)
-	}
-
-	return dgList, site, nil
+	return dgList, nil
 }

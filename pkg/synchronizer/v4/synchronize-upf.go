@@ -74,7 +74,7 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 		sc.SliceQos.Unit = aStr(DefaultBitrateUnit)
 	}
 
-	dgList, _, err := s.GetVcsDGAndSite(device, vcs)
+	dgList, err := s.GetVcsDG(device, vcs)
 	if err != nil {
 		return 0, fmt.Errorf("Vcs %s unable to determine dgList: %s", *vcs.Id, err)
 	}

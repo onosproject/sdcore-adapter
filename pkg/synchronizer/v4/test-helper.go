@@ -80,10 +80,10 @@ func BuildSampleDeviceGroup() (
 		Format:     aStr("CCCNNNEEESSSSSS"),
 	}
 	sc := &models.OnfSite_Site_Site_SmallCell{
-		Name:    aStr("myradio"),
-		Address: aStr("6.7.8.9"),
-		Enable:  aBool(true),
-		Tac:     aStr("77AB"),
+		SmallCellId: aStr("myradio"),
+		Address:     aStr("6.7.8.9"),
+		Enable:      aBool(true),
+		Tac:         aStr("77AB"),
 	}
 	site := &models.OnfSite_Site_Site{
 		Description:    aStr("sample-site-desc"),
@@ -123,10 +123,10 @@ func BuildSampleVcs() (
 	*models.OnfVcs_Vcs_Vcs) {
 
 	ep := &models.OnfApplication_Application_Application_Endpoint{
-		Name:      aStr("sample-app-ep"),
-		PortStart: aUint16(123),
-		PortEnd:   aUint16(124),
-		Protocol:  aStr("UDP"),
+		EndpointId: aStr("sample-app-ep"),
+		PortStart:  aUint16(123),
+		PortEnd:    aUint16(124),
+		Protocol:   aStr("UDP"),
 	}
 
 	app1 := &models.OnfApplication_Application_Application{
@@ -144,7 +144,7 @@ func BuildSampleVcs() (
 	}
 
 	ep2 := &models.OnfApplication_Application_Application_Endpoint{
-		Name:         aStr("sample-app-ep"),
+		EndpointId:   aStr("sample-app-ep"),
 		PortStart:    aUint16(123),
 		PortEnd:      aUint16(124),
 		Protocol:     aStr("UDP"),

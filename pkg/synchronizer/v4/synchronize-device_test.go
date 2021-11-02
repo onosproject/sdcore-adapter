@@ -540,7 +540,7 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 	}
 
 	ep3 := &models.OnfApplication_Application_Application_Endpoint{
-		Name:         aStr("zep3"),
+		EndpointId:   aStr("zep3"),
 		PortStart:    aUint16(5555),
 		PortEnd:      aUint16(5556),
 		Protocol:     aStr("UDP"),

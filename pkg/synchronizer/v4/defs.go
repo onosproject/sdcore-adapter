@@ -34,6 +34,8 @@ type Synchronizer struct {
 
 	// used for ease of mocking
 	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) (int, error)
+
+	cache map[string]interface{}
 }
 
 // SynchronizerUpdate holds the configuration for a particular synchronization request

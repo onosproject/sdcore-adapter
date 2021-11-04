@@ -21,6 +21,9 @@ var log = logging.GetLogger("synchronizer")
 
 // Synchronize synchronizes the state to the underlying service.
 func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
+	if callbackType == gnmi.Forced {
+		s.CacheInvalidate() // invalidate the post cache if this resync was forced by Diagnostic API
+	}
 	err := s.enqueue(config, callbackType)
 	return err
 }
@@ -126,5 +129,6 @@ func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Du
 		retryInterval:  5 * time.Second,
 	}
 	s.synchronizeDeviceFunc = s.SynchronizeDevice
+
 	return s
 }

@@ -228,6 +228,11 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 		return 0, fmt.Errorf("Vcs %s has invalid defauilt-behavior %s", *vcs.Id, *vcs.DefaultBehavior)
 	}
 
+	if s.CacheCheck("slice", *vcs.Id, slice) {
+		log.Infof("Core Slice %s has not changed", *vcs.Id)
+		return 0, nil
+	}
+
 	data, err := json.MarshalIndent(slice, "", "  ")
 	if err != nil {
 		return 0, fmt.Errorf("Vcs %s failed to marshal JSON: %s", *vcs.Id, err)
@@ -238,6 +243,8 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 	if err != nil {
 		return 1, fmt.Errorf("Vcs %s failed to push update: %s", *vcs.Id, err)
 	}
+
+	s.CacheUpdate("slice", *vcs.Id, slice)
 
 	return 0, nil
 }

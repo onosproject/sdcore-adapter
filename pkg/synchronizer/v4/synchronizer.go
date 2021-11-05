@@ -10,6 +10,7 @@ import (
 	modelplugin "github.com/onosproject/config-models/modelplugin/aether-4.0.0/modelplugin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
 	"time"
@@ -20,8 +21,13 @@ import (
 var log = logging.GetLogger("synchronizer")
 
 // Synchronize synchronizes the state to the underlying service.
-func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
-	err := s.enqueue(config, callbackType)
+func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType, path *pb.Path) error {
+	var err error
+	if callbackType == gnmi.Deleted {
+		return s.HandleDelete(config, path)
+	}
+
+	err = s.enqueue(config, callbackType)
 	return err
 }
 

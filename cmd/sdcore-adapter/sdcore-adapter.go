@@ -21,7 +21,6 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
-	synchronizerv2 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v2"
 	synchronizerv3 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
 	synchronizerv4 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
@@ -41,8 +40,8 @@ var (
 	postDisable        = flag.Bool("post_disable", false, "Disable posting to connectivity service endpoints")
 	postTimeout        = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
 	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
-	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v2", "Target to use when pulling from aether-config")
-	modelVersion       = flag.String("model_version", "v3", "Version of modeling to use")
+	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v4", "Target to use when pulling from aether-config")
+	modelVersion       = flag.String("model_version", "v4", "Version of modeling to use")
 	showModelList      = flag.Bool("show_models", false, "Show list of available modes")
 	diagsPort          = flag.Uint("diags_port", 8080, "Port to use for Diagnostics API")
 )
@@ -60,8 +59,8 @@ func serveMetrics() {
 // configuration, but leaves us to retry applying it to the southbound device
 // ourselves.
 func synchronizerWrapper(s synchronizer.SynchronizerInterface) gnmi.ConfigCallback {
-	return func(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
-		err := s.Synchronize(config, callbackType)
+	return func(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType, path *pb.Path) error {
+		err := s.Synchronize(config, callbackType, path)
 		if err != nil {
 			// Report the error, but do not send the error upstream.
 			log.Warnf("Error during synchronize: %v", err)
@@ -80,10 +79,7 @@ func main() {
 	flag.Parse()
 
 	// Initialize the synchronizer's service-specific code.
-	if *modelVersion == "v2" {
-		log.Infof("Initializing synchronizer for v2 models")
-		sync = synchronizerv2.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
-	} else if *modelVersion == "v3" {
+	if *modelVersion == "v3" {
 		log.Infof("Initializing synchronizer for v3 models")
 		sync = synchronizerv3.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
 	} else if *modelVersion == "v4" {

@@ -35,13 +35,14 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 var log = logging.GetLogger("diagapi")
 
 // TargetInterface is an interface to a gNMI Target
 type TargetInterface interface {
-	ExecuteCallbacks(reason gnmi.ConfigCallbackType) error
+	ExecuteCallbacks(reason gnmi.ConfigCallbackType, path *pb.Path) error
 	GetJSON() ([]byte, error)
 	PutJSON([]byte) error
 }
@@ -56,7 +57,7 @@ type DiagnosticAPI struct {
 func (m *DiagnosticAPI) reSync(w http.ResponseWriter, r *http.Request) {
 	// TODO: tell the target server to synchronize
 	_ = r
-	err := m.targetServer.ExecuteCallbacks(gnmi.Forced)
+	err := m.targetServer.ExecuteCallbacks(gnmi.Forced, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

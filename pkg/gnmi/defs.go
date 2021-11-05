@@ -29,14 +29,17 @@ const (
 
 	// Forced is a callback when forced by the user
 	Forced
+
+	// Deleted is for specific paths that are deleted
+	Deleted
 )
 
 func (c ConfigCallbackType) String() string {
-	return [...]string{"Initial", "Apply", "Rollback"}[c]
+	return [...]string{"Initial", "Apply", "Rollback", "Forced", "Delete"}[c]
 }
 
 // ConfigCallback is the signature of the function to apply a validated config to the physical device.
-type ConfigCallback func(ygot.ValidatedGoStruct, ConfigCallbackType) error
+type ConfigCallback func(ygot.ValidatedGoStruct, ConfigCallbackType, *pb.Path) error
 
 var (
 	pbRootPath         = &pb.Path{}

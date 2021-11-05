@@ -42,7 +42,7 @@ func TestSynchronizerLoop(t *testing.T) {
 
 	// Normal synchronization
 	mockSynchronizeDeviceReset(0, 0*time.Second)
-	err := sync.Synchronize(config, gnmi.Apply)
+	err := sync.Synchronize(config, gnmi.Apply, nil)
 	assert.Nil(t, err)
 	waitForSyncIdle(t, sync, 5*time.Second)
 	assert.Equal(t, 1, len(mockSynchronizeDeviceCalls))
@@ -51,7 +51,7 @@ func TestSynchronizerLoop(t *testing.T) {
 	// Fail and retry once
 
 	mockSynchronizeDeviceReset(1, 0*time.Second)
-	err = sync.Synchronize(config, gnmi.Apply)
+	err = sync.Synchronize(config, gnmi.Apply, nil)
 	assert.Nil(t, err)
 	waitForSyncIdle(t, sync, 5*time.Second)
 	assert.Equal(t, 1, len(mockSynchronizeDeviceFails))
@@ -60,13 +60,13 @@ func TestSynchronizerLoop(t *testing.T) {
 
 	// several queued changes should only get the last one
 	mockSynchronizeDeviceReset(1, 100*time.Millisecond)
-	err = sync.Synchronize(&mockConfig{}, gnmi.Apply) // this one will fail...
+	err = sync.Synchronize(&mockConfig{}, gnmi.Apply, nil) // this one will fail...
 	assert.Nil(t, err)
-	err = sync.Synchronize(&mockConfig{}, gnmi.Apply) // this one will be ignored...
+	err = sync.Synchronize(&mockConfig{}, gnmi.Apply, nil) // this one will be ignored...
 	assert.Nil(t, err)
-	err = sync.Synchronize(&mockConfig{}, gnmi.Apply) // this one will also be ignored...
+	err = sync.Synchronize(&mockConfig{}, gnmi.Apply, nil) // this one will also be ignored...
 	assert.Nil(t, err)
-	err = sync.Synchronize(config, gnmi.Apply) // this one will succeed!
+	err = sync.Synchronize(config, gnmi.Apply, nil) // this one will succeed!
 	assert.Nil(t, err)
 	waitForSyncIdle(t, sync, 5*time.Second)
 	assert.Equal(t, 1, len(mockSynchronizeDeviceFails))

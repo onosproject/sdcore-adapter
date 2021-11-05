@@ -8,6 +8,7 @@ package gnmi
 import (
 	"encoding/json"
 	"github.com/eapache/channels"
+	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -23,7 +24,7 @@ func NewServer(model *Model, config []byte, callback ConfigCallback) (*Server, e
 		callback: callback,
 	}
 	if config != nil && s.callback != nil {
-		if err := s.callback(rootStruct, Initial); err != nil {
+		if err := s.callback(rootStruct, Initial, nil); err != nil {
 			return nil, err
 		}
 	}
@@ -63,9 +64,9 @@ func (s *Server) Close() {
 }
 
 // ExecuteCallbacks executes the callbacks for the synchronizer
-func (s *Server) ExecuteCallbacks(reason ConfigCallbackType) error {
+func (s *Server) ExecuteCallbacks(reason ConfigCallbackType, path *pb.Path) error {
 	if s.callback != nil {
-		if err := s.callback(s.config, reason); err != nil {
+		if err := s.callback(s.config, reason, path); err != nil {
 			return err
 		}
 	}

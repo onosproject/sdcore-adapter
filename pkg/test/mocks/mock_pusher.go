@@ -41,6 +41,14 @@ func (m *MockPusherInterface) PushUpdate(arg0 string, arg1 []byte) error {
 	return ret0
 }
 
+// PushUpdate mocks base method.
+func (m *MockPusherInterface) PushDelete(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PushDelete", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
 // PushUpdate indicates an expected call of PushUpdate.
 func (mr *MockPusherInterfaceMockRecorder) PushUpdate(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()

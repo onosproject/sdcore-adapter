@@ -8,10 +8,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/onosproject/onos-lib-go/pkg/grpc/retry"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/openconfig/gnmi/client"
 	gclient "github.com/openconfig/gnmi/client/gnmi"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"time"
 )
 
@@ -58,6 +61,59 @@ func NewGnmi(addr string, timeout time.Duration) (GnmiInterface, error) {
 		Credentials: q.Credentials,
 		TLS:         q.TLS,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("could not create a gNMI client: %v", err)
+	}
+
+	return gnmi, nil
+}
+
+//NewGnmiWithInterceptor - create one gNMI client and keep it open with retry mechanism
+func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, error) {
+	gnmi := new(Gnmi)
+	gnmi.address = addr
+	var err error
+
+	q := client.Query{TLS: &tls.Config{}, Timeout: timeout}
+
+	if err = readCerts(q); err != nil {
+		return nil, err
+	}
+
+	ctx := getAuthContext(context.Background())
+
+	opts := []grpc.DialOption{}
+
+	opts = append(opts, grpc.WithUnaryInterceptor(retry.RetryingUnaryClientInterceptor(retry.WithInterval(100*time.Millisecond))))
+
+	d := client.Destination{
+		Addrs:       []string{addr},
+		Timeout:     q.Timeout,
+		Credentials: q.Credentials,
+		TLS:         q.TLS,
+	}
+
+	switch d.TLS {
+	case nil:
+		opts = append(opts, grpc.WithInsecure())
+	default:
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(d.TLS)))
+	}
+
+	gCtx, cancel := context.WithTimeout(ctx, q.Timeout)
+	defer cancel()
+
+	addr = ""
+	if len(d.Addrs) != 0 {
+		addr = d.Addrs[0]
+	}
+	conn, err := grpc.DialContext(gCtx, addr, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("Dialer(%s, %v): %v", addr, d.Timeout, err)
+	}
+
+	gnmi.Client, err = gclient.NewFromConn(ctx, conn, d)
+
 	if err != nil {
 		return nil, fmt.Errorf("could not create a gNMI client: %v", err)
 	}

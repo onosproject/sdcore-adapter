@@ -7,10 +7,10 @@ package subproxy
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
-	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
+	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"io/ioutil"
 	"net/http"
@@ -188,7 +188,7 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 	rangeName := fmt.Sprintf("auto-%d", imsi)
 
 	// Generate a prefix into the gNMI configuration tree
-	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsis[name=%s]", dgroup,
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsis[imsi-id=%s]", dgroup,
 		rangeName), s.AetherConfigTarget)
 
 	// Build up a list of gNMI updates to apply

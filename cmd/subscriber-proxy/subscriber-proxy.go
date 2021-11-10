@@ -16,7 +16,7 @@ import (
 var (
 	bindPort           = flag.String("bind_port", ":5001", "Bind to just :port")
 	postTimeout        = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
-	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v3", "Target to use when pulling from aether-config")
+	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v4", "Target to use when pulling from aether-config")
 	baseWebConsoleURL  = flag.String("webconsole_url", "http://webui.omec.svc.cluster.local:5000", "base url for webui service address")
 	aetherConfigAddr   = flag.String("onos_config_url", "onos-config.micro-onos.svc.cluster.local:5150", "url of onos-config")
 )
@@ -32,7 +32,7 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	gnmiClient, err := gnmiclient.NewGnmi(*aetherConfigAddr, time.Second*15)
+	gnmiClient, err := gnmiclient.NewGnmiWithInterceptor(*aetherConfigAddr, time.Second*15)
 	if err != nil {
 		log.Fatalf("Error opening gNMI client %s", err.Error())
 		return

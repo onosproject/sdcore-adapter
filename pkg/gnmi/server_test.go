@@ -23,7 +23,7 @@ import (
 	// TODO: It might be better to eventually switch to a service-independent
 	// set of test models, so that this test code can remain independent of
 	// any particular service.
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 )
 
 var ModelData = []*gnmiproto.ModelData{
@@ -60,14 +60,28 @@ func TestCapabilities(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	jsonConfigRoot := `{
-		"access-profile": {
-			"access-profile": [
+		"enterprise": {
+			"enterprise": [
 				{
-					"id": "typical-access-profile",
-					"type": "internet-only",
-					"filter": "allow app name",
-					"description": "a typical access profile"
+					"description": "ACME Corporation",
+					"display-name": "ACME Corp",
+					"id": "acme"
 				}
+			]
+		},
+		"ip-domain": {
+			"ip-domain": [
+                {
+                    "admin-status": "DISABLE",
+                    "description": "Chicago IP Domain",
+                    "display-name": "Chicago",
+                    "dns-primary": "8.8.8.4",
+                    "dns-secondary": "8.8.8.4",
+                    "id": "acme-chicago",
+                    "mtu": 12690,
+                    "subnet": "163.25.44.0/31",
+                    "enterprise": "acme"
+                }
 			]
 		}
 	}`
@@ -84,20 +98,20 @@ func TestGet(t *testing.T) {
 		wantRetCode codes.Code
 		wantRespVal interface{}
 	}{{
-		desc: "get access-profile",
+		desc: "get ip-domain",
 		textPbPath: `
-			elem: <name: "access-profile" >
-			elem: <name: "access-profile" 
+			elem: <name: "ip-domain" >
+			elem: <name: "ip-domain" 
 						 key: <
 							 key:'id',
-							 value:'typical-access-profile'
+							 value:'acme-chicago'
 							 >
 						>
-			elem: <name: "filter">
+			elem: <name: "subnet">
 
 		`,
 		wantRetCode: codes.OK,
-		wantRespVal: "allow app name",
+		wantRespVal: "163.25.44.0/31",
 	}}
 
 	for _, td := range tds {
@@ -183,28 +197,28 @@ func TestSet(t *testing.T) {
 		wantRetCode  codes.Code
 		wantRespVal  interface{}
 	}{{
-		desc: "set access-profile",
+		desc: "set ip-domain",
 		textPbPrefix: `
-		target: 'connectivity-service-v2'
+		target: 'connectivity-service-v4'
 		elem: <
-			name: 'access-profile'
+			name: 'ip-domain'
 		>
 		elem: <
-			name: 'access-profile'
+			name: 'ip-domain'
 			key:<
 				key:'id'
-				value:'profile-access-demo-1'
+				value:'ip-domain-demo-1'
 			>
 		>
 		`,
 		textPbUpdate: `
 		path: <
 			elem: <
-				name: 'type'
+				name: 'dns-primary'
 			>
 		>
 		val: <
-			string_val: 'allow-all'
+			string_val: '8.8.8.1'
 		>
 		`,
 		wantRetCode: codes.OK,

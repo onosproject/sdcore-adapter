@@ -14,10 +14,13 @@ import (
 	"fmt"
 	modelsv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	modelsv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
+
+var log = logging.GetLogger("migration.steps")
 
 // MigrateV3V4 - top level migration entry
 func MigrateV3V4(step *migration.MigrationStep, fromTarget string, toTarget string, srcVal *gpb.TypedValue, destVal *gpb.TypedValue) ([]*migration.MigrationActions, error) {
@@ -169,7 +172,7 @@ func MigrateV3V4(step *migration.MigrationStep, fromTarget string, toTarget stri
 	if srcDevice.Vcs != nil {
 		for _, profile := range srcDevice.Vcs.Vcs {
 			log.Infof("Migrating Vcs Profile %s", gnmiclient.StrDeref(profile.Id))
-			action, err := migrateV3V4Vcs(fromTarget, toTarget, profile)
+			action, err := migrateV3V4Vcs(fromTarget, toTarget, profile, srcDevice.DeviceGroup)
 			if err != nil {
 				log.Warn(err.Error())
 				continue
@@ -201,7 +204,7 @@ func MigrateV3V4(step *migration.MigrationStep, fromTarget string, toTarget stri
 			for _, v := range srcDevice.Vcs.Vcs {
 				for _, ap := range v.Application {
 					apID := ap.Application
-					action, err := migrateV3V4VcsTcToDG(fromTarget, toTarget, apID, v)
+					action, err := migrateV3V4VcsTcToApplication(fromTarget, toTarget, apID, v)
 					if err != nil {
 						log.Warn(err.Error())
 						continue
@@ -239,9 +242,8 @@ func migrateV3V4ConnectivityService(fromTarget string, toTarget string, cs *mode
 	var updates []*gpb.Update
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, cs.Description))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, cs.DisplayName))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("spgwc-endpoint", toTarget, cs.SpgwcEndpoint))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("hss-endpoint", toTarget, cs.HssEndpoint))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("pcrf-endpoint", toTarget, cs.PcrfEndpoint))
+	// Not mapping spgwc-endpoint, hss-endpoint, pcrf-endpoint
+	// Nothing to migrate for acc-prometheus-url
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("core-5g-endpoint", toTarget, cs.Core_5GEndpoint))
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("connectivity-service/connectivity-service[id=%s]", *cs.Id), toTarget)
@@ -270,9 +272,9 @@ func migrateV3V4DeviceGroup(fromTarget string, toTarget string, dg *modelsv3.Dev
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, dg.Description))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, dg.DisplayName))
 	for _, dgi := range dg.Imsis {
-		updStr := fmt.Sprintf("imsis[name=%s]/imsi-range-from", *dgi.Name)
+		updStr := fmt.Sprintf("imsis[imsi-id=%s]/imsi-range-from", *dgi.Name)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64(updStr, toTarget, dgi.ImsiRangeFrom))
-		updStr = fmt.Sprintf("imsis[name=%s]/imsi-range-to", *dgi.Name)
+		updStr = fmt.Sprintf("imsis[imsi-id=%s]/imsi-range-to", *dgi.Name)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64(updStr, toTarget, dgi.ImsiRangeTo))
 	}
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("site", toTarget, dg.Site))
@@ -304,11 +306,11 @@ func migrateV3V4Application(fromTarget string, toTarget string, app *modelsv3.Ap
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, app.DisplayName))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("enterprise", toTarget, app.Enterprise))
 	for _, ap := range app.Endpoint {
-		updStr := fmt.Sprintf("endpoint[name=%s]/protocol", *ap.Name)
+		updStr := fmt.Sprintf("endpoint[endpoint-id=%s]/protocol", *ap.Name)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ap.Protocol))
-		updStr = fmt.Sprintf("endpoint[name=%s]/port-start", *ap.Name)
+		updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/port-start", *ap.Name)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt16(updStr, toTarget, ap.PortStart))
-		updStr = fmt.Sprintf("endpoint[name=%s]/port-end", *ap.Name)
+		updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/port-end", *ap.Name)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt16(updStr, toTarget, ap.PortEnd))
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("address", toTarget, ap.Address))
 	}
@@ -356,11 +358,11 @@ func migrateV3V4Site(fromTarget string, toTarget string, st *modelsv3.Site_Site_
 func migrateV3V4ApListToSite(fromTarget string, toTarget string, site *string, apList *modelsv3.ApList_ApList_ApList) (*migration.MigrationActions, error) {
 	var updates []*gpb.Update
 	for _, aap := range apList.AccessPoints {
-		updStr := fmt.Sprintf("small-cell[name=%s]/address", *apList.Id)
+		updStr := fmt.Sprintf("small-cell[small-cell-id=%s]/address", *apList.Id)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, aap.Address))
-		updStr = fmt.Sprintf("small-cell[name=%s]/tac", *apList.Id)
+		updStr = fmt.Sprintf("small-cell[small-cell-id=%s]/tac", *apList.Id)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, aap.Tac))
-		updStr = fmt.Sprintf("small-cell[name=%s]/enable", *apList.Id)
+		updStr = fmt.Sprintf("small-cell[small-cell-id=%s]/enable", *apList.Id)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, aap.Enable))
 	}
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("site/site[id=%s]", *site), toTarget)
@@ -374,14 +376,14 @@ func migrateV3V4Template(fromTarget string, toTarget string, te *modelsv3.Templa
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, te.DisplayName))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt8("sst", toTarget, te.Sst))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("sd", toTarget, te.Sd))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("traffic-class", toTarget, te.TrafficClass))
+	defaultBehaviorDefault := "DENY-ALL"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("default-behavior", toTarget, &defaultBehaviorDefault))
 
 	uplink := uint64(*te.Uplink * 1000000)
 	downlink := uint64(*te.Downlink * 1000000)
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("device/mbr/uplink", toTarget, &uplink))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("device/mbr/downlink", toTarget, &downlink))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("slice/mbr/uplink", toTarget, &uplink))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("slice/mbr/downlink", toTarget, &downlink))
+	// nothing to migrate for downlink-burst-size or uplink-burst-size
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("template/template[id=%s]", *te.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("template/template[id=%s]", *te.Id), fromTarget)
@@ -396,6 +398,8 @@ func migrateV3V4Upf(fromTarget string, toTarget string, up *modelsv3.Upf_Upf_Upf
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("address", toTarget, up.Address))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt16("port", toTarget, up.Port))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("enterprise", toTarget, up.Enterprise))
+	defaultSite := "defaultent-defaultsite"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("site", toTarget, &defaultSite))
 
 	//config-endpoint should be left blank
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("upf/upf[id=%s]", *up.Id), toTarget)
@@ -404,20 +408,28 @@ func migrateV3V4Upf(fromTarget string, toTarget string, up *modelsv3.Upf_Upf_Upf
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-func migrateV3V4Vcs(fromTarget string, toTarget string, vc *modelsv3.Vcs_Vcs_Vcs) (*migration.MigrationActions, error) {
+func migrateV3V4Vcs(fromTarget string, toTarget string, vc *modelsv3.Vcs_Vcs_Vcs, dgs *modelsv3.DeviceGroup_DeviceGroup) (*migration.MigrationActions, error) {
 	var updates []*gpb.Update
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, vc.Description))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, vc.DisplayName))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("template", toTarget, vc.Template))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("upf", toTarget, vc.Upf))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("enterprise", toTarget, vc.Enterprise))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt8("sst", toTarget, vc.Sst))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("sd", toTarget, vc.Sd))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("traffic-class", toTarget, vc.TrafficClass))
+	defaultBehaviorDefault := "DENY-ALL"
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("default-behavior", toTarget, &defaultBehaviorDefault))
+	site := "defaultent-defaultsite" // In case the VCS has no DGs
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("site", toTarget, &site))
 
+	// Get the site from the corresponding DG (if any)
 	for _, vcd := range vc.DeviceGroup {
 		updStr := fmt.Sprintf("device-group[device-group=%s]/enabled", *vcd.DeviceGroup)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, vcd.Enable))
+		dgObject, ok := dgs.DeviceGroup[*vcd.DeviceGroup]
+		if ok {
+			site = *dgObject.Site
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("site", toTarget, &site))
+		}
 	}
 
 	defaultPriority := uint8(5)
@@ -445,18 +457,15 @@ func migrateV3V4VcsMbrTcToDG(fromTarget string, toTarget string, dg *string, vc 
 	downlink := uint64(*vc.Downlink * 1000000)
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("device/mbr/uplink", toTarget, &uplink))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("device/mbr/downlink", toTarget, &downlink))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("traffic-class", toTarget, vc.TrafficClass))
+	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("device/traffic-class", toTarget, vc.TrafficClass))
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]", *dg), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]", *dg), fromTarget)
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
-func migrateV3V4VcsTcToDG(fromTarget string, toTarget string, ap *string, vc *modelsv3.Vcs_Vcs_Vcs) (*migration.MigrationActions, error) {
-	var updates []*gpb.Update
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("traffic-class", toTarget, vc.TrafficClass))
-	prefix := gnmiclient.StringToPath(fmt.Sprintf("application/application[id=%s]", *ap), toTarget)
+func migrateV3V4VcsTcToApplication(fromTarget string, toTarget string, ap *string, vc *modelsv3.Vcs_Vcs_Vcs) (*migration.MigrationActions, error) {
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("application/application[id=%s]", *ap), fromTarget)
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+	return &migration.MigrationActions{Deletes: []*gpb.Path{deletePath}}, nil
 }
 
 func migrateV3V4VcssiteToUpf(fromTarget string, toTarget string, upfID *string, siteID *string) (*migration.MigrationActions, error) {

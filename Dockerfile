@@ -12,7 +12,6 @@ COPY . $ADAPTER_ROOT/
 # If LOCAL_AETHER_MODELS was used, then patch the go.mod file to load
 # the models from the local source.
 RUN if [ -n "$LOCAL_AETHER_MODELS" ] ; then \
-    echo "replace github.com/onosproject/config-models/modelplugin/aether-2.1.0 => ./local-aether-models/aether-2.1.0" >> $ADAPTER_ROOT/go.mod; \
     echo "replace github.com/onosproject/config-models/modelplugin/aether-3.0.0 => ./local-aether-models/aether-3.0.0" >> $ADAPTER_ROOT/go.mod; \
     echo "replace github.com/onosproject/config-models/modelplugin/aether-4.0.0 => ./local-aether-models/aether-4.0.0" >> $ADAPTER_ROOT/go.mod; \
     fi

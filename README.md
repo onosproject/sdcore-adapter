@@ -30,8 +30,6 @@ When writing a new adapter, replace the `pkg/synchronizer` directory with your o
 
 Migration is a series of steps that migrate from one version of the model to another. For example,
 for migration from V1 to V4, the following steps would be executed in order:
-* step_V1_0_0_V2_0_0
-* step_V2_0_0_V3_0_0
 * step_V3_0_0_V4_0_0
 
 Each step has a model version and modelplugin associated with it. Migrations are performed by reading the source models, translating them to destination models, writing the destination models, and then deleting the original source models.

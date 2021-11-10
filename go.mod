@@ -8,11 +8,7 @@ require (
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.5.2
 	github.com/google/gnxi v0.0.0-20210716134716-cb5c55758a07
-	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.8.0
-	github.com/onosproject/config-models/modelplugin/aether-1.0.0 v0.0.0-20201217104719-f0b4f4c16f49
-	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20210106180505-6d1bbdac02b2
-	github.com/onosproject/config-models/modelplugin/aether-2.1.0 v0.8.10
 	github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.8.10
 	github.com/onosproject/config-models/modelplugin/aether-4.0.0 v0.8.10
 	github.com/onosproject/onos-lib-go v0.7.18

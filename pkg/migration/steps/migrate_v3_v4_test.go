@@ -153,7 +153,7 @@ func Test_MigrateV3V4(t *testing.T) {
 				assert.Len(t, deviceGrouproupAction.Deletes, 1)
 				assert.Len(t, deviceGrouproupAction.Updates, 6)
 				assert.Equal(t, "ACME Robots", deviceGrouproupAction.Updates[0].Val.GetStringVal())
-				assert.Equal(t, "warehouse", deviceGrouproupAction.Updates[2].Path.GetElem()[0].Key["name"])
+				assert.Equal(t, "warehouse", deviceGrouproupAction.Updates[2].Path.GetElem()[0].Key["imsi-id"])
 			} else if dgname == "defaultent-defaultsite-default" {
 				assert.Len(t, deviceGrouproupAction.Deletes, 1)
 				assert.Len(t, deviceGrouproupAction.Updates, 3)
@@ -234,11 +234,11 @@ func Test_MigrateV3V4(t *testing.T) {
 		case "acme-dataacquisition":
 			assert.Equal(t, "Data Acquisition", applicationAction.Updates[0].Val.GetStringVal())
 			assert.Equal(t, "acme", applicationAction.Updates[2].Val.GetStringVal())
-			assert.Equal(t, "da", applicationAction.Updates[3].GetPath().GetElem()[0].Key["name"])
+			assert.Equal(t, "da", applicationAction.Updates[3].GetPath().GetElem()[0].Key["endpoint-id"])
 		case "starbucks-fidelio":
 			assert.Equal(t, "Fidelio", applicationAction.Updates[1].Val.GetStringVal())
 			assert.Equal(t, "fidelio.starbucks.com", applicationAction.Updates[6].Val.GetStringVal())
-			assert.Equal(t, "fidelio", applicationAction.Updates[3].GetPath().GetElem()[0].Key["name"])
+			assert.Equal(t, "fidelio", applicationAction.Updates[3].GetPath().GetElem()[0].Key["endpoint-id"])
 		case "starbucks-nvr":
 			assert.Equal(t, "NVR", applicationAction.Updates[1].Val.GetStringVal())
 			assert.Equal(t, "endpoint", applicationAction.Updates[4].GetPath().GetElem()[0].GetName())
@@ -343,17 +343,17 @@ func Test_MigrateV3V4(t *testing.T) {
 		assert.Empty(t, templateAction.DeletePrefix)
 		assert.Equal(t, "template", templateAction.UpdatePrefix.GetElem()[0].GetName(), "unexpected type for %d", idx)
 		assert.Len(t, templateAction.Deletes, 1)
-		assert.Len(t, templateAction.Updates, 9)
+		assert.Len(t, templateAction.Updates, 7)
 		templateID, ok := templateAction.UpdatePrefix.GetElem()[1].GetKey()["id"]
 		assert.True(t, ok)
 		switch templateID {
 		case "template-1":
 			assert.Equal(t, "VCS Template 1", templateAction.Updates[0].Val.GetStringVal())
-			assert.Equal(t, "traffic-class", templateAction.Updates[4].GetPath().GetElem()[0].GetName())
-			assert.Equal(t, "mbr", templateAction.Updates[6].GetPath().GetElem()[1].GetName())
+			assert.Equal(t, "default-behavior", templateAction.Updates[4].GetPath().GetElem()[0].GetName())
+			assert.Equal(t, "mbr", templateAction.Updates[5].GetPath().GetElem()[1].GetName())
 		case "template-2":
-			assert.Equal(t, "slice", templateAction.Updates[7].GetPath().GetElem()[0].GetName())
-			assert.Equal(t, "class-2", templateAction.Updates[4].Val.GetStringVal())
+			assert.Equal(t, "slice", templateAction.Updates[6].GetPath().GetElem()[0].GetName())
+			assert.Equal(t, "DENY-ALL", templateAction.Updates[4].Val.GetStringVal())
 			assert.Equal(t, "sst", templateAction.Updates[2].GetPath().GetElem()[0].GetName())
 		default:
 			t.Errorf("Unexpected Site Profile ID %s for %d", templateID, idx)
@@ -367,7 +367,7 @@ func Test_MigrateV3V4(t *testing.T) {
 		assert.Equal(t, "upf", upfAction.UpdatePrefix.GetElem()[0].GetName(), "expected upf for %d", idx)
 		upfID, ok := upfAction.UpdatePrefix.GetElem()[1].GetKey()["id"]
 		assert.Len(t, upfAction.Deletes, 1)
-		assert.Len(t, upfAction.Updates, 5)
+		assert.Len(t, upfAction.Updates, 6)
 		assert.True(t, ok)
 		switch upfID {
 		case "acme-chicago-robots":
@@ -398,21 +398,21 @@ func Test_MigrateV3V4(t *testing.T) {
 		assert.Equal(t, "vcs", vcsAction.UpdatePrefix.GetElem()[0].GetName(), "expected upf for %d", idx)
 		vcsID, ok := vcsAction.UpdatePrefix.GetElem()[1].GetKey()["id"]
 		assert.Len(t, vcsAction.Deletes, 1)
-		assert.Len(t, vcsAction.Updates, 13)
+		assert.Len(t, vcsAction.Updates, 14)
 		assert.True(t, ok)
 		switch vcsID {
 		case "acme-chicago-robots":
 			assert.Equal(t, "Chicago Robots VCS", vcsAction.Updates[1].Val.GetStringVal())
-			assert.Equal(t, "upf", vcsAction.Updates[3].GetPath().GetElem()[0].GetName())
+			assert.Equal(t, "upf", vcsAction.Updates[2].GetPath().GetElem()[0].GetName())
 			assert.Equal(t, "mbr", vcsAction.Updates[12].GetPath().GetElem()[1].GetName())
 		case "starbucks-newyork-cameras":
-			assert.Equal(t, "starbucks-newyork-cameras", vcsAction.Updates[3].Val.GetStringVal())
-			assert.Equal(t, "sst", vcsAction.Updates[5].GetPath().GetElem()[0].GetName())
-			assert.Equal(t, "template-1", vcsAction.Updates[2].Val.GetStringVal())
+			assert.Equal(t, "starbucks-newyork-cameras", vcsAction.Updates[2].Val.GetStringVal())
+			assert.Equal(t, "sst", vcsAction.Updates[4].GetPath().GetElem()[0].GetName())
+			assert.Equal(t, "DENY-ALL", vcsAction.Updates[6].Val.GetStringVal())
 		case "starbucks-seattle-cameras":
-			assert.Equal(t, "starbucks", vcsAction.Updates[4].Val.GetStringVal())
-			assert.Equal(t, "cs4", vcsAction.Updates[12].GetPath().GetTarget())
-			assert.Equal(t, "traffic-class", vcsAction.Updates[7].GetPath().GetElem()[0].GetName())
+			assert.Equal(t, "starbucks", vcsAction.Updates[3].Val.GetStringVal())
+			assert.Equal(t, "cs4", vcsAction.Updates[11].GetPath().GetTarget())
+			assert.Equal(t, "device-group", vcsAction.Updates[8].GetPath().GetElem()[0].GetName())
 		default:
 			t.Errorf("Unexpected UPF Profile ID %s", vcsID)
 		}
@@ -437,7 +437,7 @@ func Test_MigrateV3V4(t *testing.T) {
 			assert.Equal(t, "class-1", deviceGrouproupAction.Updates[2].Val.GetStringVal())
 		case "starbucks-seattle-cameras":
 			assert.Equal(t, "cs4", deviceGrouproupAction.Updates[1].GetPath().GetTarget())
-			assert.Equal(t, "traffic-class", deviceGrouproupAction.Updates[2].GetPath().GetElem()[0].GetName())
+			assert.Equal(t, "device", deviceGrouproupAction.Updates[2].GetPath().GetElem()[0].GetName())
 		default:
 			t.Errorf("unexpected device group: %s", dgname)
 		}
@@ -448,9 +448,7 @@ func Test_MigrateV3V4(t *testing.T) {
 		applicationAction := actions[idx]
 		assert.Empty(t, applicationAction.DeletePrefix)
 		assert.Len(t, applicationAction.Deletes, 1)
-		assert.Len(t, applicationAction.Updates, 1)
-		assert.Equal(t, "traffic-class", applicationAction.Updates[0].GetPath().GetElem()[0].GetName())
-		assert.Equal(t, "cs4", applicationAction.Updates[0].GetPath().GetTarget())
+		assert.Len(t, applicationAction.Updates, 0)
 	}
 
 	// Expecting actions 46-48 to be Upf (site)  - order is changeable

@@ -59,6 +59,20 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 		}
 	}
 
+	if pathDeleted {
+		if s.callback != nil {
+			// Note that s.config has not received the changes yet, so it still contains
+			// the object being deleted, and can be used to lookup information about
+			// it inside the callback.
+			log.Infof("Calling delete callback on: %s", PathToString(fullPath))
+			err := s.callback(s.config, Deleted, fullPath)
+			if err != nil {
+				return nil, false, err
+			}
+		}
+		log.Infof("Deleted: %s", PathToString(fullPath))
+	}
+
 	return &pb.UpdateResult{
 		Path: path,
 		Op:   pb.UpdateResult_DELETE,
@@ -229,8 +243,8 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	// more performant to the json.Marshal and NewConfigStruct once per gnmi operation than it is to
 	// do it for each individual path set or delete.
 	if s.callback != nil {
-		if applyErr := s.callback(rootStruct, Apply); applyErr != nil {
-			if rollbackErr := s.callback(s.config, Rollback); rollbackErr != nil {
+		if applyErr := s.callback(rootStruct, Apply, nil); applyErr != nil {
+			if rollbackErr := s.callback(s.config, Rollback, nil); rollbackErr != nil {
 				return nil, status.Errorf(codes.Internal, "error in rollback the failed operation (%v): %v", applyErr, rollbackErr)
 			}
 			return nil, status.Errorf(codes.Aborted, "error in applying operation to device: %v", applyErr)

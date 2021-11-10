@@ -48,3 +48,9 @@ func (p *RESTPusher) PushUpdate(endpoint string, data []byte) error {
 
 	return nil
 }
+
+// PushDelete pushes a delete to the REST endpoint
+func (p *RESTPusher) PushDelete(endpoint string) error {
+	_ = endpoint
+	return fmt.Errorf("Not Implemented")
+}

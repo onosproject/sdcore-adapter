@@ -24,3 +24,9 @@ func (p *MemPusher) PushUpdate(endpoint string, data []byte) error {
 	p.Pushes[endpoint] = string(data)
 	return nil
 }
+
+// PushDelete pushes a delete to the REST endpoint
+func (p *MemPusher) PushDelete(endpoint string) error {
+	_ = endpoint
+	return nil
+}

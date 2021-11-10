@@ -158,6 +158,23 @@ func gnmiFullPath(prefix, path *pb.Path) *pb.Path {
 	return fullPath
 }
 
+// PathToString converts a gnmi path to a human-readable string
+func PathToString(path *pb.Path) string {
+	parts := []string{}
+	for _, elem := range path.Elem {
+		keys := []string{}
+		for k, v := range elem.Key {
+			keys = append(keys, fmt.Sprintf("%s=%s", k, v))
+		}
+		if len(keys) > 0 {
+			parts = append(parts, fmt.Sprintf("%s[%s]", elem.Name, strings.Join(keys, ",")))
+		} else {
+			parts = append(parts, elem.Name)
+		}
+	}
+	return strings.Join(parts, "/")
+}
+
 // isNIl checks if an interface is nil or its value is nil.
 func isNil(i interface{}) bool {
 	if i == nil {

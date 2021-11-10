@@ -85,7 +85,7 @@ func (p *RESTPusher) PushDelete(endpoint string) error {
 	log.Infof("Delete returned status %s", resp.Status)
 
 	if (resp.StatusCode < 200) || (resp.StatusCode >= 300) {
-		return &PushError{Operation: "POST", Endpoint: endpoint, StatusCode: resp.StatusCode, Status: resp.Status}
+		return &PushError{Operation: "DELETE", Endpoint: endpoint, StatusCode: resp.StatusCode, Status: resp.Status}
 	}
 
 	return nil

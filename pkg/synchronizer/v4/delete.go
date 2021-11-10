@@ -125,7 +125,7 @@ csLoop:
 func (s *Synchronizer) HandleDelete(config ygot.ValidatedGoStruct, path *pb.Path) error {
 	device := config.(*models.Device)
 
-	if path == nil {
+	if path == nil || len(path.Elem) == 0 {
 		return nil
 	}
 	if len(path.Elem) == 1 {

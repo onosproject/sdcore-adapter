@@ -61,6 +61,9 @@ func (s *Synchronizer) GetDeviceGroup(device *models.Device, id *string) (*model
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("DeviceGroup id is blank")
 	}
+	if device.DeviceGroup == nil {
+		return nil, fmt.Errorf("No DeviceGroups")
+	}
 	dg, okay := device.DeviceGroup.DeviceGroup[*id]
 	if !okay {
 		return nil, fmt.Errorf("DeviceGroup %s not found", *id)
@@ -88,6 +91,9 @@ func (s *Synchronizer) GetEnterprise(device *models.Device, id *string) (*models
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("Enterprise id is blank")
 	}
+	if device.Enterprise == nil {
+		return nil, fmt.Errorf("No Enterprises")
+	}
 	ent, okay := device.Enterprise.Enterprise[*id]
 	if !okay {
 		return nil, fmt.Errorf("Enterprise %s not found", *id)
@@ -99,6 +105,9 @@ func (s *Synchronizer) GetEnterprise(device *models.Device, id *string) (*models
 func (s *Synchronizer) GetSite(device *models.Device, id *string) (*models.OnfSite_Site_Site, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("Site id is blank")
+	}
+	if device.Site == nil {
+		return nil, fmt.Errorf("No Sites")
 	}
 	site, okay := device.Site.Site[*id]
 	if !okay {
@@ -115,6 +124,9 @@ func (s *Synchronizer) GetVcs(device *models.Device, id *string) (*models.OnfVcs
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("Vcs id is blank")
 	}
+	if device.Vcs == nil {
+		return nil, fmt.Errorf("No VCSes")
+	}
 	vcs, okay := device.Vcs.Vcs[*id]
 	if !okay {
 		return nil, fmt.Errorf("Vcs %s not found", *id)
@@ -126,6 +138,9 @@ func (s *Synchronizer) GetVcs(device *models.Device, id *string) (*models.OnfVcs
 func (s *Synchronizer) GetConnectivityService(device *models.Device, id *string) (*models.OnfConnectivityService_ConnectivityService_ConnectivityService, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("ConnectivityService id is blank")
+	}
+	if device.ConnectivityService == nil {
+		return nil, fmt.Errorf("No connectivity services")
 	}
 	cs, okay := device.ConnectivityService.ConnectivityService[*id]
 	if !okay {
@@ -176,18 +191,6 @@ func (s *Synchronizer) GetVcsDG(device *models.Device, vcs *models.OnfVcs_Vcs_Vc
 
 // GetConnectivityServiceForSite given a siteName returns a list of connectivity services
 func (s *Synchronizer) GetConnectivityServiceForSite(device *models.Device, siteName *string) ([]*models.OnfConnectivityService_ConnectivityService_ConnectivityService, error) {
-	if device.Enterprise == nil {
-		return nil, fmt.Errorf("No enterprises")
-	}
-
-	if device.Site == nil {
-		return nil, fmt.Errorf("No sites")
-	}
-
-	if device.ConnectivityService == nil {
-		return nil, fmt.Errorf("No connectivity services")
-	}
-
 	site, err := s.GetSite(device, siteName)
 	if err != nil {
 		return nil, err

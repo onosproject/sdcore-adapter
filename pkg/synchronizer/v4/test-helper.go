@@ -216,3 +216,24 @@ func BuildSampleVcs() (
 
 	return apps, tp, upf, vcs
 }
+
+// BuildSampleDevice builds a sample device, with VCS and Device-Group
+func BuildSampleDevice() *models.Device {
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+	apps, tp, upf, vcs := BuildSampleVcs()
+
+	device := &models.Device{
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
+		Application:         &models.OnfApplication_Application{Application: apps},
+		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
+		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
+	}
+
+	return device
+}

@@ -6,7 +6,10 @@
       },
       "list": [
         {
-          "a": "b"
+          "a": "b",
+          "additionalProperties": {
+            "unchanged": "u1,u2"
+          }
         }
       ]
     }

@@ -275,6 +275,7 @@ func Test_outputActions(t *testing.T) {
 	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/acont/listB[idC=one]/leaf11", "v2-device", &val11))
 
 	deletePath := gnmiclient.StringToPath("/root/list[a=b]", "v1-device")
+	deletePath.Origin = "u1,u2" // Used to pass unchanged attribs
 
 	action := &MigrationActions{UpdatePrefix: updatePrefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}
 	actions := []*MigrationActions{action}

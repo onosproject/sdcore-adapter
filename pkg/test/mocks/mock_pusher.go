@@ -54,3 +54,9 @@ func (mr *MockPusherInterfaceMockRecorder) PushUpdate(arg0, arg1 interface{}) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PushUpdate", reflect.TypeOf((*MockPusherInterface)(nil).PushUpdate), arg0, arg1)
 }
+
+// PushDelete indicates an expected call of PushDelete.
+func (mr *MockPusherInterfaceMockRecorder) PushDelete(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PushDelete", reflect.TypeOf((*MockPusherInterface)(nil).PushDelete), arg0)
+}

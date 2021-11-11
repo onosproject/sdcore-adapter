@@ -142,24 +142,24 @@ func (m *Migrator) outputActions(actions []*MigrationActions,
 
 	for _, action := range actions {
 		updateModelIf := interface{}(updateModel)
-		updatePrefix, err := addObject(&updateModelIf, action.UpdatePrefix.GetElem(), true, nil, "", toVersion)
+		updatePrefix, err := addObject(&updateModelIf, action.UpdatePrefix.GetElem(), true, nil, "", toVersion, "")
 		if err != nil {
 			return nil, err
 		}
 		for _, u := range action.Updates {
 			if _, err = addObject(updatePrefix, u.GetPath().GetElem(), false, u.GetVal(), "",
-				keepSuffix(len(action.UpdatePrefix.GetElem()), toVersion)); err != nil {
+				keepSuffix(len(action.UpdatePrefix.GetElem()), toVersion), ""); err != nil {
 				return nil, err
 			}
 		}
 		deleteModelIf := interface{}(deleteModel)
-		deletePrefix, err := addObject(&deleteModelIf, action.DeletePrefix.GetElem(), true, nil, fromTarget, fromVersion)
+		deletePrefix, err := addObject(&deleteModelIf, action.DeletePrefix.GetElem(), true, nil, fromTarget, fromVersion, "")
 		if err != nil {
 			return nil, err
 		}
 		for _, u := range action.Deletes {
 			if _, err = addObject(deletePrefix, u.GetElem(), true, nil, fromTarget,
-				keepSuffix(len(action.DeletePrefix.GetElem()), fromVersion)); err != nil {
+				keepSuffix(len(action.DeletePrefix.GetElem()), fromVersion), u.Origin); err != nil {
 				return nil, err
 			}
 		}
@@ -170,7 +170,7 @@ func (m *Migrator) outputActions(actions []*MigrationActions,
 
 // addObject - recursive function to build up struct which can be marshalled to JSON
 func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
-	val *gpb.TypedValue, target string, suffix string) (*interface{}, error) {
+	val *gpb.TypedValue, target string, suffix string, unchanged string) (*interface{}, error) {
 
 	if len(elems) == 0 {
 		return nodeif, nil
@@ -229,7 +229,7 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 		}
 		childMapIf := interface{}(childMap)
 		if len(elems) > 1 {
-			return addObject(&childMapIf, elems[1:], isPrefix, val, "", "")
+			return addObject(&childMapIf, elems[1:], isPrefix, val, "", "", unchanged)
 		}
 		return &childMapIf, nil
 	}
@@ -283,10 +283,15 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 				childInstance[k] = vInt
 			}
 		}
+		if unchanged != "" {
+			childInstance["additionalProperties"] = map[string]string{
+				"unchanged": unchanged,
+			}
+		}
 	}
 	if len(elems) > 1 {
 		childInstanceIf := interface{}(childInstance)
-		return addObject(&childInstanceIf, elems[1:], isPrefix, val, "", "")
+		return addObject(&childInstanceIf, elems[1:], isPrefix, val, "", "", unchanged)
 	}
 	childInstanceIf := interface{}(childInstance)
 	return &childInstanceIf, nil

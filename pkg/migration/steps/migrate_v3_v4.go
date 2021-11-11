@@ -282,7 +282,7 @@ func migrateV3V4DeviceGroup(fromTarget string, toTarget string, dg *modelsv3.Dev
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]", *dg.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]", *dg.Id), fromTarget)
-
+	deletePath.Origin = "site" // Used to build the "unchanged" attributes
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 
 }
@@ -317,6 +317,7 @@ func migrateV3V4Application(fromTarget string, toTarget string, app *modelsv3.Ap
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("application/application[id=%s]", *app.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("application/application[id=%s]", *app.Id), fromTarget)
+	deletePath.Origin = "enterprise" // Used to build the "unchanged" attributes
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
@@ -335,6 +336,7 @@ func migrateV3V4IpDomain(fromTarget string, toTarget string, ipd *modelsv3.IpDom
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("ip-domain/ip-domain[id=%s]", *ipd.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("ip-domain/ip-domain[id=%s]", *ipd.Id), fromTarget)
+	deletePath.Origin = "enterprise,subnet" // Used to build the "unchanged" attributes
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
@@ -351,6 +353,7 @@ func migrateV3V4Site(fromTarget string, toTarget string, st *modelsv3.Site_Site_
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("site/site[id=%s]", *st.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("site/site[id=%s]", *st.Id), fromTarget)
+	deletePath.Origin = "enterprise" // Used to build the "unchanged" attributes
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
@@ -367,6 +370,7 @@ func migrateV3V4ApListToSite(fromTarget string, toTarget string, site *string, a
 	}
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("site/site[id=%s]", *site), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("ap-list/ap-list[id=%s]", *apList.Id), fromTarget)
+	deletePath.Origin = "enterprise" // Used to build the "unchanged" attributes
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
 
@@ -404,6 +408,7 @@ func migrateV3V4Upf(fromTarget string, toTarget string, up *modelsv3.Upf_Upf_Upf
 	//config-endpoint should be left blank
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("upf/upf[id=%s]", *up.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("upf/upf[id=%s]", *up.Id), fromTarget)
+	deletePath.Origin = "address,port,enterprise" // Used to build the "unchanged" attributes
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
@@ -423,7 +428,7 @@ func migrateV3V4Vcs(fromTarget string, toTarget string, vc *modelsv3.Vcs_Vcs_Vcs
 
 	// Get the site from the corresponding DG (if any)
 	for _, vcd := range vc.DeviceGroup {
-		updStr := fmt.Sprintf("device-group[device-group=%s]/enabled", *vcd.DeviceGroup)
+		updStr := fmt.Sprintf("device-group[device-group=%s]/enable", *vcd.DeviceGroup)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, vcd.Enable))
 		dgObject, ok := dgs.DeviceGroup[*vcd.DeviceGroup]
 		if ok {
@@ -447,6 +452,7 @@ func migrateV3V4Vcs(fromTarget string, toTarget string, vc *modelsv3.Vcs_Vcs_Vcs
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("vcs/vcs[id=%s]", *vc.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("vcs/vcs[id=%s]", *vc.Id), fromTarget)
+	deletePath.Origin = "enterprise,sst,sd,traffic-class" // Used to build the "unchanged" attributes
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }

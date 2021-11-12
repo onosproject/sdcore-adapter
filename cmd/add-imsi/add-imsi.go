@@ -11,9 +11,9 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"os"
 
-	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
+	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -30,7 +30,7 @@ var (
 
 var log = logging.GetLogger("add-imsi")
 
-func getDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
+func getDeviceGroupSite(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) (*models.OnfSite_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
 		return nil, fmt.Errorf("DeviceGroup %s has no site", *dg.Id)
 	}
@@ -44,7 +44,7 @@ func getDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGrou
 	return site, nil
 }
 
-func findImsiInDeviceGroup(device *models.Device, imsi uint64) *models.DeviceGroup_DeviceGroup_DeviceGroup {
+func findImsiInDeviceGroup(device *models.Device, imsi uint64) *models.OnfDeviceGroup_DeviceGroup_DeviceGroup {
 deviceGroupLoop:
 	for _, dg := range device.DeviceGroup.DeviceGroup {
 		for _, imsiBlock := range dg.Imsis {
@@ -55,7 +55,7 @@ deviceGroupLoop:
 			}
 
 			if imsiBlock.ImsiRangeFrom == nil {
-				log.Infof("imsiBlock %s in dg %s has blank ImsiRangeFrom", *imsiBlock.Name, *dg.Id)
+				log.Infof("imsiBlock %s in dg %s has blank ImsiRangeFrom", *imsiBlock.ImsiId, *dg.Id)
 				continue deviceGroupLoop
 			}
 			var firstImsi uint64

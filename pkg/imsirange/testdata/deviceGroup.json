@@ -13,12 +13,12 @@
         "imsis": [
           {
             "imsi-range-to": "3",
-            "name": "production"
+            "imsi-id": "production"
           },
           {
             "imsi-range-from": "10",
             "imsi-range-to": "12",
-            "name": "warehouse"
+            "imsi-id": "warehouse"
           }
         ],
         "ip-domain": "acme-chicago",
@@ -31,11 +31,11 @@
           {
             "imsi-range-from": "111222333000010",
             "imsi-range-to": "111222333000014",
-            "name": "auto-111222333000010"
+            "imsi-id": "auto-111222333000010"
           },
           {
             "imsi-range-from": "111222333000015",
-            "name": "auto-111222333000015"
+            "imsi-id": "auto-111222333000015"
           }
         ],
         "ip-domain": "defaultent-defaultip",
@@ -48,12 +48,12 @@
           {
             "imsi-range-from": "40",
             "imsi-range-to": "41",
-            "name": "front"
+            "imsi-id": "front"
           },
           {
             "imsi-range-from": "50",
             "imsi-range-to": "55",
-            "name": "store"
+            "imsi-id": "store"
           }
         ],
         "ip-domain": "starbucks-newyork",
@@ -65,17 +65,17 @@
         "imsis": [
           {
             "imsi-range-from": "94",
-            "name": "auto-21032002000094"
+            "imsi-id": "auto-21032002000094"
           },
           {
             "imsi-range-from": "8",
             "imsi-range-to": "11",
-            "name": "auto-21322-8"
+            "imsi-id": "auto-21322-8"
           },
           {
             "imsi-range-from": "91",
             "imsi-range-to": "93",
-            "name": "auto-21322-91"
+            "imsi-id": "auto-21322-91"
           }
         ],
         "ip-domain": "starbucks-newyork",
@@ -88,12 +88,12 @@
           {
             "imsi-range-from": "70",
             "imsi-range-to": "73",
-            "name": "store"
+            "imsi-id": "store"
           },
           {
             "imsi-range-from": "60",
             "imsi-range-to": "61",
-            "name": "tills"
+            "imsi-id": "tills"
           }
         ],
         "ip-domain": "starbucks-newyork",
@@ -105,12 +105,12 @@
         "imsis": [
           {
             "imsi-range-to": "3",
-            "name": "counters"
+            "imsi-id": "counters"
           },
           {
             "imsi-range-from": "10",
             "imsi-range-to": "14",
-            "name": "store"
+            "imsi-id": "store"
           }
         ],
         "ip-domain": "starbucks-seattle",
@@ -129,12 +129,12 @@
           {
             "imsi-range-from": "30",
             "imsi-range-to": "34",
-            "name": "store"
+            "imsi-id": "store"
           },
           {
             "imsi-range-from": "20",
             "imsi-range-to": "22",
-            "name": "tills"
+            "imsi-id": "tills"
           }
         ],
         "ip-domain": "starbucks-seattle",

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for Aether v4 models
-package synchronizerv4
+// Package synchronizer implements a synchronizer for Aether models
+package synchronizer
 
 import (
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
@@ -14,8 +14,6 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
 	"time"
-
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 var log = logging.GetLogger("synchronizer")
@@ -103,7 +101,7 @@ func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 }
 
 // SetPusher sets the Pusher function for the Synchronizer
-func (s *Synchronizer) SetPusher(pusher synchronizer.PusherInterface) {
+func (s *Synchronizer) SetPusher(pusher PusherInterface) {
 	s.pusher = pusher
 }
 

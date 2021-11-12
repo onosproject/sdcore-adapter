@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-package synchronizerv4
+package synchronizer
 
 // helpers that are useful to multiple test cases
 

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements declarations and utilities for the v4 synchronizer.
-package synchronizerv4
+// Package synchronizer implements declarations and utilities for the synchronizer.
+package synchronizer
 
 import (
 	"errors"

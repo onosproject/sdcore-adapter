@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for Aether v4 models
-package synchronizerv4
+// Package synchronizer implements a synchronizer for Aether models
+package synchronizer
 
 import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"

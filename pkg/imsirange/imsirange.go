@@ -14,7 +14,7 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 
-	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
+	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 

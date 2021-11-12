@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package gnmi implements a gnmi server to mock a device with YANG models.
-package synchronizerv4
+package synchronizer
 
 import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"

@@ -4,7 +4,7 @@
 
 // RESTPusher implements a pusher that pushes to a REST API endpoint.
 
-package synchronizerv4
+package synchronizer
 
 import (
 	"bytes"

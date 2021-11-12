@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for converting sdcore gnmi to json
-package synchronizerv4
+// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+package synchronizer
 
 import (
 	"encoding/json"
@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 // SynchronizeVcsCore synchronizes the VCSes
@@ -196,14 +195,14 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 					return 0, fmt.Errorf("Vcs %s application %s unable to determine traffic class: %s", *vcs.Id, *app.Id, err)
 				}
 				tcCore := &trafficClass{Name: *rocTrafficClass.Id,
-					PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
-					PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
-					QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
-					ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
+					PDB:  DerefUint16Ptr(rocTrafficClass.Pdb, 300),
+					PELR: uint8(DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
+					QCI:  DerefUint8Ptr(rocTrafficClass.Qci, 9),
+					ARP:  DerefUint8Ptr(rocTrafficClass.Arp, 9)}
 				appCore.TrafficClass = tcCore
 			}
 
-			appCore.Priority = synchronizer.DerefUint8Ptr(appRef.Priority, 0)
+			appCore.Priority = DerefUint8Ptr(appRef.Priority, 0)
 			slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
 		}
 	}

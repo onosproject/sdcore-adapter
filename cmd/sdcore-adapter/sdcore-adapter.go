@@ -21,7 +21,6 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
-	synchronizerv4 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
@@ -83,7 +82,7 @@ func main() {
 	}
 
 	log.Infof("Initializing synchronizer")
-	sync = synchronizerv4.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	sync = synchronizer.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
 
 	// The synchronizer will convey its list of models.
 	model := sync.GetModels()

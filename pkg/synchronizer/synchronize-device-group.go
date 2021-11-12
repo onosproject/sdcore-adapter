@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for converting sdcore gnmi to json
-package synchronizerv4
+// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+package synchronizer
 
 import (
 	"encoding/json"
 	"fmt"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 // SynchronizeDeviceGroup synchronizes a device group
@@ -80,11 +79,11 @@ func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.
 
 	dgCore.IPDomainName = *ipd.Id
 	ipdCore := ipDomain{
-		Dnn:          synchronizer.DerefStrPtr(ipd.Dnn, "internet"),
+		Dnn:          DerefStrPtr(ipd.Dnn, "internet"),
 		Pool:         *ipd.Subnet,
-		DNSPrimary:   synchronizer.DerefStrPtr(ipd.DnsPrimary, ""),
-		DNSSecondary: synchronizer.DerefStrPtr(ipd.DnsSecondary, ""),
-		Mtu:          synchronizer.DerefUint16Ptr(ipd.Mtu, DefaultMTU),
+		DNSPrimary:   DerefStrPtr(ipd.DnsPrimary, ""),
+		DNSSecondary: DerefStrPtr(ipd.DnsSecondary, ""),
+		Mtu:          DerefUint16Ptr(ipd.Mtu, DefaultMTU),
 		Qos:          &ipdQos{Uplink: *dg.Device.Mbr.Uplink, Downlink: *dg.Device.Mbr.Downlink, Unit: aStr(DefaultBitrateUnit)},
 	}
 	dgCore.IPDomain = ipdCore
@@ -94,10 +93,10 @@ func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.
 		return 0, fmt.Errorf("DG %s unable to determine traffic class: %s", *dg.Id, err)
 	}
 	tcCore := &trafficClass{Name: *rocTrafficClass.Id,
-		PDB:  synchronizer.DerefUint16Ptr(rocTrafficClass.Pdb, 300),
-		PELR: uint8(synchronizer.DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
-		QCI:  synchronizer.DerefUint8Ptr(rocTrafficClass.Qci, 9),
-		ARP:  synchronizer.DerefUint8Ptr(rocTrafficClass.Arp, 9)}
+		PDB:  DerefUint16Ptr(rocTrafficClass.Pdb, 300),
+		PELR: uint8(DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
+		QCI:  DerefUint8Ptr(rocTrafficClass.Qci, 9),
+		ARP:  DerefUint8Ptr(rocTrafficClass.Arp, 9)}
 	dgCore.IPDomain.Qos.TrafficClass = tcCore
 
 	data, err := json.MarshalIndent(dgCore, "", "  ")

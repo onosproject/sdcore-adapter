@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for converting sdcore gnmi to json
-package synchronizerv4
+// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+package synchronizer
 
 // Ideally we would get these from the yang defaults
 const (

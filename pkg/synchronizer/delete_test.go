@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-package synchronizerv4
+package synchronizer
 
 import (
 	"github.com/golang/mock/gomock"

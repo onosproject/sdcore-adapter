@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for Aether v4 models
-package synchronizerv4
+// Package synchronizer implements a synchronizer for Aether models
+package synchronizer
 
 import (
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
@@ -14,8 +14,6 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
 	"time"
-
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 var log = logging.GetLogger("synchronizer")
@@ -32,7 +30,7 @@ func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType g
 }
 
 // SynchronizeAndRetry automatically retries if synchronization fails
-func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
+func (s *Synchronizer) SynchronizeAndRetry(update *ConfigUpdate) {
 	for {
 		// If something new has come along, then don't bother with the one we're working on
 		if s.newUpdatesPending() {
@@ -103,7 +101,7 @@ func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
 }
 
 // SetPusher sets the Pusher function for the Synchronizer
-func (s *Synchronizer) SetPusher(pusher synchronizer.PusherInterface) {
+func (s *Synchronizer) SetPusher(pusher PusherInterface) {
 	s.pusher = pusher
 }
 
@@ -128,7 +126,7 @@ func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Du
 		postEnable:     postEnable,
 		postTimeout:    postTimeout,
 		pusher:         p,
-		updateChannel:  make(chan *SynchronizerUpdate, 1),
+		updateChannel:  make(chan *ConfigUpdate, 1),
 		retryInterval:  5 * time.Second,
 	}
 	s.synchronizeDeviceFunc = s.SynchronizeDevice

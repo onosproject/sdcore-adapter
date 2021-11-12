@@ -6,7 +6,7 @@ package imsirange
 import (
 	"context"
 	"github.com/golang/mock/gomock"
-	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/stretchr/testify/assert"

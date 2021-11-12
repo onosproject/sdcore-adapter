@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
-	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
+	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	"google.golang.org/grpc/metadata"
 	"net/http"
 	"time"

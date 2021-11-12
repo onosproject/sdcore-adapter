@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for converting sdcore gnmi to json
-package synchronizerv4
+// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+package synchronizer
 
 import (
 	"github.com/openconfig/ygot/ygot"
 	"time"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 // SynchronizeDevice synchronizes a device. Two sets of error state are returned:
@@ -62,11 +61,11 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, er
 		m := csEntMap[csID]
 
 		tStart := time.Now()
-		synchronizer.KpiSynchronizationTotal.WithLabelValues(csID).Inc()
+		KpiSynchronizationTotal.WithLabelValues(csID).Inc()
 
 		pushFailures += s.SynchronizeConnectivityService(device, cs, m)
 
-		synchronizer.KpiSynchronizationDuration.WithLabelValues(csID).Observe(time.Since(tStart).Seconds())
+		KpiSynchronizationDuration.WithLabelValues(csID).Observe(time.Since(tStart).Seconds())
 	}
 
 	return pushFailures, nil

@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv3 implements declarations and utilities for the v3 synchronizer.
-package synchronizerv3
+// Package synchronizer implements declarations and utilities for the synchronizer.
+package synchronizer
 
 import (
 	"errors"
 	"fmt"
-	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 	"strings"
 )
 
@@ -18,18 +18,18 @@ import (
 // TODO: See if there is a way to do this automatically using ygot
 
 // return error if VCS cannot be synchronized due to missing data
-func validateVcs(vcs *models.Vcs_Vcs_Vcs) error {
+func validateVcs(vcs *models.OnfVcs_Vcs_Vcs) error {
 	if vcs.Sst == nil {
 		return fmt.Errorf("Sst is nil")
+	}
+	if vcs.DefaultBehavior == nil {
+		return fmt.Errorf("DefaultBehavior is nil")
 	}
 	return nil
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func validateAppEndpoint(ep *models.Application_Application_Application_Endpoint) error {
-	if ep.Address == nil {
-		return fmt.Errorf("Address is nil")
-	}
+func validateAppEndpoint(ep *models.OnfApplication_Application_Application_Endpoint) error {
 	if ep.PortStart == nil {
 		return fmt.Errorf("PortStart is nil")
 	}
@@ -37,15 +37,15 @@ func validateAppEndpoint(ep *models.Application_Application_Application_Endpoint
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func validateIPDomain(ipd *models.IpDomain_IpDomain_IpDomain) error {
+func validateIPDomain(ipd *models.OnfIpDomain_IpDomain_IpDomain) error {
 	if ipd.Subnet == nil {
 		return fmt.Errorf("Subnet is nil")
 	}
 	return nil
 }
 
-// return error if AccessPoint cannot be synchronized due to missing data
-func validateAccessPoint(ap *models.ApList_ApList_ApList_AccessPoints) error {
+// return error if SmallCell cannot be synchronized due to missing data
+func validateSmallCell(ap *models.OnfSite_Site_Site_SmallCell) error {
 	if ap.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -56,7 +56,7 @@ func validateAccessPoint(ap *models.ApList_ApList_ApList_AccessPoints) error {
 }
 
 // return error if UPF cannot be synchronized due to missing data
-func validateUpf(u *models.Upf_Upf_Upf) error {
+func validateUpf(u *models.OnfUpf_Upf_Upf) error {
 	if u.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -66,7 +66,7 @@ func validateUpf(u *models.Upf_Upf_Upf) error {
 	return nil
 }
 
-func validateImsiDefinition(i *models.Site_Site_Site_ImsiDefinition) error {
+func validateImsiDefinition(i *models.OnfSite_Site_Site_ImsiDefinition) error {
 	var format string
 	if i.Format != nil {
 		format = *i.Format
@@ -88,6 +88,30 @@ func validateImsiDefinition(i *models.Site_Site_Site_ImsiDefinition) error {
 	// Note: If format is nil, we'll assume it is the default
 	if len(format) != 15 {
 		return fmt.Errorf("Format is not 15 characters")
+	}
+
+	return nil
+}
+
+func validateDeviceGroup(dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) error {
+	if dg.Device == nil {
+		return fmt.Errorf("has no per-Device settings")
+	}
+
+	if dg.Device.Mbr == nil {
+		return fmt.Errorf("has per-Device settings, but no MBR")
+	}
+
+	if dg.Device.Mbr.Uplink == nil {
+		return fmt.Errorf("Device.MBR.Uplink is unset")
+	}
+
+	if dg.Device.Mbr.Downlink == nil {
+		return fmt.Errorf("Device.MBR.Downlink is unset")
+	}
+
+	if dg.Device.TrafficClass == nil {
+		return fmt.Errorf("has no Device.Traffic-Class")
 	}
 
 	return nil

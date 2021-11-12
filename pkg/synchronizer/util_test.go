@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements the version 4 synchronizer.
-package synchronizerv4
+// Package synchronizer implements the synchronizer.
+package synchronizer
 
 import (
 	"github.com/stretchr/testify/assert"

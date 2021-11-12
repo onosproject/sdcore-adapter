@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for Aether v4 models
-package synchronizerv4
+// Package synchronizer implements a synchronizer for Aether models
+package synchronizer
 
 import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
@@ -45,7 +45,7 @@ func (s *Synchronizer) enqueue(config ygot.ValidatedGoStruct, callbackType gnmi.
 
 	// This conversion is safe as DeepCopy will use the same underlying type as
 	// `config`, which is a ValidatedGoStruct.
-	update := SynchronizerUpdate{
+	update := ConfigUpdate{
 		config:       configCopy.(ygot.ValidatedGoStruct),
 		callbackType: callbackType,
 	}
@@ -62,7 +62,7 @@ func (s *Synchronizer) enqueue(config ygot.ValidatedGoStruct, callbackType gnmi.
 }
 
 // Dequeue an update request. This call will block until a request is ready.
-func (s *Synchronizer) dequeue() *SynchronizerUpdate {
+func (s *Synchronizer) dequeue() *ConfigUpdate {
 	update := <-s.updateChannel
 	return update
 }

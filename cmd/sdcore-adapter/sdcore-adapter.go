@@ -21,8 +21,6 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
-	synchronizerv3 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
-	synchronizerv4 "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
@@ -41,7 +39,6 @@ var (
 	postTimeout        = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
 	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
 	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v4", "Target to use when pulling from aether-config")
-	modelVersion       = flag.String("model_version", "v4", "Version of modeling to use")
 	showModelList      = flag.Bool("show_models", false, "Show list of available modes")
 	diagsPort          = flag.Uint("diags_port", 8080, "Port to use for Diagnostics API")
 )
@@ -79,15 +76,8 @@ func main() {
 	flag.Parse()
 
 	// Initialize the synchronizer's service-specific code.
-	if *modelVersion == "v3" {
-		log.Infof("Initializing synchronizer for v3 models")
-		sync = synchronizerv3.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
-	} else if *modelVersion == "v4" {
-		log.Infof("Initializing synchronizer for v4 models")
-		sync = synchronizerv4.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
-	} else {
-		log.Panicf("invalid modelVersion %s", *modelVersion)
-	}
+	log.Infof("Initializing synchronizer")
+	sync = synchronizer.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
 
 	// The synchronizer will convey its list of models.
 	model := sync.GetModels()

@@ -10,11 +10,11 @@ import (
 	"sort"
 	"strings"
 
-	models "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 
-	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v3"
+	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -90,7 +90,7 @@ deviceGroupLoop:
 
 				im.firstImsi = origfirstImsi
 				im.lastImsi = origlastImsi
-				im.name = *imsiBlock.Name
+				im.name = *imsiBlock.ImsiId
 				imsies = append(imsies, im)
 			}
 
@@ -235,7 +235,7 @@ func (irange ImsiRange) DeleteImsiRanges(device *models.Device, gnmiClient gnmic
 	return nil
 }
 
-func getDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGroup_DeviceGroup) (*models.Site_Site_Site, error) {
+func getDeviceGroupSite(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) (*models.OnfSite_Site_Site, error) {
 	if (dg.Site == nil) || (*dg.Site == "") {
 		return nil, errors.NewInvalid("DeviceGroup %s has no site", *dg.Id)
 	}
@@ -249,7 +249,7 @@ func getDeviceGroupSite(device *models.Device, dg *models.DeviceGroup_DeviceGrou
 	return site, nil
 }
 
-func getMaskedImsies(i *models.Site_Site_Site_ImsiDefinition, firstImsi uint64, lastImsi uint64) (uint64, uint64, error) {
+func getMaskedImsies(i *models.OnfSite_Site_Site_ImsiDefinition, firstImsi uint64, lastImsi uint64) (uint64, uint64, error) {
 
 	var maskedFirstImsi uint64
 	var maskedLastImsi uint64
@@ -269,7 +269,7 @@ func getMaskedImsies(i *models.Site_Site_Site_ImsiDefinition, firstImsi uint64, 
 
 }
 
-func generateName(s *models.Site_Site_Site_ImsiDefinition, firstImsi uint64, maskedFirstImsi uint64) string {
+func generateName(s *models.OnfSite_Site_Site_ImsiDefinition, firstImsi uint64, maskedFirstImsi uint64) string {
 
 	if *s.Format == "SSSSSSSSSSSSSSS" {
 		rangeName := fmt.Sprintf("auto-%d", firstImsi)

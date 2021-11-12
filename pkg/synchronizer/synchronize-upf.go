@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-// Package synchronizerv4 implements a synchronizer for converting sdcore gnmi to json
-package synchronizerv4
+// Package synchronizer implements a synchronizer for converting sdcore gnmi to json
+package synchronizer
 
 import (
 	"encoding/json"
 	"fmt"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
-	"github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 )
 
 type sliceQos struct {
@@ -60,12 +59,12 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 	if (vcs.Slice != nil) && (vcs.Slice.Mbr != nil) {
 		if vcs.Slice.Mbr.Uplink != nil {
 			sc.SliceQos.Uplink = *vcs.Slice.Mbr.Uplink
-			sc.SliceQos.UplinkBurst = synchronizer.DerefUint32Ptr(vcs.Slice.Mbr.UplinkBurstSize, DefaultUplinkBurst)
+			sc.SliceQos.UplinkBurst = DerefUint32Ptr(vcs.Slice.Mbr.UplinkBurstSize, DefaultUplinkBurst)
 			hasQos = true
 		}
 		if vcs.Slice.Mbr.Downlink != nil {
 			sc.SliceQos.Downlink = *vcs.Slice.Mbr.Downlink
-			sc.SliceQos.DownlinkBurst = synchronizer.DerefUint32Ptr(vcs.Slice.Mbr.DownlinkBurstSize, DefaultDownlinkBurst)
+			sc.SliceQos.DownlinkBurst = DerefUint32Ptr(vcs.Slice.Mbr.DownlinkBurstSize, DefaultDownlinkBurst)
 			hasQos = true
 		}
 	}

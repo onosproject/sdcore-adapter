@@ -23,7 +23,7 @@ type Synchronizer struct {
 	postEnable     bool
 	postTimeout    time.Duration
 	pusher         PusherInterface
-	updateChannel  chan *SynchronizerUpdate
+	updateChannel  chan *ConfigUpdate
 	retryInterval  time.Duration
 
 	// Busy indicator, primarily used for unit testing. The channel length in and of itself
@@ -35,8 +35,8 @@ type Synchronizer struct {
 	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) (int, error)
 }
 
-// SynchronizerUpdate holds the configuration for a particular synchronization request
-type SynchronizerUpdate struct {
+// ConfigUpdate holds the configuration for a particular synchronization request
+type ConfigUpdate struct {
 	config       ygot.ValidatedGoStruct
 	callbackType gnmi.ConfigCallbackType
 }

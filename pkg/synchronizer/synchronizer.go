@@ -30,7 +30,7 @@ func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType g
 }
 
 // SynchronizeAndRetry automatically retries if synchronization fails
-func (s *Synchronizer) SynchronizeAndRetry(update *SynchronizerUpdate) {
+func (s *Synchronizer) SynchronizeAndRetry(update *ConfigUpdate) {
 	for {
 		// If something new has come along, then don't bother with the one we're working on
 		if s.newUpdatesPending() {
@@ -126,7 +126,7 @@ func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Du
 		postEnable:     postEnable,
 		postTimeout:    postTimeout,
 		pusher:         p,
-		updateChannel:  make(chan *SynchronizerUpdate, 1),
+		updateChannel:  make(chan *ConfigUpdate, 1),
 		retryInterval:  5 * time.Second,
 	}
 	s.synchronizeDeviceFunc = s.SynchronizeDevice

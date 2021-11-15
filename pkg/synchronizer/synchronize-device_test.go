@@ -25,8 +25,7 @@ func TestSynchronizeDeviceEmpty(t *testing.T) {
 		assert.Nil(t, os.Remove(tempFileName))
 	}()
 
-	s := Synchronizer{}
-	s.SetOutputFileName(tempFileName)
+	s := NewSynchronizer(WithOutputFileName(tempFileName))
 	device := models.Device{}
 	pushErrors, err := s.SynchronizeDevice(&device)
 	assert.Equal(t, 0, pushErrors)
@@ -43,8 +42,7 @@ func TestSynchronizeDeviceCSEnt(t *testing.T) {
 	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
 	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
 
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	device := models.Device{
 		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
@@ -60,8 +58,7 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 
@@ -100,7 +97,7 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 			}
 		  }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonData
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
@@ -119,8 +116,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 
@@ -163,7 +159,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 		  }`
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 
@@ -183,8 +179,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 
@@ -213,8 +208,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -285,7 +279,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
           },
           "application-filtering-rules": [
             {
-              "rule-name": "sample-app",
+              "rule-name": "sample-app-sample-app-ep",
               "priority": 7,
               "action": "permit",
               "endpoint": "1.2.3.4/32",
@@ -294,7 +288,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
               "protocol": 17
             },
             {
-              "rule-name": "sample-app2",
+              "rule-name": "sample-app2-sample-app2-ep",
               "priority": 8,
               "action": "deny",
               "endpoint": "1.2.3.5/32",
@@ -302,7 +296,8 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
               "dest-port-end": 124,
               "protocol": 17,
               "app-mbr-uplink": 11223344,
-              "app-mbr-downlink": 55667788,
+							"app-mbr-downlink": 55667788,
+							"bitrate-unit": "bps",
               "traffic-class": {
                 "name": "sample-traffic-class",
                 "qci": 55,
@@ -324,7 +319,10 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
           "sliceName": "sample-vcs",
           "sliceQos": {
             "uplinkMBR": 333,
-            "downlinkMBR": 444
+						"downlinkMBR": 444,
+						"bitrateUnit": "bps",
+						"downlinkBurstSize": 625000,
+						"uplinkBurstSize": 625000
           },
           "ueResourceInfo": [
             {
@@ -334,15 +332,15 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 
@@ -372,8 +370,7 @@ func TestSynchronizeVCS(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -482,7 +479,10 @@ func TestSynchronizeVCS(t *testing.T) {
           "sliceName": "sample-vcs",
           "sliceQos": {
             "uplinkMBR": 333,
-            "downlinkMBR": 444
+						"downlinkMBR": 444,
+						"bitrateUnit": "bps",
+						"downlinkBurstSize": 625000,
+						"uplinkBurstSize": 625000
           },
           "ueResourceInfo": [
             {
@@ -492,15 +492,15 @@ func TestSynchronizeVCS(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
@@ -528,8 +528,7 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -672,7 +671,10 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
           "sliceName": "sample-vcs",
           "sliceQos": {
             "uplinkMBR": 333,
-            "downlinkMBR": 444
+						"downlinkMBR": 444,
+						"bitrateUnit": "bps",
+						"downlinkBurstSize": 625000,
+						"uplinkBurstSize": 625000
           },
           "ueResourceInfo": [
             {
@@ -682,15 +684,15 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
@@ -718,8 +720,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -741,49 +742,19 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 	}
 
 	jsonDataDg := `{
-			"slice-id": {
-			  "sst": "222",
-			  "sd": ""
-			},
-			"site-device-group": [
-			  "sample-dg"
-			],
-			"site-info": {
-			  "site-name": "sample-site",
-			  "plmn": {
-				"mcc": "123",
-				"mnc": "456"
-			  },
-			  "gNodeBs": [
-				{
-				  "name": "6.7.8.9",
-				  "tac": 30635
-				}
-			  ],
-			  "upf": {
-				"upf-name": "2.3.4.5",
-				"upf-port": 66
-			  }
-			},
-			"application-filtering-rules": [{
-				"rule-name": "sample-app-sample-app-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.4/32",
-				"action": "permit",
-				"protocol": 17,
-				"priority": 7
-			},
-			{
-				"rule-name": "sample-app2-sample-app2-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.5/32",
-				"action": "deny",
-				"protocol": 17,
-				"priority": 8,
-				"app-mbr-downlink": 55667788,
-				"app-mbr-uplink": 11223344,
+		"imsis": [
+			"123456789000001"
+		],
+		"ip-domain-name": "sample-ipd",
+		"site-info": "sample-site",
+		"ip-domain-expanded": {
+			"dnn": "5ginternet",
+			"ue-ip-pool": "1.2.3.4/24",
+			"dns-primary": "8.8.8.8",
+			"mtu": 1492,
+			"ue-dnn-qos": {
+				"dnn-mbr-downlink": 4321,
+				"dnn-mbr-uplink": 8765,
 				"bitrate-unit": "bps",
 				"traffic-class": {
 					"name": "sample-traffic-class",
@@ -791,14 +762,9 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 					"pdb": 300,
 					"pelr": 6,
 					"qci": 55
-				}
-			},
-			{
-				"rule-name": "DENY-ALL",
-				"endpoint": "0.0.0.0/0",
-				"priority": 250,
-				"action": "deny"
-			}]
+				}					
+			}				
+		}
 		}`
 
 	jsonDataVcs := `{
@@ -866,7 +832,10 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
           "sliceName": "sample-vcs",
           "sliceQos": {
             "uplinkMBR": 333,
-            "downlinkMBR": 444
+						"downlinkMBR": 444,
+						"bitrateUnit": "bps",
+						"downlinkBurstSize": 625000,
+						"uplinkBurstSize": 625000
           },
           "ueResourceInfo": [
             {
@@ -876,15 +845,15 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
           ]
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
@@ -911,8 +880,7 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -932,47 +900,21 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
+
 	jsonDataDg := `{
-			"slice-id": {
-			  "sst": "222",
-			  "sd": "00006F"
-			},
-			"site-info": {
-			  "site-name": "sample-site",
-			  "plmn": {
-				"mcc": "123",
-				"mnc": "456"
-			  },
-			  "gNodeBs": [
-				{
-				  "name": "6.7.8.9",
-				  "tac": 30635
-				}
-			  ],
-			  "upf": {
-				"upf-name": "2.3.4.5",
-				"upf-port": 66
-			  }
-			},
-			"application-filtering-rules": [{
-				"rule-name": "sample-app-sample-app-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.4/32",
-				"action": "permit",
-				"protocol": 17,
-				"priority": 7
-			},
-			{
-				"rule-name": "sample-app2-sample-app2-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.5/32",
-				"action": "deny",
-				"protocol": 17,
-				"priority": 8,
-				"app-mbr-downlink": 55667788,
-				"app-mbr-uplink": 11223344,
+		"imsis": [
+			"123456789000001"
+		],
+		"ip-domain-name": "sample-ipd",
+		"site-info": "sample-site",
+		"ip-domain-expanded": {
+			"dnn": "5ginternet",
+			"ue-ip-pool": "1.2.3.4/24",
+			"dns-primary": "8.8.8.8",
+			"mtu": 1492,
+			"ue-dnn-qos": {
+				"dnn-mbr-downlink": 4321,
+				"dnn-mbr-uplink": 8765,
 				"bitrate-unit": "bps",
 				"traffic-class": {
 					"name": "sample-traffic-class",
@@ -980,14 +922,9 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 					"pdb": 300,
 					"pelr": 6,
 					"qci": 55
-				}
-			},
-			{
-				"rule-name": "DENY-ALL",
-				"endpoint": "0.0.0.0/0",
-				"priority": 250,
-				"action": "deny"
-			}]
+				}					
+			}				
+		}
 		}`
 
 	jsonDataVcs := `{
@@ -1052,25 +989,22 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
           "sliceName": "sample-vcs",
           "sliceQos": {
             "uplinkMBR": 333,
-            "downlinkMBR": 444
-          },
-          "ueResourceInfo": [
-            {
-              "uePoolId": "sample-dg",
-              "dnn": "5ginternet"
-            }
-          ]
+						"downlinkMBR": 444,
+						"bitrateUnit": "bps",
+						"downlinkBurstSize": 625000,
+						"uplinkBurstSize": 625000
+          }
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataDg
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)
@@ -1097,8 +1031,7 @@ func TestSynchronizeVCSMissingDG(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, _ := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -1180,21 +1113,18 @@ func TestSynchronizeVCSMissingDG(t *testing.T) {
           "sliceName": "sample-vcs",
           "sliceQos": {
             "uplinkMBR": 333,
-            "downlinkMBR": 444
-          },
-          "ueResourceInfo": [
-            {
-              "uePoolId": "sample-dg",
-              "dnn": "5ginternet"
-            }
-          ]
+						"downlinkMBR": 444,
+						"bitrateUnit": "bps",
+						"downlinkBurstSize": 625000,
+						"uplinkBurstSize": 625000
+          }
         }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataVcs
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonDataSlice
+		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 	pushErrors, err := s.SynchronizeDevice(&device)

@@ -15,16 +15,23 @@ import (
 const (
 	// DefaultImsiFormat is the default format for an IMSI string
 	DefaultImsiFormat = "CCCNNNEEESSSSSS"
+
+	// DefaultPostTimeout is the default timeout for post operations
+	DefaultPostTimeout = time.Second * 10
+
+	// DefaultPartialUpdateEnable is the default partial update setting
+	DefaultPartialUpdateEnable = true
 )
 
 // Synchronizer is a Version 3 synchronizer.
 type Synchronizer struct {
-	outputFileName string
-	postEnable     bool
-	postTimeout    time.Duration
-	pusher         PusherInterface
-	updateChannel  chan *ConfigUpdate
-	retryInterval  time.Duration
+	outputFileName      string
+	postEnable          bool
+	postTimeout         time.Duration
+	pusher              PusherInterface
+	updateChannel       chan *ConfigUpdate
+	retryInterval       time.Duration
+	partialUpdateEnable bool
 
 	// Busy indicator, primarily used for unit testing. The channel length in and of itself
 	// is not sufficient, as it does not include the potential update that is currently syncing.
@@ -33,6 +40,9 @@ type Synchronizer struct {
 
 	// used for ease of mocking
 	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) (int, error)
+
+	// cache of previously synchronized updates
+	cache map[string]interface{}
 }
 
 // ConfigUpdate holds the configuration for a particular synchronization request
@@ -40,3 +50,6 @@ type ConfigUpdate struct {
 	config       ygot.ValidatedGoStruct
 	callbackType gnmi.ConfigCallbackType
 }
+
+// SynchronizerOption is for options passed when creating a new synchronizer
+type SynchronizerOption func(c *Synchronizer) // nolint

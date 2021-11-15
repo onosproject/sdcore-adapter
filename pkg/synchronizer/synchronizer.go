@@ -25,6 +25,10 @@ func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType g
 		return s.HandleDelete(config, path)
 	}
 
+	if callbackType == gnmi.Forced {
+		s.CacheInvalidate() // invalidate the post cache if this resync was forced by Diagnostic API
+	}
+
 	err = s.enqueue(config, callbackType)
 	return err
 }
@@ -85,26 +89,6 @@ func (s *Synchronizer) GetModels() *gnmi.Model {
 	return model
 }
 
-// SetOutputFileName sets the output filename. Obsolete.
-func (s *Synchronizer) SetOutputFileName(fileName string) {
-	s.outputFileName = fileName
-}
-
-// SetPostEnable enables or disables Posting to service
-func (s *Synchronizer) SetPostEnable(postEnable bool) {
-	s.postEnable = postEnable
-}
-
-// SetPostTimeout sets the timeout for post requests.
-func (s *Synchronizer) SetPostTimeout(postTimeout time.Duration) {
-	s.postTimeout = postTimeout
-}
-
-// SetPusher sets the Pusher function for the Synchronizer
-func (s *Synchronizer) SetPusher(pusher PusherInterface) {
-	s.pusher = pusher
-}
-
 // Start the synchronizer by launching the synchronizer loop inside a thread.
 func (s *Synchronizer) Start() {
 	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%s, postTimeout=%d)",
@@ -116,19 +100,60 @@ func (s *Synchronizer) Start() {
 	go s.Loop()
 }
 
+// WithPostEnable sets the postEnable option
+func WithPostEnable(postEnable bool) SynchronizerOption {
+	return func(s *Synchronizer) {
+		s.postEnable = postEnable
+	}
+}
+
+// WithPostTimeout sets the postTimeout option
+func WithPostTimeout(postTimeout time.Duration) SynchronizerOption {
+	return func(s *Synchronizer) {
+		s.postTimeout = postTimeout
+	}
+}
+
+// WithPartialUpdateEnable sets the partialUpdateEnable option
+func WithPartialUpdateEnable(partialUpdateEnable bool) SynchronizerOption {
+	return func(s *Synchronizer) {
+		s.partialUpdateEnable = partialUpdateEnable
+	}
+}
+
+// WithOutputFileName sets the outputFileName option
+func WithOutputFileName(outputFileName string) SynchronizerOption {
+	return func(s *Synchronizer) {
+		s.outputFileName = outputFileName
+	}
+}
+
+// WithPusher sets the pusher for pushing REST to the core or UPF
+func WithPusher(pusher PusherInterface) SynchronizerOption {
+	return func(s *Synchronizer) {
+		s.pusher = pusher
+	}
+}
+
 // NewSynchronizer creates a new Synchronizer
-func NewSynchronizer(outputFileName string, postEnable bool, postTimeout time.Duration) *Synchronizer {
+func NewSynchronizer(opts ...SynchronizerOption) *Synchronizer {
 	// By default, push via REST. Test infrastructure can override this.
 	p := &RESTPusher{}
 
 	s := &Synchronizer{
-		outputFileName: outputFileName,
-		postEnable:     postEnable,
-		postTimeout:    postTimeout,
-		pusher:         p,
-		updateChannel:  make(chan *ConfigUpdate, 1),
-		retryInterval:  5 * time.Second,
+		pusher:              p,
+		postEnable:          true,
+		partialUpdateEnable: DefaultPartialUpdateEnable,
+		postTimeout:         DefaultPostTimeout,
+		updateChannel:       make(chan *ConfigUpdate, 1),
+		retryInterval:       5 * time.Second,
+		cache:               map[string]interface{}{},
 	}
+
+	for _, opt := range opts {
+		opt(s)
+	}
+
 	s.synchronizeDeviceFunc = s.SynchronizeDevice
 	return s
 }

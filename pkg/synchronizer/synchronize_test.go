@@ -12,25 +12,29 @@ import (
 )
 
 func TestNewSynchronizer(t *testing.T) {
-	sync := NewSynchronizer("", false, 5*time.Second)
+	sync := NewSynchronizer()
 	assert.NotNil(t, sync)
 
 	assert.Equal(t, "", sync.outputFileName)
-	assert.Equal(t, false, sync.postEnable)
-	assert.Equal(t, 5*time.Second, sync.postTimeout)
-
-	sync.SetOutputFileName("/tmp/somefile.json")
-	assert.Equal(t, "/tmp/somefile.json", sync.outputFileName)
-
-	sync.SetPostEnable(true)
 	assert.Equal(t, true, sync.postEnable)
+	assert.Equal(t, 10*time.Second, sync.postTimeout)
+	assert.Equal(t, true, sync.partialUpdateEnable)
 
-	sync.SetPostTimeout(7 * time.Second)
+	sync = NewSynchronizer(
+		WithOutputFileName("/tmp/somefile.json"),
+		WithPostEnable(false),
+		WithPostTimeout(7*time.Second),
+		WithPartialUpdateEnable(false),
+	)
+
+	assert.Equal(t, "/tmp/somefile.json", sync.outputFileName)
+	assert.Equal(t, false, sync.postEnable)
 	assert.Equal(t, 7*time.Second, sync.postTimeout)
+	assert.Equal(t, false, sync.partialUpdateEnable)
 }
 
 func TestSynchronizerLoop(t *testing.T) {
-	sync := NewSynchronizer("", false, 5*time.Second)
+	sync := NewSynchronizer()
 	assert.NotNil(t, sync)
 
 	config := &mockConfig{}

@@ -6,8 +6,6 @@
 package synchronizer
 
 import (
-	"time"
-
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
@@ -17,10 +15,6 @@ import (
 type SynchronizerInterface interface { //nolint
 	Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType, path *pb.Path) error
 	GetModels() *gnmi.Model
-	SetOutputFileName(fileName string)
-	SetPostEnable(postEnable bool)
-	SetPostTimeout(postTimeout time.Duration)
-	SetPusher(pusher PusherInterface)
 	Start()
 }
 

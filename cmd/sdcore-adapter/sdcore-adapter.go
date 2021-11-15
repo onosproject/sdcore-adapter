@@ -30,17 +30,17 @@ import (
 )
 
 var (
-	bindAddr           = flag.String("bind_address", ":10161", "Bind to address:port or just :port")
-	metricAddr         = flag.String("metric_address", ":9851", "Prometheus metric endpoint bind to address:port or just :port")
-	configFile         = flag.String("config", "", "IETF JSON file for target startup config")
-	outputFileName     = flag.String("output", "", "JSON file to save output to")
-	_                  = flag.String("spgw_endpoint", "", "Endpoint to post SPGW-C JSON to - DEPRECATED") // TODO: remove me
-	postDisable        = flag.Bool("post_disable", false, "Disable posting to connectivity service endpoints")
-	postTimeout        = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
-	aetherConfigAddr   = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
-	aetherConfigTarget = flag.String("aether_config_target", "connectivity-service-v4", "Target to use when pulling from aether-config")
-	showModelList      = flag.Bool("show_models", false, "Show list of available modes")
-	diagsPort          = flag.Uint("diags_port", 8080, "Port to use for Diagnostics API")
+	bindAddr             = flag.String("bind_address", ":10161", "Bind to address:port or just :port")
+	metricAddr           = flag.String("metric_address", ":9851", "Prometheus metric endpoint bind to address:port or just :port")
+	configFile           = flag.String("config", "", "IETF JSON file for target startup config")
+	outputFileName       = flag.String("output", "", "JSON file to save output to")
+	partialUpdateDisable = flag.Bool("partial_update_disable", false, "Disable partial update; send full updates to core on every change")
+	postDisable          = flag.Bool("post_disable", false, "Disable posting to connectivity service endpoints")
+	postTimeout          = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
+	aetherConfigAddr     = flag.String("aether_config_addr", "", "If specified, pull initial state from aether-config at this address")
+	aetherConfigTarget   = flag.String("aether_config_target", "connectivity-service-v4", "Target to use when pulling from aether-config")
+	showModelList        = flag.Bool("show_models", false, "Show list of available modes")
+	diagsPort            = flag.Uint("diags_port", 8080, "Port to use for Diagnostics API")
 )
 
 var log = logging.GetLogger("sdcore-adapter")
@@ -77,7 +77,11 @@ func main() {
 
 	// Initialize the synchronizer's service-specific code.
 	log.Infof("Initializing synchronizer")
-	sync = synchronizer.NewSynchronizer(*outputFileName, !*postDisable, *postTimeout)
+	sync = synchronizer.NewSynchronizer(
+		synchronizer.WithOutputFileName(*outputFileName),
+		synchronizer.WithPostEnable(!*postDisable),
+		synchronizer.WithPartialUpdateEnable(!*partialUpdateDisable),
+		synchronizer.WithPostTimeout(*postTimeout))
 
 	// The synchronizer will convey its list of models.
 	model := sync.GetModels()
@@ -92,11 +96,6 @@ func main() {
 
 	opts := credentials.ServerCredentials()
 	g := grpc.NewServer(opts...)
-
-	// outputFileName may have changed after processing arguments
-	sync.SetOutputFileName(*outputFileName)
-	sync.SetPostEnable(!*postDisable)
-	sync.SetPostTimeout(*postTimeout)
 
 	sync.Start()
 

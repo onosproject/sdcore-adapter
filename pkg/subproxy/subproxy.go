@@ -114,7 +114,7 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 			return nil, err
 		}
 	}
-	fmt.Println("[DEBUG] gnmi client,context = ",s.gnmiClient,s.gnmiContext.Value("Authorization"))
+	fmt.Println("[DEBUG] gnmi client,context = ", s.gnmiClient, s.gnmiContext.Value("Authorization"))
 
 	//Getting Device Group only
 	origValDg, err := s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)

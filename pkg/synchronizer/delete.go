@@ -80,6 +80,10 @@ csLoop:
 		}
 	}
 
+	// Remove slice from the cache
+	s.CacheDelete(CacheModelSlice, *id)
+	s.CacheDelete(CacheModelSliceUpf, *id)
+
 	return nil
 }
 
@@ -117,6 +121,9 @@ csLoop:
 			return fmt.Errorf("Device-Group %s failed to push delete: %s", *id, err)
 		}
 	}
+
+	// Remove device-group from the cache
+	s.CacheDelete(CacheModelDeviceGroup, *id)
 
 	return nil
 }

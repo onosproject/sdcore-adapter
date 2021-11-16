@@ -17,8 +17,7 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -71,8 +70,7 @@ func TestSynchronizeVcsUPFWithBurst(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()
@@ -127,8 +125,7 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
 	apps, tp, upf, vcs := BuildSampleVcs()

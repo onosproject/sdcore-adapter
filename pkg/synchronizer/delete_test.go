@@ -21,7 +21,7 @@ func BuildRootPath(model string, key string) *pb.Path {
 
 // Test cases where HandleDevice does nothing
 func TestHandleDeleteNotApplicable(t *testing.T) {
-	s := Synchronizer{}
+	s := NewSynchronizer()
 
 	// Path is nil
 	device := &models.Device{}
@@ -69,8 +69,7 @@ func TestHandleDeleteNotApplicable(t *testing.T) {
 func TestHandleDeleteVcs(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	device := BuildSampleDevice()
 	path := BuildRootPath("vcs", "sample-vcs")
@@ -84,8 +83,7 @@ func TestHandleDeleteVcs(t *testing.T) {
 func TestHandleDeleteVcsPushError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	// 404 is treated as a non-error, because we may have already deleted it
 	device := BuildSampleDevice()
@@ -96,9 +94,9 @@ func TestHandleDeleteVcsPushError(t *testing.T) {
 	err := s.HandleDelete(device, path)
 	assert.Nil(t, err)
 
-	// reset the mockpusher between tests
+	// reset the mockpusher and synchronizer between tests
 	mockPusher = mocks.NewMockPusherInterface(ctrl)
-	s.SetPusher(mockPusher)
+	s = NewSynchronizer(WithPusher(mockPusher))
 
 	// 403 is a problem
 	device = BuildSampleDevice()
@@ -113,8 +111,7 @@ func TestHandleDeleteVcsPushError(t *testing.T) {
 func TestHandleDeleteVCSMissingDeps(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	// Vcs is nil
 	device := BuildSampleDevice()
@@ -176,8 +173,7 @@ func TestHandleDeleteVCSMissingDeps(t *testing.T) {
 func TestHandleDeleteDeviceGroup(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	device := BuildSampleDevice()
 	path := BuildRootPath("device-group", "sample-dg")
@@ -191,8 +187,7 @@ func TestHandleDeleteDeviceGroup(t *testing.T) {
 func TestHandleDeleteDeviceGroupPushError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	// 404 is treated as a non-error, because we may have already deleted it
 	device := BuildSampleDevice()
@@ -203,9 +198,9 @@ func TestHandleDeleteDeviceGroupPushError(t *testing.T) {
 	err := s.HandleDelete(device, path)
 	assert.Nil(t, err)
 
-	// reset the mockpusher between tests
+	// reset the mockpusher and synchronizer between tests
 	mockPusher = mocks.NewMockPusherInterface(ctrl)
-	s.SetPusher(mockPusher)
+	s = NewSynchronizer(WithPusher(mockPusher))
 
 	// 403 is a problem
 	device = BuildSampleDevice()
@@ -220,8 +215,7 @@ func TestHandleDeleteDeviceGroupPushError(t *testing.T) {
 func TestHandleDeleteDeviceGroupMissingDeps(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	s := Synchronizer{}
-	s.SetPusher(mockPusher)
+	s := NewSynchronizer(WithPusher(mockPusher))
 
 	// DeviceGroup is nil
 	device := BuildSampleDevice()

@@ -91,19 +91,23 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 		}
 	}
 
+	if s.partialUpdateEnable && s.CacheCheck(CacheModelSliceUpf, *vcs.Id, sc) {
+		log.Infof("UPF Slice %s has not changed", *vcs.Id)
+		return 0, nil
+	}
+
 	data, err := json.MarshalIndent(sc, "", "  ")
 	if err != nil {
 		return 0, fmt.Errorf("Vcs %s failed to marshal UPF JSON: %s", *vcs.Id, err)
 	}
-
-	// TODO: confirm with Badhri, not slicename at the end of the url
-	//url := fmt.Sprintf("%s/v1/config/network-slices/%s", *aUpf.ConfigEndpoint, *vcs.Id)
 
 	url := fmt.Sprintf("%s/v1/config/network-slices", *aUpf.ConfigEndpoint)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {
 		return 1, fmt.Errorf("vcs %s failed to push UPF JSON: %s", *vcs.Id, err)
 	}
+
+	s.CacheUpdate(CacheModelSliceUpf, *vcs.Id, sc)
 
 	return 0, nil
 }

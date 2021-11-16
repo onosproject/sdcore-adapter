@@ -99,6 +99,11 @@ func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.
 		ARP:  DerefUint8Ptr(rocTrafficClass.Arp, 9)}
 	dgCore.IPDomain.Qos.TrafficClass = tcCore
 
+	if s.partialUpdateEnable && s.CacheCheck(CacheModelDeviceGroup, *dg.Id, dgCore) {
+		log.Infof("Core Device-Group %s has not changed", *dg.Id)
+		return 0, nil
+	}
+
 	data, err := json.MarshalIndent(dgCore, "", "  ")
 	if err != nil {
 		return 0, fmt.Errorf("DeviceGroup %s failed to Marshal Json: %s", *dg.Id, err)
@@ -109,6 +114,9 @@ func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.
 	if err != nil {
 		return 1, fmt.Errorf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
 	}
+
+	s.CacheUpdate(CacheModelDeviceGroup, *dg.Id, dgCore)
+
 	return 0, nil
 }
 

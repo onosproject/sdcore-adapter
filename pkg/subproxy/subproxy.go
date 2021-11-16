@@ -95,7 +95,27 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	c.JSON(resp.StatusCode, gin.H{"status": "success"})
 }
 
+func (s *subscriberProxy) InitGnmiContext() error {
+
+	var err error
+	s.gnmiClient, s.gnmiContext, err = gnmiclient.NewGnmiWithInterceptor(s.AetherConfigAddress, time.Second*15)
+	if err != nil {
+		log.Fatalf("Error opening gNMI client %s", err.Error())
+		return err
+	}
+	return nil
+}
+
 func (s *subscriberProxy) getDevice() (*models.Device, error) {
+
+	if s.gnmiClient == nil {
+		err := s.InitGnmiContext()
+		if err != nil {
+			return nil, err
+		}
+	}
+	fmt.Println("[DEBUG] gnmi client,context = ",s.gnmiClient,s.gnmiContext.Value("Authorization"))
+
 	//Getting Device Group only
 	origValDg, err := s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)
 	if err != nil {
@@ -204,6 +224,7 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 
 }
 
+//StartSubscriberProxy start the subscriber
 func (s *subscriberProxy) StartSubscriberProxy(bindPort string, path string) error {
 	router := gin.New()
 	router.Use(getlogger(), gin.Recovery())
@@ -217,12 +238,11 @@ func (s *subscriberProxy) StartSubscriberProxy(bindPort string, path string) err
 
 //NewSubscriberProxy as Init method
 func NewSubscriberProxy(aetherConfigTarget string, baseWebConsoleURL string, aetherConfigAddr string,
-	gnmiClient gnmiclient.GnmiInterface, postTimeout time.Duration) *subscriberProxy {
+	postTimeout time.Duration) *subscriberProxy {
 	sproxy := &subscriberProxy{
 		AetherConfigAddress: aetherConfigAddr,
 		AetherConfigTarget:  aetherConfigTarget,
 		BaseWebConsoleURL:   baseWebConsoleURL,
-		gnmiClient:          gnmiClient,
 		PostTimeout:         postTimeout,
 	}
 	return sproxy

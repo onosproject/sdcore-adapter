@@ -77,7 +77,7 @@ func NewGnmi(addr string, timeout time.Duration) (GnmiInterface, error) {
 }
 
 //NewGnmiWithInterceptor - create one gNMI client and keep it open with retry mechanism
-func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, context.Context, error) {
+func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, string, error) {
 	gnmi := new(Gnmi)
 	gnmi.address = addr
 	var err error
@@ -85,17 +85,17 @@ func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, 
 	q := client.Query{TLS: &tls.Config{}, Timeout: timeout}
 
 	if err = readCerts(q); err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
 
 	ctx := context.Background()
+	token := ""
 	openIDIssuer := os.Getenv("OIDC_SERVER_URL")
 	if len(strings.TrimSpace(openIDIssuer)) > 0 {
-
-		token, err := GetAccessToken(openIDIssuer, secretname)
+		token, err = GetAccessToken(openIDIssuer, secretname)
 
 		if err != nil {
-			return nil, nil, err
+			return nil, token, err
 		}
 		token = "Bearer " + token
 		ctx = metadata.AppendToOutgoingContext(ctx, authorization, token)
@@ -132,17 +132,17 @@ func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, 
 	}
 	conn, err := grpc.DialContext(gCtx, addr, opts...)
 	if err != nil {
-		return nil, ctx, fmt.Errorf("Dialer(%s, %v): %v", addr, d.Timeout, err)
+		return nil, token, fmt.Errorf("Dialer(%s, %v): %v", addr, d.Timeout, err)
 	}
 
 	gnmi.Client, err = gclient.NewFromConn(ctx, conn, d)
 
 	if err != nil {
-		return nil, ctx, fmt.Errorf("could not create a gNMI client: %v", err)
+		return nil, token, fmt.Errorf("could not create a gNMI client: %v", err)
 	}
 	fmt.Println("[INFO] gnmi client connected !!! ")
 
-	return gnmi, ctx, nil
+	return gnmi, token, nil
 }
 
 // CloseClient - close the gNMI Client when finished

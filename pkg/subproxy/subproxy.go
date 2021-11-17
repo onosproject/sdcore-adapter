@@ -12,8 +12,10 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer/v4"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"google.golang.org/grpc/metadata"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -43,9 +45,6 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		return
 	}
 
-	//Getting gnmi context
-	s.gnmiContext = NewGnmiContext(c)
-
 	log.Debugf("Received subscriber id : %s ", ueID)
 
 	split := strings.Split(ueID, "-")
@@ -54,6 +53,8 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
+	//Getting gnmi context
+	s.gnmiContext = NewGnmiContext(c)
 	err = s.updateImsiDeviceGroup(imsiValue)
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
@@ -98,7 +99,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 func (s *subscriberProxy) InitGnmiContext() error {
 
 	var err error
-	s.gnmiClient, s.gnmiContext, err = gnmiclient.NewGnmiWithInterceptor(s.AetherConfigAddress, time.Second*15)
+	s.gnmiClient, s.token, err = gnmiclient.NewGnmiWithInterceptor(s.AetherConfigAddress, time.Second*15)
 	if err != nil {
 		log.Fatalf("Error opening gNMI client %s", err.Error())
 		return err
@@ -114,7 +115,12 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 			return nil, err
 		}
 	}
-	fmt.Println("[DEBUG] gnmi client,context = ", s.gnmiClient, s.gnmiContext.Value("Authorization"))
+
+	//Append the auth token if oid issuer is configured
+	_, ok := os.LookupEnv("OIDC_SERVER_URL")
+	if ok {
+		s.gnmiContext = metadata.AppendToOutgoingContext(s.gnmiContext, authorization, s.token)
+	}
 
 	//Getting Device Group only
 	origValDg, err := s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)

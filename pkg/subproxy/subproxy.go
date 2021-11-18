@@ -101,7 +101,8 @@ func (s *subscriberProxy) InitGnmiContext() error {
 	var err error
 	s.gnmiClient, s.token, err = gnmiclient.NewGnmiWithInterceptor(s.AetherConfigAddress, time.Second*15)
 	if err != nil {
-		log.Fatalf("Error opening gNMI client %s", err.Error())
+		log.Errorf("Error opening gNMI client %s", err.Error())
+		s.gnmiClient = nil //ensure it's nil
 		return err
 	}
 	return nil
@@ -117,15 +118,28 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 	}
 
 	//Append the auth token if oid issuer is configured
-	_, ok := os.LookupEnv("OIDC_SERVER_URL")
-	if ok {
+	openIDIssuer := os.Getenv("OIDC_SERVER_URL")
+	if len(strings.TrimSpace(openIDIssuer)) > 0 {
 		s.gnmiContext = metadata.AppendToOutgoingContext(s.gnmiContext, authorization, s.token)
 	}
 
 	//Getting Device Group only
 	origValDg, err := s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)
 	if err != nil {
-		return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err)
+		//Check if the token is expired Assuming the error will contain keyword 'Unauthenticated'
+		//and retry with new token
+		if strings.Contains(err.Error(), "Unauthenticated") {
+			err = s.InitGnmiContext()
+			if err != nil {
+				return nil, err
+			}
+			origValDg, err = s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)
+			if err != nil {
+				return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err.Error())
+			}
+		} else {
+			return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err.Error())
+		}
 	}
 
 	//Getting Sites only
@@ -162,6 +176,11 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
 	device, err := s.getDevice()
 	if err != nil {
 		return err
+	}
+
+	if device.DeviceGroup == nil {
+		log.Debugf("No device groups founds")
+		return nil
 	}
 
 	// Check if the IMSI already exists

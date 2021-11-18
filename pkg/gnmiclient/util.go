@@ -11,7 +11,6 @@ package gnmiclient
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"golang.org/x/oauth2"
@@ -201,8 +200,8 @@ func StrDeref(s *string) string {
 	return *s
 }
 
-//FetchATokenViaKeyCloak Get the token via keycloak using curl
-func FetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (string, error) {
+//fetchATokenViaKeyCloak Get the token via keycloak using curl
+func fetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (string, error) {
 
 	data := url.Values{}
 	data.Set("username", user)
@@ -222,7 +221,7 @@ func FetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (st
 		return "", err
 	}
 
-	fmt.Println("Response Code : ", resp.StatusCode)
+	log.Debug("Response Code : ", resp.StatusCode)
 
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
@@ -231,7 +230,7 @@ func FetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (st
 		if err != nil {
 			return "", err
 		}
-		fmt.Println("[INFO] Access Token : ", target.AccessToken)
+		log.Debug("[INFO] Access Token : ", target.AccessToken)
 		return target.AccessToken, nil
 	}
 
@@ -239,8 +238,8 @@ func FetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (st
 
 }
 
-//GetNamespace Get the current namespace
-func GetNamespace() string {
+//getNamespace Get the current namespace
+func getNamespace() string {
 	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {
 		return ns
 	}
@@ -250,8 +249,8 @@ func GetNamespace() string {
 			return ns
 		}
 	}
-
-	return "default"
+	//default namespace aether-roc
+	return "aether-roc"
 }
 
 //GetAccessToken authenticate and get the access token
@@ -259,6 +258,21 @@ func GetAccessToken(openIDIssuer string, secretName string) (string, error) {
 
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
+
+	// for out-cluster config  for dev testing purpose only
+	//comment  the above line config, err := rest.InClusterConfig() and comment out the following section
+	/*var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	}
+	flag.Parse()
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	*/
+	//end of out-cluster-config
+
 	if err != nil {
 		panic(err.Error())
 	}
@@ -269,7 +283,7 @@ func GetAccessToken(openIDIssuer string, secretName string) (string, error) {
 	}
 
 	//get secret client
-	secretsClient := clientset.CoreV1().Secrets(GetNamespace())
+	secretsClient := clientset.CoreV1().Secrets(getNamespace())
 
 	ctx := context.Background()
 	secret, err := secretsClient.Get(ctx, secretName, metaV1.GetOptions{})
@@ -279,6 +293,6 @@ func GetAccessToken(openIDIssuer string, secretName string) (string, error) {
 	user := secret.Data["username"]
 	passwd := secret.Data["password"]
 
-	return FetchATokenViaKeyCloak(openIDIssuer, string(user), string(passwd))
+	return fetchATokenViaKeyCloak(openIDIssuer, string(user), string(passwd))
 
 }

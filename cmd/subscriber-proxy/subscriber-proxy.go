@@ -6,11 +6,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/subproxy"
-	"github.com/prometheus/common/log"
 	"os"
 	"time"
 )
+
+var log = logging.GetLogger("subscriber-proxy")
 
 var (
 	bindPort           = flag.String("bind_port", ":5001", "Bind to just :port")

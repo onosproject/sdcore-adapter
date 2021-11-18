@@ -149,6 +149,7 @@ func postToWebConsole(postURI string, payload []byte, postTimeout time.Duration)
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := clientHTTP.Do(req)
 	if err != nil {
+		log.Error("Error forwarding request ", err.Error())
 		return resp, errors.NewInvalid(err.Error())
 	}
 	defer resp.Body.Close()

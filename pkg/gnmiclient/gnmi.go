@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/grpc/retry"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/openconfig/gnmi/client"
@@ -70,7 +71,7 @@ func NewGnmi(addr string, timeout time.Duration) (GnmiInterface, error) {
 		TLS:         q.TLS,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not create a gNMI client: %v", err)
+		return nil, errors.NewInternal("could not create a gNMI client: %v", err)
 	}
 
 	return gnmi, nil
@@ -93,14 +94,12 @@ func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, 
 	openIDIssuer := os.Getenv("OIDC_SERVER_URL")
 	if len(strings.TrimSpace(openIDIssuer)) > 0 {
 		token, err = GetAccessToken(openIDIssuer, secretname)
-
 		if err != nil {
 			return nil, token, err
 		}
 		token = "Bearer " + token
 		ctx = metadata.AppendToOutgoingContext(ctx, authorization, token)
-		fmt.Println("[INFO] Added Bearer Token to context ")
-
+		log.Debug("[INFO] Added Bearer Token to context ")
 	} else {
 		ctx = getAuthContext(ctx)
 	}
@@ -132,15 +131,15 @@ func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, 
 	}
 	conn, err := grpc.DialContext(gCtx, addr, opts...)
 	if err != nil {
-		return nil, token, fmt.Errorf("Dialer(%s, %v): %v", addr, d.Timeout, err)
+		return nil, token, errors.NewInternal(fmt.Sprintf("Dialer(%s, %v): %v", addr, d.Timeout, err))
 	}
 
 	gnmi.Client, err = gclient.NewFromConn(ctx, conn, d)
 
 	if err != nil {
-		return nil, token, fmt.Errorf("could not create a gNMI client: %v", err)
+		return nil, token, errors.NewInternal(fmt.Sprintf("could not create a gNMI client: %v", err))
 	}
-	fmt.Println("[INFO] gnmi client connected !!! ")
+	log.Info("[INFO] gnmi client connected !!! ")
 
 	return gnmi, token, nil
 }

@@ -126,9 +126,10 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 	//Getting Device Group only
 	origValDg, err := s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)
 	if err != nil {
-		//Check if the token is expired Assuming the error will contain keyword 'Unauthenticated'
-		//and retry with new token
-		if strings.Contains(err.Error(), "Unauthenticated") {
+		log.Error("GetPath call failed with error ", err.Error())
+		//Check if the token is expired and retry with new token
+		if (len(strings.TrimSpace(openIDIssuer)) > 0) && (strings.Contains(err.Error(), "expired")) {
+			log.Info("Retrying with fresh token ")
 			err = s.InitGnmiContext()
 			if err != nil {
 				return nil, err

@@ -230,7 +230,7 @@ func fetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (st
 		if err != nil {
 			return "", err
 		}
-		log.Debug("[INFO] Access Token : ", target.AccessToken)
+		log.Infof("Token info : Type : %v , Access Token : %v , Expiry %v : ", target.TokenType, target.AccessToken, target.Expiry)
 		return target.AccessToken, nil
 	}
 
@@ -274,12 +274,12 @@ func GetAccessToken(openIDIssuer string, secretName string) (string, error) {
 	//end of out-cluster-config
 
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 
 	//get secret client
@@ -292,6 +292,8 @@ func GetAccessToken(openIDIssuer string, secretName string) (string, error) {
 	}
 	user := secret.Data["username"]
 	passwd := secret.Data["password"]
+
+	log.Info("Username : ", string(user))
 
 	return fetchATokenViaKeyCloak(openIDIssuer, string(user), string(passwd))
 

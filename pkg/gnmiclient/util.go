@@ -10,7 +10,17 @@ package gnmiclient
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"golang.org/x/oauth2"
+	"io/ioutil"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"net/http"
+	"net/url"
+	"os"
 	"strings"
 )
 
@@ -188,4 +198,103 @@ func StrDeref(s *string) string {
 		return "nil"
 	}
 	return *s
+}
+
+//fetchATokenViaKeyCloak Get the token via keycloak using curl
+func fetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (string, error) {
+
+	data := url.Values{}
+	data.Set("username", user)
+	data.Set("password", passwd)
+	data.Set("grant_type", "password")
+	data.Set("client_id", "aether-roc-gui")
+	data.Set("scope", "openid profile email offline_access groups")
+
+	req, err := http.NewRequest("POST", openIDIssuer+"/protocol/openid-connect/token", strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	log.Debug("Response Code : ", resp.StatusCode)
+
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		target := new(oauth2.Token)
+		err = json.NewDecoder(resp.Body).Decode(target)
+		if err != nil {
+			return "", err
+		}
+		log.Infof("Token info : Type : %v , Access Token : %v , Expiry %v : ", target.TokenType, target.AccessToken, target.Expiry)
+		return target.AccessToken, nil
+	}
+
+	return "", errors.NewInvalid("Error HTTP response code : ", resp.StatusCode)
+
+}
+
+//getNamespace Get the current namespace
+func getNamespace() string {
+	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {
+		return ns
+	}
+
+	if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
+			return ns
+		}
+	}
+	//default namespace aether-roc
+	return "aether-roc"
+}
+
+//GetAccessToken authenticate and get the access token
+func GetAccessToken(openIDIssuer string, secretName string) (string, error) {
+
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+
+	// for out-cluster config  for dev testing purpose only
+	//comment  the above line config, err := rest.InClusterConfig() and comment out the following section
+	/*var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	}
+	flag.Parse()
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	*/
+	//end of out-cluster-config
+
+	if err != nil {
+		panic(err)
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err)
+	}
+
+	//get secret client
+	secretsClient := clientset.CoreV1().Secrets(getNamespace())
+
+	ctx := context.Background()
+	secret, err := secretsClient.Get(ctx, secretName, metaV1.GetOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	user := secret.Data["username"]
+	passwd := secret.Data["password"]
+
+	log.Info("Username : ", string(user))
+
+	return fetchATokenViaKeyCloak(openIDIssuer, string(user), string(passwd))
+
 }

@@ -12,8 +12,10 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"google.golang.org/grpc/metadata"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -43,9 +45,6 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		return
 	}
 
-	//Getting gnmi context
-	s.gnmiContext = NewGnmiContext(c)
-
 	log.Debugf("Received subscriber id : %s ", ueID)
 
 	split := strings.Split(ueID, "-")
@@ -54,6 +53,8 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
+	//Getting gnmi context
+	s.gnmiContext = NewGnmiContext(c)
 	err = s.updateImsiDeviceGroup(imsiValue)
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
@@ -95,11 +96,51 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 	c.JSON(resp.StatusCode, gin.H{"status": "success"})
 }
 
+func (s *subscriberProxy) InitGnmiContext() error {
+
+	var err error
+	s.gnmiClient, s.token, err = gnmiclient.NewGnmiWithInterceptor(s.AetherConfigAddress, time.Second*15)
+	if err != nil {
+		log.Errorf("Error opening gNMI client %s", err.Error())
+		s.gnmiClient = nil //ensure it's nil
+		return err
+	}
+	return nil
+}
+
 func (s *subscriberProxy) getDevice() (*models.Device, error) {
+
+	if s.gnmiClient == nil {
+		err := s.InitGnmiContext()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	//Append the auth token if oid issuer is configured
+	openIDIssuer := os.Getenv("OIDC_SERVER_URL")
+	if len(strings.TrimSpace(openIDIssuer)) > 0 {
+		s.gnmiContext = metadata.AppendToOutgoingContext(s.gnmiContext, authorization, s.token)
+	}
+
 	//Getting Device Group only
 	origValDg, err := s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)
 	if err != nil {
-		return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err)
+		log.Error("GetPath call failed with error ", err.Error())
+		//Check if the token is expired and retry with new token
+		if (len(strings.TrimSpace(openIDIssuer)) > 0) && (strings.Contains(err.Error(), "expired")) {
+			log.Info("Retrying with fresh token ")
+			err = s.InitGnmiContext()
+			if err != nil {
+				return nil, err
+			}
+			origValDg, err = s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)
+			if err != nil {
+				return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err.Error())
+			}
+		} else {
+			return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err.Error())
+		}
 	}
 
 	//Getting Sites only
@@ -136,6 +177,11 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
 	device, err := s.getDevice()
 	if err != nil {
 		return err
+	}
+
+	if device.DeviceGroup == nil {
+		log.Debugf("No device groups founds")
+		return nil
 	}
 
 	// Check if the IMSI already exists
@@ -204,6 +250,7 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 
 }
 
+//StartSubscriberProxy start the subscriber
 func (s *subscriberProxy) StartSubscriberProxy(bindPort string, path string) error {
 	router := gin.New()
 	router.Use(getlogger(), gin.Recovery())
@@ -217,12 +264,11 @@ func (s *subscriberProxy) StartSubscriberProxy(bindPort string, path string) err
 
 //NewSubscriberProxy as Init method
 func NewSubscriberProxy(aetherConfigTarget string, baseWebConsoleURL string, aetherConfigAddr string,
-	gnmiClient gnmiclient.GnmiInterface, postTimeout time.Duration) *subscriberProxy {
+	postTimeout time.Duration) *subscriberProxy {
 	sproxy := &subscriberProxy{
 		AetherConfigAddress: aetherConfigAddr,
 		AetherConfigTarget:  aetherConfigTarget,
 		BaseWebConsoleURL:   baseWebConsoleURL,
-		gnmiClient:          gnmiClient,
 		PostTimeout:         postTimeout,
 	}
 	return sproxy

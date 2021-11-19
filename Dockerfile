@@ -1,4 +1,4 @@
-FROM onosproject/golang-build:v0.6.8 as build
+FROM onosproject/golang-build:v0.6.10 as build
 
 ARG LOCAL_AETHER_MODELS
 

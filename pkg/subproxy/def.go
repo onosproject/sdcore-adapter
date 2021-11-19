@@ -22,6 +22,7 @@ type subscriberProxy struct {
 	AetherConfigAddress string
 	BaseWebConsoleURL   string
 	AetherConfigTarget  string
+	token               string
 	gnmiClient          gnmiclient.GnmiInterface
 	gnmiContext         context.Context
 	PostTimeout         time.Duration

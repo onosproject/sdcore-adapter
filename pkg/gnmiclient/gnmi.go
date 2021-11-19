@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/grpc/retry"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/openconfig/gnmi/client"
@@ -15,10 +16,18 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
+	"os"
+	"strings"
 	"time"
 )
 
 var log = logging.GetLogger("gnmiclient")
+
+const (
+	authorization = "Authorization"
+	secretname    = "subscriber-proxy-keycloak-secret"
+)
 
 // GnmiInterface - abstract definition of the Gnmi interface
 //go:generate mockgen -destination=../test/mocks/mock_gnmi.go -package=mocks github.com/onosproject/sdcore-adapter/pkg/gnmiclient GnmiInterface
@@ -62,14 +71,14 @@ func NewGnmi(addr string, timeout time.Duration) (GnmiInterface, error) {
 		TLS:         q.TLS,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not create a gNMI client: %v", err)
+		return nil, errors.NewInternal("could not create a gNMI client: %v", err)
 	}
 
 	return gnmi, nil
 }
 
 //NewGnmiWithInterceptor - create one gNMI client and keep it open with retry mechanism
-func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, error) {
+func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, string, error) {
 	gnmi := new(Gnmi)
 	gnmi.address = addr
 	var err error
@@ -77,10 +86,23 @@ func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, 
 	q := client.Query{TLS: &tls.Config{}, Timeout: timeout}
 
 	if err = readCerts(q); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	ctx := getAuthContext(context.Background())
+	ctx := context.Background()
+	token := ""
+	openIDIssuer := os.Getenv("OIDC_SERVER_URL")
+	if len(strings.TrimSpace(openIDIssuer)) > 0 {
+		token, err = GetAccessToken(openIDIssuer, secretname)
+		if err != nil {
+			return nil, token, err
+		}
+		token = "Bearer " + token
+		ctx = metadata.AppendToOutgoingContext(ctx, authorization, token)
+		log.Debug("[INFO] Added Bearer Token to context ")
+	} else {
+		ctx = getAuthContext(ctx)
+	}
 
 	opts := []grpc.DialOption{}
 
@@ -109,16 +131,17 @@ func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, 
 	}
 	conn, err := grpc.DialContext(gCtx, addr, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("Dialer(%s, %v): %v", addr, d.Timeout, err)
+		return nil, token, errors.NewInternal(fmt.Sprintf("Dialer(%s, %v): %v", addr, d.Timeout, err))
 	}
 
 	gnmi.Client, err = gclient.NewFromConn(ctx, conn, d)
 
 	if err != nil {
-		return nil, fmt.Errorf("could not create a gNMI client: %v", err)
+		return nil, token, errors.NewInternal(fmt.Sprintf("could not create a gNMI client: %v", err))
 	}
+	log.Info("[INFO] gnmi client connected !!! ")
 
-	return gnmi, nil
+	return gnmi, token, nil
 }
 
 // CloseClient - close the gNMI Client when finished

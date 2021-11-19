@@ -18,7 +18,10 @@ require (
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.15.0
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed
+	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/grpc v1.37.0
 	gopkg.in/yaml.v2 v2.4.0
+	k8s.io/apimachinery v0.22.3
+	k8s.io/client-go v0.22.3
 )

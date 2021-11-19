@@ -149,6 +149,7 @@ func postToWebConsole(postURI string, payload []byte, postTimeout time.Duration)
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := clientHTTP.Do(req)
 	if err != nil {
+		log.Error("Error forwarding request ", err.Error())
 		return resp, errors.NewInvalid(err.Error())
 	}
 	defer resp.Body.Close()
@@ -159,8 +160,14 @@ func postToWebConsole(postURI string, payload []byte, postTimeout time.Duration)
 // NewGnmiContext - convert the gin context in to a gRPC Context
 func NewGnmiContext(httpContext *gin.Context) context.Context {
 
+	if len(httpContext.Request.Header.Get(authorization)) > 0 {
+		return metadata.AppendToOutgoingContext(context.Background(),
+			authorization, httpContext.Request.Header.Get(authorization),
+			host, httpContext.Request.Host,
+			"ua", httpContext.Request.Header.Get(userAgent), // `User-Agent` would be over written by gRPC
+			remoteAddr, httpContext.Request.RemoteAddr)
+	}
 	return metadata.AppendToOutgoingContext(context.Background(),
-		authorization, httpContext.Request.Header.Get(authorization),
 		host, httpContext.Request.Host,
 		"ua", httpContext.Request.Header.Get(userAgent), // `User-Agent` would be over written by gRPC
 		remoteAddr, httpContext.Request.RemoteAddr)

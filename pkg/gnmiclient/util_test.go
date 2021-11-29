@@ -101,6 +101,51 @@ func TestUpdateString(t *testing.T) {
 	assert.Nil(t, u)
 }
 
+func TestUpdateInt8(t *testing.T) {
+	var i int8 = 123
+	u := UpdateInt8("/foo", "v1-device", &i)
+	assert.NotNil(t, u)
+	assert.NotNil(t, u.Path)
+	assert.Equal(t, u.Path.Target, "v1-device")
+	assert.Equal(t, u.Path.Elem[0].Name, "foo")
+	assert.NotNil(t, u.Val)
+	assert.Equal(t, uint64(123), u.Val.GetUintVal())
+
+	// nil value should return nil update
+	u = UpdateInt8("/foo", "v1-device", nil)
+	assert.Nil(t, u)
+}
+
+func TestUpdateUInt8(t *testing.T) {
+	var i uint8 = 123
+	u := UpdateUInt8("/foo", "v1-device", &i)
+	assert.NotNil(t, u)
+	assert.NotNil(t, u.Path)
+	assert.Equal(t, u.Path.Target, "v1-device")
+	assert.Equal(t, u.Path.Elem[0].Name, "foo")
+	assert.NotNil(t, u.Val)
+	assert.Equal(t, uint64(123), u.Val.GetUintVal())
+
+	// nil value should return nil update
+	u = UpdateUInt8("/foo", "v1-device", nil)
+	assert.Nil(t, u)
+}
+
+func TestUpdateUInt16(t *testing.T) {
+	var i uint16 = 1234
+	u := UpdateUInt16("/foo", "v1-device", &i)
+	assert.NotNil(t, u)
+	assert.NotNil(t, u.Path)
+	assert.Equal(t, u.Path.Target, "v1-device")
+	assert.Equal(t, u.Path.Elem[0].Name, "foo")
+	assert.NotNil(t, u.Val)
+	assert.Equal(t, uint64(1234), u.Val.GetUintVal())
+
+	// nil value should return nil update
+	u = UpdateUInt16("/foo", "v1-device", nil)
+	assert.Nil(t, u)
+}
+
 func TestUpdateUInt32(t *testing.T) {
 	var i uint32 = 1234
 	u := UpdateUInt32("/foo", "v1-device", &i)

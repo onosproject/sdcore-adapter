@@ -6,6 +6,9 @@ package gnmi
 import (
 	"context"
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -59,34 +62,9 @@ func TestCapabilities(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	jsonConfigRoot := `{
-		"enterprise": {
-			"enterprise": [
-				{
-					"description": "ACME Corporation",
-					"display-name": "ACME Corp",
-					"id": "acme"
-				}
-			]
-		},
-		"ip-domain": {
-			"ip-domain": [
-                {
-                    "admin-status": "DISABLE",
-                    "description": "Chicago IP Domain",
-                    "display-name": "Chicago",
-                    "dns-primary": "8.8.8.4",
-                    "dns-secondary": "8.8.8.4",
-                    "id": "acme-chicago",
-                    "mtu": 12690,
-                    "subnet": "163.25.44.0/31",
-                    "enterprise": "acme"
-                }
-			]
-		}
-	}`
-
-	s, err := NewServer(model, []byte(jsonConfigRoot), nil)
+	jsonConfigRoot, err := ioutil.ReadFile("./testdata/sample-config-root.json")
+	assert.NoError(t, err)
+	s, err := NewServer(model, jsonConfigRoot, nil)
 	if err != nil {
 		t.Fatalf("error in creating server: %v", err)
 	}
@@ -258,4 +236,24 @@ func runTestSet(t *testing.T, s *Server, textPbPrefix string, textPbUpdate strin
 	if gotRetStatus.Code() != wantRetCode {
 		t.Fatalf("got return code %v, want %v", gotRetStatus.Code(), wantRetCode)
 	}
+}
+
+func TestServer_GetJSON(t *testing.T) {
+	jsonConfigRoot, err := ioutil.ReadFile("./testdata/sample-config-root.json")
+	assert.NoError(t, err)
+	s, err := NewServer(model, jsonConfigRoot, nil)
+	assert.NoError(t, err)
+	jsonData, err := s.GetJSON()
+	assert.NoError(t, err)
+	assert.NotNil(t, jsonData)
+	require.JSONEq(t, string(jsonConfigRoot), string(jsonData))
+}
+
+func TestServer_PutJSON(t *testing.T) {
+	s, err := NewServer(model, nil, nil)
+	assert.NoError(t, err)
+	data := []byte("{}")
+	err = s.PutJSON(data)
+	assert.NoError(t, err)
+	assert.NotNil(t, s.config)
 }

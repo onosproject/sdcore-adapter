@@ -55,6 +55,8 @@ func TestSynchronizeDeviceCSEnt(t *testing.T) {
 
 func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 
+	jsonData, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -71,31 +73,6 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 	}
 
-	jsonData := `{
-			"imsis": [
-			  "123456789000001"
-			],
-			"ip-domain-name": "sample-ipd",
-			"site-info": "sample-site",
-			"ip-domain-expanded": {
-			  "dnn": "5ginternet",
-			  "ue-ip-pool": "1.2.3.4/24",
-			  "dns-primary": "8.8.8.8",
-				"mtu": 1492,
-				"ue-dnn-qos": {
-					"dnn-mbr-downlink": 4321,
-					"dnn-mbr-uplink": 8765,
-					"bitrate-unit": "bps",
-					"traffic-class": {
-						"name": "sample-traffic-class",
-						"arp": 3,
-						"pdb": 300,
-						"pelr": 6,
-						"qci": 55
-					}					
-				}				
-			}
-		  }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
@@ -107,12 +84,14 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonData, json)
+		require.JSONEq(t, string(jsonData), json)
 	}
 }
 
 func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 
+	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg1.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -132,32 +111,6 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
 	}
 
-	jsonDataDg := `{
-			"imsis": [
-			  "123456789000001"
-			],
-			"ip-domain-name": "sample-ipd",
-			"site-info": "sample-site",
-			"ip-domain-expanded": {
-			  "dnn": "5ginternet",
-			  "ue-ip-pool": "1.2.3.4/24",
-			  "dns-primary": "8.8.8.8",
-				"mtu": 1492,
-				"ue-dnn-qos": {
-					"dnn-mbr-downlink": 4321,
-					"dnn-mbr-uplink": 8765,
-					"bitrate-unit": "bps",
-					"traffic-class": {
-						"name": "sample-traffic-class",
-						"arp": 3,
-						"pdb": 400,
-						"pelr": 3,
-						"qci": 55
-					}					
-				}				
-			}
-		  }`
-
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
@@ -170,7 +123,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataDg, json)
+		require.JSONEq(t, string(jsonDataDg), json)
 	}
 }
 
@@ -205,6 +158,12 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 
 func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 
+	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	assert.NoError(t, err)
+	jsonDataVcs, err := ioutil.ReadFile("./testdata/sample-vcs.json")
+	assert.NoError(t, err)
+	jsonDataSlice, err := ioutil.ReadFile("./testdata/sample-slice.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -226,111 +185,6 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	jsonDataDg := `{
-			"imsis": [
-			  "123456789000001"
-			],
-			"ip-domain-name": "sample-ipd",
-			"site-info": "sample-site",
-			"ip-domain-expanded": {
-			  "dnn": "5ginternet",
-			  "ue-ip-pool": "1.2.3.4/24",
-			  "dns-primary": "8.8.8.8",
-				"mtu": 1492,
-				"ue-dnn-qos": {
-					"dnn-mbr-downlink": 4321,
-					"dnn-mbr-uplink": 8765,
-					"bitrate-unit": "bps",
-					"traffic-class": {
-						"name": "sample-traffic-class",
-						"arp": 3,
-						"pdb": 300,
-						"pelr": 6,
-						"qci": 55
-					}
-				}
-			}
-		  }`
-
-	jsonDataVcs := `{
-          "slice-id": {
-            "sst": "222",
-            "sd": "00006F"
-          },
-          "site-device-group": [
-            "sample-dg"
-          ],
-          "site-info": {
-            "site-name": "sample-site",
-            "plmn": {
-              "mcc": "123",
-              "mnc": "456"
-            },
-            "gNodeBs": [
-              {
-                "name": "6.7.8.9",
-                "tac": 30635
-              }
-            ],
-            "upf": {
-              "upf-name": "2.3.4.5",
-              "upf-port": 66
-            }
-          },
-          "application-filtering-rules": [
-            {
-              "rule-name": "sample-app-sample-app-ep",
-              "priority": 7,
-              "action": "permit",
-              "endpoint": "1.2.3.4/32",
-              "dest-port-start": 123,
-              "dest-port-end": 124,
-              "protocol": 17
-            },
-            {
-              "rule-name": "sample-app2-sample-app2-ep",
-              "priority": 8,
-              "action": "deny",
-              "endpoint": "1.2.3.5/32",
-              "dest-port-start": 123,
-              "dest-port-end": 124,
-              "protocol": 17,
-              "app-mbr-uplink": 11223344,
-							"app-mbr-downlink": 55667788,
-							"bitrate-unit": "bps",
-              "traffic-class": {
-                "name": "sample-traffic-class",
-                "qci": 55,
-                "arp": 3,
-                "pdb": 300,
-                "pelr": 6
-              }
-            },
-            {
-              "rule-name": "DENY-ALL",
-              "priority": 250,
-              "action": "deny",
-              "endpoint": "0.0.0.0/0"
-            }
-          ]
-        }`
-
-	jsonDataSlice := `{
-          "sliceName": "sample-vcs",
-          "sliceQos": {
-            "uplinkMBR": 333,
-						"downlinkMBR": 444,
-						"bitrateUnit": "bps",
-						"downlinkBurstSize": 625000,
-						"uplinkBurstSize": 625000
-          },
-          "ueResourceInfo": [
-            {
-              "uePoolId": "sample-dg",
-              "dnn": "5ginternet"
-            }
-          ]
-        }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
@@ -352,21 +206,27 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataDg, json)
+		require.JSONEq(t, string(jsonDataDg), json)
 	}
 	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataVcs, json)
+		require.JSONEq(t, string(jsonDataVcs), json)
 	}
 	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataSlice, json)
+		require.JSONEq(t, string(jsonDataSlice), json)
 	}
 }
 
 func TestSynchronizeVCS(t *testing.T) {
+	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	assert.NoError(t, err)
+	jsonDataVcs, err := ioutil.ReadFile("./testdata/sample-vcs.json")
+	assert.NoError(t, err)
+	jsonDataSlice, err := ioutil.ReadFile("./testdata/sample-slice.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -388,109 +248,6 @@ func TestSynchronizeVCS(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	jsonDataDg := `{
-			"imsis": [
-			  "123456789000001"
-			],
-			"ip-domain-name": "sample-ipd",
-			"site-info": "sample-site",
-			"ip-domain-expanded": {
-			  "dnn": "5ginternet",
-			  "ue-ip-pool": "1.2.3.4/24",
-			  "dns-primary": "8.8.8.8",
-				"mtu": 1492,
-				"ue-dnn-qos": {
-					"dnn-mbr-downlink": 4321,
-					"dnn-mbr-uplink": 8765,
-					"bitrate-unit": "bps",
-					"traffic-class": {
-						"name": "sample-traffic-class",
-						"arp": 3,
-						"pdb": 300,
-						"pelr": 6,
-						"qci": 55
-					}
-				}
-			}
-		  }`
-
-	jsonDataVcs := `{
-			"slice-id": {
-			  "sst": "222",
-			  "sd": "00006F"
-			},
-			"site-device-group": [
-			  "sample-dg"
-			],
-			"site-info": {
-			  "site-name": "sample-site",
-			  "plmn": {
-				"mcc": "123",
-				"mnc": "456"
-			  },
-			  "gNodeBs": [
-				{
-				  "name": "6.7.8.9",
-				  "tac": 30635
-				}
-			  ],
-			  "upf": {
-				"upf-name": "2.3.4.5",
-				"upf-port": 66
-			  }
-			},
-			"application-filtering-rules": [{
-				"rule-name": "sample-app-sample-app-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.4/32",
-				"action": "permit",
-				"protocol": 17,
-				"priority": 7
-			},
-			{
-				"rule-name": "sample-app2-sample-app2-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.5/32",
-				"action": "deny",
-				"protocol": 17,
-				"priority": 8,
-				"app-mbr-downlink": 55667788,
-				"app-mbr-uplink": 11223344,
-				"bitrate-unit": "bps",
-				"traffic-class": {
-					"name": "sample-traffic-class",
-					"arp": 3,
-					"pdb": 300,
-					"pelr": 6,
-					"qci": 55
-				}
-			},
-			{
-				"rule-name": "DENY-ALL",
-				"endpoint": "0.0.0.0/0",
-				"priority": 250,
-				"action": "deny"
-			}]
-		}`
-
-	jsonDataSlice := `{
-          "sliceName": "sample-vcs",
-          "sliceQos": {
-            "uplinkMBR": 333,
-						"downlinkMBR": 444,
-						"bitrateUnit": "bps",
-						"downlinkBurstSize": 625000,
-						"uplinkBurstSize": 625000
-          },
-          "ueResourceInfo": [
-            {
-              "uePoolId": "sample-dg",
-              "dnn": "5ginternet"
-            }
-          ]
-        }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
@@ -510,21 +267,27 @@ func TestSynchronizeVCS(t *testing.T) {
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataDg, json)
+		require.JSONEq(t, string(jsonDataDg), json)
 	}
 	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataVcs, json)
+		require.JSONEq(t, string(jsonDataVcs), json)
 	}
 	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataSlice, json)
+		require.JSONEq(t, string(jsonDataSlice), json)
 	}
 }
 
 func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
+	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	assert.NoError(t, err)
+	jsonDataVcs, err := ioutil.ReadFile("./testdata/sample-vcs1.json")
+	assert.NoError(t, err)
+	jsonDataSlice, err := ioutil.ReadFile("./testdata/sample-slice.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -561,128 +324,7 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
-	jsonDataDg := `{
-			"imsis": [
-			  "123456789000001"
-			],
-			"ip-domain-name": "sample-ipd",
-			"site-info": "sample-site",
-			"ip-domain-expanded": {
-			  "dnn": "5ginternet",
-			  "ue-ip-pool": "1.2.3.4/24",
-			  "dns-primary": "8.8.8.8",
-				"mtu": 1492,
-				"ue-dnn-qos": {
-					"dnn-mbr-downlink": 4321,
-					"dnn-mbr-uplink": 8765,
-					"bitrate-unit": "bps",
-					"traffic-class": {
-						"name": "sample-traffic-class",
-						"arp": 3,
-						"pdb": 300,
-						"pelr": 6,
-						"qci": 55
-					}
-				}
-			}
-		  }`
 
-	jsonDataVcs := `{
-			"slice-id": {
-			  "sst": "222",
-			  "sd": "00006F"
-			},
-			"site-device-group": [
-			  "sample-dg"
-			],
-			"site-info": {
-			  "site-name": "sample-site",
-			  "plmn": {
-				"mcc": "123",
-				"mnc": "456"
-			  },
-			  "gNodeBs": [
-				{
-				  "name": "6.7.8.9",
-				  "tac": 30635
-				}
-			  ],
-			  "upf": {
-				"upf-name": "2.3.4.5",
-				"upf-port": 66
-			  }
-			},
-			"application-filtering-rules": [{
-				"rule-name": "sample-app-sample-app-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.4/32",
-				"action": "permit",
-				"protocol": 17,
-				"priority": 7
-			},
-			{
-				"rule-name": "sample-app2-sample-app2-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.5/32",
-				"action": "deny",
-				"protocol": 17,
-				"priority": 8,
-				"app-mbr-downlink": 55667788,
-				"app-mbr-uplink": 11223344,
-				"bitrate-unit": "bps",
-				"traffic-class": {
-					"name": "sample-traffic-class",
-					"arp": 3,
-					"pdb": 300,
-					"pelr": 6,
-					"qci": 55
-				}
-			},
-			{
-				"rule-name": "sample-app2-zep3",
-				"dest-port-start": 5555,
-				"dest-port-end": 5556,
-				"endpoint": "1.2.3.5/32",
-				"action": "deny",
-				"protocol": 17,
-				"priority": 8,
-				"app-mbr-downlink": 88776655,
-				"app-mbr-uplink": 44332211,
-				"bitrate-unit": "bps",
-				"traffic-class": {
-					"name": "sample-traffic-class",
-					"arp": 3,
-					"pdb": 300,
-					"pelr": 6,
-					"qci": 55
-				}
-			},			
-			{
-				"rule-name": "DENY-ALL",
-				"endpoint": "0.0.0.0/0",
-				"priority": 250,
-				"action": "deny"
-			}]
-		}`
-
-	jsonDataSlice := `{
-          "sliceName": "sample-vcs",
-          "sliceQos": {
-            "uplinkMBR": 333,
-						"downlinkMBR": 444,
-						"bitrateUnit": "bps",
-						"downlinkBurstSize": 625000,
-						"uplinkBurstSize": 625000
-          },
-          "ueResourceInfo": [
-            {
-              "uePoolId": "sample-dg",
-              "dnn": "5ginternet"
-            }
-          ]
-        }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
@@ -702,21 +344,27 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataDg, json)
+		require.JSONEq(t, string(jsonDataDg), json)
 	}
 	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataVcs, json)
+		require.JSONEq(t, string(jsonDataVcs), json)
 	}
 	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataSlice, json)
+		require.JSONEq(t, string(jsonDataSlice), json)
 	}
 }
 
 func TestSynchronizeVCSEmptySD(t *testing.T) {
+	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	assert.NoError(t, err)
+	jsonDataVcs, err := ioutil.ReadFile("./testdata/sample-vcs2.json")
+	assert.NoError(t, err)
+	jsonDataSlice, err := ioutil.ReadFile("./testdata/sample-slice.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -741,109 +389,6 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	jsonDataDg := `{
-		"imsis": [
-			"123456789000001"
-		],
-		"ip-domain-name": "sample-ipd",
-		"site-info": "sample-site",
-		"ip-domain-expanded": {
-			"dnn": "5ginternet",
-			"ue-ip-pool": "1.2.3.4/24",
-			"dns-primary": "8.8.8.8",
-			"mtu": 1492,
-			"ue-dnn-qos": {
-				"dnn-mbr-downlink": 4321,
-				"dnn-mbr-uplink": 8765,
-				"bitrate-unit": "bps",
-				"traffic-class": {
-					"name": "sample-traffic-class",
-					"arp": 3,
-					"pdb": 300,
-					"pelr": 6,
-					"qci": 55
-				}					
-			}				
-		}
-		}`
-
-	jsonDataVcs := `{
-			"slice-id": {
-			  "sst": "222",
-			  "sd": ""
-			},
-			"site-device-group": [
-			  "sample-dg"
-			],
-			"site-info": {
-			  "site-name": "sample-site",
-			  "plmn": {
-				"mcc": "123",
-				"mnc": "456"
-			  },
-			  "gNodeBs": [
-				{
-				  "name": "6.7.8.9",
-				  "tac": 30635
-				}
-			  ],
-			  "upf": {
-				"upf-name": "2.3.4.5",
-				"upf-port": 66
-			  }
-			},
-			"application-filtering-rules": [{
-				"rule-name": "sample-app-sample-app-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.4/32",
-				"action": "permit",
-				"protocol": 17,
-				"priority": 7
-			},
-			{
-				"rule-name": "sample-app2-sample-app2-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.5/32",
-				"action": "deny",
-				"protocol": 17,
-				"priority": 8,
-				"app-mbr-downlink": 55667788,
-				"app-mbr-uplink": 11223344,
-				"bitrate-unit": "bps",
-				"traffic-class": {
-					"name": "sample-traffic-class",
-					"arp": 3,
-					"pdb": 300,
-					"pelr": 6,
-					"qci": 55
-				}
-			},
-			{
-				"rule-name": "DENY-ALL",
-				"endpoint": "0.0.0.0/0",
-				"priority": 250,
-				"action": "deny"
-			}]
-		}`
-
-	jsonDataSlice := `{
-          "sliceName": "sample-vcs",
-          "sliceQos": {
-            "uplinkMBR": 333,
-						"downlinkMBR": 444,
-						"bitrateUnit": "bps",
-						"downlinkBurstSize": 625000,
-						"uplinkBurstSize": 625000
-          },
-          "ueResourceInfo": [
-            {
-              "uePoolId": "sample-dg",
-              "dnn": "5ginternet"
-            }
-          ]
-        }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
@@ -862,21 +407,27 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataDg, json)
+		require.JSONEq(t, string(jsonDataDg), json)
 	}
 	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataVcs, json)
+		require.JSONEq(t, string(jsonDataVcs), json)
 	}
 	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataSlice, json)
+		require.JSONEq(t, string(jsonDataSlice), json)
 	}
 }
 
 func TestSynchronizeVCSDisabledDG(t *testing.T) {
+	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	assert.NoError(t, err)
+	jsonDataVcs, err := ioutil.ReadFile("./testdata/sample-vcs3.json")
+	assert.NoError(t, err)
+	jsonDataSlice, err := ioutil.ReadFile("./testdata/sample-slice1.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -901,100 +452,6 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	jsonDataDg := `{
-		"imsis": [
-			"123456789000001"
-		],
-		"ip-domain-name": "sample-ipd",
-		"site-info": "sample-site",
-		"ip-domain-expanded": {
-			"dnn": "5ginternet",
-			"ue-ip-pool": "1.2.3.4/24",
-			"dns-primary": "8.8.8.8",
-			"mtu": 1492,
-			"ue-dnn-qos": {
-				"dnn-mbr-downlink": 4321,
-				"dnn-mbr-uplink": 8765,
-				"bitrate-unit": "bps",
-				"traffic-class": {
-					"name": "sample-traffic-class",
-					"arp": 3,
-					"pdb": 300,
-					"pelr": 6,
-					"qci": 55
-				}					
-			}				
-		}
-		}`
-
-	jsonDataVcs := `{
-			"slice-id": {
-			  "sst": "222",
-			  "sd": "00006F"
-			},
-			"site-info": {
-			  "site-name": "sample-site",
-			  "plmn": {
-				"mcc": "123",
-				"mnc": "456"
-			  },
-			  "gNodeBs": [
-				{
-				  "name": "6.7.8.9",
-				  "tac": 30635
-				}
-			  ],
-			  "upf": {
-				"upf-name": "2.3.4.5",
-				"upf-port": 66
-			  }
-			},
-			"application-filtering-rules": [{
-				"rule-name": "sample-app-sample-app-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.4/32",
-				"action": "permit",
-				"protocol": 17,
-				"priority": 7
-			},
-			{
-				"rule-name": "sample-app2-sample-app2-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.5/32",
-				"action": "deny",
-				"protocol": 17,
-				"priority": 8,
-				"app-mbr-downlink": 55667788,
-				"app-mbr-uplink": 11223344,
-				"bitrate-unit": "bps",
-				"traffic-class": {
-					"name": "sample-traffic-class",
-					"arp": 3,
-					"pdb": 300,
-					"pelr": 6,
-					"qci": 55
-				}
-			},
-			{
-				"rule-name": "DENY-ALL",
-				"endpoint": "0.0.0.0/0",
-				"priority": 250,
-				"action": "deny"
-			}]
-		}`
-
-	jsonDataSlice := `{
-          "sliceName": "sample-vcs",
-          "sliceQos": {
-            "uplinkMBR": 333,
-						"downlinkMBR": 444,
-						"bitrateUnit": "bps",
-						"downlinkBurstSize": 625000,
-						"uplinkBurstSize": 625000
-          }
-        }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
@@ -1013,21 +470,25 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataDg, json)
+		require.JSONEq(t, string(jsonDataDg), json)
 	}
 	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataVcs, json)
+		require.JSONEq(t, string(jsonDataVcs), json)
 	}
 	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataSlice, json)
+		require.JSONEq(t, string(jsonDataSlice), json)
 	}
 }
 
 func TestSynchronizeVCSMissingDG(t *testing.T) {
+	jsonDataVcs, err := ioutil.ReadFile("./testdata/sample-vcs3.json")
+	assert.NoError(t, err)
+	jsonDataSlice, err := ioutil.ReadFile("./testdata/sample-slice1.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -1051,74 +512,6 @@ func TestSynchronizeVCSMissingDG(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	jsonDataVcs := `{
-			"slice-id": {
-			  "sst": "222",
-			  "sd": "00006F"
-			},
-			"site-info": {
-			  "site-name": "sample-site",
-			  "plmn": {
-				"mcc": "123",
-				"mnc": "456"
-			  },
-			  "gNodeBs": [
-				{
-				  "name": "6.7.8.9",
-				  "tac": 30635
-				}
-			  ],
-			  "upf": {
-				"upf-name": "2.3.4.5",
-				"upf-port": 66
-			  }
-			},
-			"application-filtering-rules": [{
-				"rule-name": "sample-app-sample-app-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.4/32",
-				"action": "permit",
-				"protocol": 17,
-				"priority": 7
-			},
-			{
-				"rule-name": "sample-app2-sample-app2-ep",
-				"dest-port-start": 123,
-				"dest-port-end": 124,
-				"endpoint": "1.2.3.5/32",
-				"action": "deny",
-				"protocol": 17,
-				"priority": 8,
-				"app-mbr-downlink": 55667788,
-				"app-mbr-uplink": 11223344,
-				"bitrate-unit": "bps",
-				"traffic-class": {
-					"name": "sample-traffic-class",
-					"arp": 3,
-					"pdb": 300,
-					"pelr": 6,
-					"qci": 55
-				}
-			},
-			{
-				"rule-name": "DENY-ALL",
-				"endpoint": "0.0.0.0/0",
-				"priority": 250,
-				"action": "deny"
-			}]
-		}`
-
-	jsonDataSlice := `{
-          "sliceName": "sample-vcs",
-          "sliceQos": {
-            "uplinkMBR": 333,
-						"downlinkMBR": 444,
-						"bitrateUnit": "bps",
-						"downlinkBurstSize": 625000,
-						"uplinkBurstSize": 625000
-          }
-        }`
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
@@ -1135,11 +528,11 @@ func TestSynchronizeVCSMissingDG(t *testing.T) {
 	json, okay := pushes["http://5gcore/v1/network-slice/sample-vcs"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataVcs, json)
+		require.JSONEq(t, string(jsonDataVcs), json)
 	}
 	json, okay = pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
 	if okay {
-		require.JSONEq(t, jsonDataSlice, json)
+		require.JSONEq(t, string(jsonDataSlice), json)
 	}
 }

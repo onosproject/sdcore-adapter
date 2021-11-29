@@ -10,10 +10,13 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"testing"
 )
 
 func TestSynchronizeVcsUPF(t *testing.T) {
+	jsonData, err := ioutil.ReadFile("./testdata/sample-slice.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -35,25 +38,8 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	jsonData := `{
-			"sliceName": "sample-vcs",
-			"sliceQos": {
-				"uplinkMBR": 333,
-				"downlinkMBR": 444,
-				"uplinkBurstSize": 625000,
-				"downlinkBurstSize": 625000,
-				"bitrateUnit": "bps"
-			},
-			"ueResourceInfo": [
-				{
-					"uePoolId": "sample-dg",
-					"dnn": "5ginternet"
-				}
-			]
-		}`
-
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonData
+		pushes[endpoint] = string(jsonData)
 		return nil
 	}).AnyTimes()
 	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
@@ -62,11 +48,13 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 	assert.True(t, okay)
 	assert.Equal(t, 0, pushFailures)
 	if okay {
-		require.JSONEq(t, jsonData, json)
+		require.JSONEq(t, string(jsonData), json)
 	}
 }
 
 func TestSynchronizeVcsUPFWithBurst(t *testing.T) {
+	jsonData, err := ioutil.ReadFile("./testdata/sample-slice.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -91,24 +79,8 @@ func TestSynchronizeVcsUPFWithBurst(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	jsonData := `{
-			"sliceName": "sample-vcs",
-			"sliceQos": {
-				"uplinkMBR": 333,
-				"downlinkMBR": 444,
-				"uplinkBurstSize": 111222,
-				"downlinkBurstSize": 333444,
-				"bitrateUnit": "bps"
-			},
-			"ueResourceInfo": [
-				{
-					"uePoolId": "sample-dg",
-					"dnn": "5ginternet"
-				}
-			]
-		}`
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonData
+		pushes[endpoint] = string(jsonData)
 		return nil
 	}).AnyTimes()
 	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
@@ -117,11 +89,13 @@ func TestSynchronizeVcsUPFWithBurst(t *testing.T) {
 	assert.True(t, okay)
 	assert.Equal(t, 0, pushFailures)
 	if okay {
-		require.JSONEq(t, jsonData, json)
+		require.JSONEq(t, string(jsonData), json)
 	}
 }
 
 func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
+	jsonData, err := ioutil.ReadFile("./testdata/sample-slice1.json")
+	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
@@ -145,19 +119,8 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
 	}
 
-	jsonData := `{
-			"sliceName": "sample-vcs",
-			"sliceQos": {
-			},
-			"ueResourceInfo": [
-				{
-					"uePoolId": "sample-dg",
-					"dnn": "5ginternet"
-				}
-			]
-		}`
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
-		pushes[endpoint] = jsonData
+		pushes[endpoint] = string(jsonData)
 		return nil
 	}).AnyTimes()
 	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
@@ -166,6 +129,6 @@ func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
 	assert.True(t, okay)
 	assert.Equal(t, 0, pushFailures)
 	if okay {
-		require.JSONEq(t, jsonData, json)
+		require.JSONEq(t, string(jsonData), json)
 	}
 }

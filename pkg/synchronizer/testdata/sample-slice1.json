@@ -1,0 +1,10 @@
+{
+  "sliceName": "sample-vcs",
+  "sliceQos": {
+    "uplinkMBR": 333,
+    "downlinkMBR": 444,
+    "bitrateUnit": "bps",
+    "downlinkBurstSize": 625000,
+    "uplinkBurstSize": 625000
+  }
+}

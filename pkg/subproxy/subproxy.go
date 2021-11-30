@@ -65,7 +65,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := postToWebConsole(s.BaseWebConsoleURL+subscriberAPISuffix+ueID, payload, s.PostTimeout)
+	resp, err := ForwardReqToEndpoint(s.BaseWebConsoleURL+subscriberAPISuffix+ueID, payload, s.PostTimeout)
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
 		if okay != nil {
@@ -122,6 +122,7 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 	if len(strings.TrimSpace(openIDIssuer)) > 0 {
 		s.gnmiContext = metadata.AppendToOutgoingContext(s.gnmiContext, authorization, s.token)
 	}
+	//fmt.Println("Core_5GEndpoint = ",cs.Core_5GEndpoint)
 
 	//Getting Device Group only
 	origValDg, err := s.gnmiClient.GetPath(s.gnmiContext, "/device-group", s.AetherConfigTarget, s.AetherConfigAddress)
@@ -146,8 +147,14 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 	//Getting Sites only
 	origValSite, err := s.gnmiClient.GetPath(s.gnmiContext, "/site", s.AetherConfigTarget, s.AetherConfigAddress)
 	if err != nil {
-		return nil, errors.NewInvalid("failed to get the current state from onos-config: %v", err)
+		return nil, errors.NewInvalid("failed to get the Site from onos-config: %v", err)
 	}
+
+	origValCS, err := s.gnmiClient.GetPath(s.gnmiContext, "/connectivity-service", s.AetherConfigTarget, s.AetherConfigAddress)
+	if err != nil {
+		return nil, errors.NewInvalid("failed to get the CS from onos-config: %v", err.Error())
+	}
+	fmt.Println("origValCS = ", string(origValCS.GetJsonVal()))
 
 	device := &models.Device{}
 	// Convert the JSON config into a Device structure for Device Group
@@ -168,6 +175,27 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 		}
 	}
 
+	// Convert the JSON config into a Device structure for Device Group
+	origJSONBytes = origValCS.GetJsonVal()
+	if len(origJSONBytes) > 0 {
+		if err := models.Unmarshal(origJSONBytes, device); err != nil {
+			log.Error("Failed to unmarshal json : ", err.Error())
+			return nil, errors.NewInvalid("failed to unmarshal json")
+		}
+	}
+
+	//fmt.Println("endpoint : ",*device.ConnectivityService.ConnectivityService["cs5gtest"].Core_5GEndpoint)
+
+	if device.ConnectivityService.ConnectivityService["cs4gtest"] != nil && device.ConnectivityService.ConnectivityService["cs4gtest"].Core_5GEndpoint != nil {
+		s.BaseWebConsoleURL = *device.ConnectivityService.ConnectivityService["cs4gtest"].Core_5GEndpoint
+	}
+	if device.ConnectivityService.ConnectivityService["cs5gtest"] != nil && device.ConnectivityService.ConnectivityService["cs5gtest"].Core_5GEndpoint != nil {
+		s.BaseWebConsoleURL = *device.ConnectivityService.ConnectivityService["cs5gtest"].Core_5GEndpoint
+	}
+	if device.ConnectivityService.ConnectivityService["aiab-cs"] != nil && device.ConnectivityService.ConnectivityService["aiab-cs"].Core_5GEndpoint != nil {
+		s.BaseWebConsoleURL = *device.ConnectivityService.ConnectivityService["aiab-cs"].Core_5GEndpoint
+	}
+	fmt.Println("endpoint : ", s.BaseWebConsoleURL)
 	return device, nil
 }
 

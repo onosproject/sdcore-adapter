@@ -1,0 +1,13 @@
+{
+
+ "connectivity-service": {
+            "connectivity-service": [
+                {
+                    "core-5g-endpoint": "http://webui.omec.svc:5000/config",
+                    "description": "5G Integration Test",
+                    "display-name": "ROC 5G Test Connectivity Service",
+                    "id": "aiab-cs"
+                }
+            ]
+        }
+}

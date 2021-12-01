@@ -67,9 +67,12 @@ func findSiteForTheImsi(device *models.Device, imsi uint64) (*models.OnfSite_Sit
 		if err != nil {
 			return nil, errors.NewInvalid("Failed to mask the subscriber: %v", err)
 		}
-
+		entID := uint32(0)
+		if site.ImsiDefinition.Enterprise != nil {
+			entID = *site.ImsiDefinition.Enterprise
+		}
 		siteImsiValue, err := sync.FormatImsi(*site.ImsiDefinition.Format, *site.ImsiDefinition.Mcc,
-			*site.ImsiDefinition.Mnc, *site.ImsiDefinition.Enterprise, maskedImsi)
+			*site.ImsiDefinition.Mnc, entID, maskedImsi)
 		if err != nil {
 			return nil, errors.NewInvalid("Failed to mask the subscriber: %v", err)
 		}
@@ -139,11 +142,11 @@ func getSiteForDeviceGrp(device *models.Device, dg *models.OnfDeviceGroup_Device
 	return site, nil
 }
 
-// PostToWebConsole will Call webui API for subscriber provision on the SD-Core
-func postToWebConsole(postURI string, payload []byte, postTimeout time.Duration) (*http.Response, error) {
+// ForwardReqToEndpoint will Call webui API for subscriber provision on the SD-Core
+func ForwardReqToEndpoint(postURI string, payload []byte, postTimeout time.Duration) (*http.Response, error) {
 	req, err := http.NewRequest("POST", postURI, bytes.NewBuffer(payload))
 	if err != nil {
-		return nil, errors.NewInvalid("Error while connecting webui ", err.Error())
+		return nil, errors.NewInvalid("Error while connecting  ", err.Error())
 	}
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")

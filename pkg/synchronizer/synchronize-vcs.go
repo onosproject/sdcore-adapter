@@ -151,12 +151,14 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 				appCore.Endpoint = *app.Address + "/32"
 			}
 
-			appCore.DestPortStart = endpoint.PortStart
-			if endpoint.PortEnd != nil {
-				appCore.DestPortEnd = endpoint.PortEnd
-			} else {
-				// no EndPort specified -- assume it's a singleton range
-				appCore.DestPortEnd = appCore.DestPortStart
+			if endpoint.PortStart != nil {
+				appCore.DestPortStart = endpoint.PortStart
+				if endpoint.PortEnd != nil {
+					appCore.DestPortEnd = endpoint.PortEnd
+				} else {
+					// no EndPort specified -- assume it's a singleton range
+					appCore.DestPortEnd = appCore.DestPortStart
+				}
 			}
 
 			if endpoint.Protocol != nil {

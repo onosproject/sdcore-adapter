@@ -95,6 +95,7 @@ func BuildSampleDeviceGroup() (
 	}
 	imsi := models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{
 		ImsiRangeFrom: aUint64(1),
+		ImsiId:        aStr("sample-imsi"),
 	}
 	dgDevMbr := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device_Mbr{
 		Downlink: aUint64(4321),
@@ -106,7 +107,7 @@ func BuildSampleDeviceGroup() (
 		Id:          aStr("sample-dg"),
 		Site:        aStr("sample-site"),
 		IpDomain:    aStr("sample-ipd"),
-		Imsis:       map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{"sample-imsi": &imsi},
+		Imsis:       map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{*imsi.ImsiId: &imsi},
 		Device:      &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device{Mbr: dgDevMbr, TrafficClass: tc.Id},
 	}
 

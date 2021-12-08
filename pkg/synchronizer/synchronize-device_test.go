@@ -5,6 +5,7 @@
 package synchronizer
 
 import (
+	"fmt"
 	"github.com/golang/mock/gomock"
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
@@ -154,6 +155,57 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 
 	_, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
 	assert.False(t, okay)
+}
+
+func TestSynchronizeDeviceDeviceGroupManyIMSIDeterministic(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
+	pushes := []string{}
+	s := NewSynchronizer(WithPusher(mockPusher))
+
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+
+	for i := 0; i < 100; i++ {
+		name := fmt.Sprintf("imsi%d", i)
+		imsi := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{
+			ImsiRangeFrom: aUint64(uint64(100 + i)),
+			ImsiId:        aStr(name),
+		}
+
+		dg.Imsis[*imsi.ImsiId] = imsi
+	}
+
+	device := models.Device{
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{"sample-dg": dg}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
+	}
+
+	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		pushes = append(pushes, string(data))
+		return nil
+	}).AnyTimes()
+
+	// Push 10 times
+	for i := 0; i < 10; i++ {
+		// Make sure the cache does not prevent multiple pushes
+		s.CacheInvalidate()
+
+		// Do a push
+		pushErrors, err := s.SynchronizeDevice(&device)
+		assert.Equal(t, 0, pushErrors)
+		assert.Nil(t, err)
+	}
+
+	assert.Equal(t, 10, len(pushes))
+
+	// All 10 pushes should have identical text
+	for i := 1; i < 10; i++ {
+		assert.Equal(t, pushes[0], pushes[i])
+	}
 }
 
 func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {

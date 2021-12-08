@@ -7,6 +7,7 @@ package synchronizer
 
 import (
 	"fmt"
+	"sort"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 )
@@ -167,7 +168,17 @@ func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.OnfD
 // GetVcsDG given a VCS, return the set of DeviceGroup attached to it
 func (s *Synchronizer) GetVcsDG(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, error) {
 	dgList := []*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{}
-	for _, dgLink := range vcs.DeviceGroup {
+
+	// be deterministic...
+	dgKeys := []string{}
+	for k := range vcs.DeviceGroup {
+		dgKeys = append(dgKeys, k)
+	}
+	sort.Strings(dgKeys)
+
+	for _, k := range dgKeys {
+		dgLink := vcs.DeviceGroup[k]
+
 		dg, okay := device.DeviceGroup.DeviceGroup[*dgLink.DeviceGroup]
 		if !okay {
 			return nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)

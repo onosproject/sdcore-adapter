@@ -8,6 +8,7 @@ package synchronizer
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 )
@@ -42,8 +43,16 @@ func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.
 		return 0, fmt.Errorf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.Id, err)
 	}
 
+	// be deterministic...
+	imsiKeys := []string{}
+	for k := range dg.Imsis {
+		imsiKeys = append(imsiKeys, k)
+	}
+	sort.Strings(imsiKeys)
+
 	// populate the imsi list
-	for _, imsiBlock := range dg.Imsis {
+	for _, k := range imsiKeys {
+		imsiBlock := dg.Imsis[k]
 		if imsiBlock.ImsiRangeFrom == nil {
 			return 0, fmt.Errorf("imsiBlock has blank ImsiRangeFrom: %v", imsiBlock)
 		}

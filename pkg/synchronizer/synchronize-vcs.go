@@ -55,7 +55,15 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 	}
 
 	if site.SmallCell != nil {
-		for _, ap := range site.SmallCell {
+		// be deterministic...
+		smallCellKeys := []string{}
+		for k := range site.SmallCell {
+			smallCellKeys = append(smallCellKeys, k)
+		}
+		sort.Strings(smallCellKeys)
+
+		for _, k := range smallCellKeys {
+			ap := site.SmallCell[k]
 			err = validateSmallCell(ap)
 			if err != nil {
 				return 0, fmt.Errorf("SmallCell invalid: %s", err)

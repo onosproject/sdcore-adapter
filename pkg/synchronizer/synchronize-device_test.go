@@ -333,6 +333,132 @@ func TestSynchronizeVCS(t *testing.T) {
 	}
 }
 
+func TestSynchronizeVCSAllowAll(t *testing.T) {
+	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	assert.NoError(t, err)
+	jsonDataVcs, err := ioutil.ReadFile("./testdata/sample-vcs-allow-all.json")
+	assert.NoError(t, err)
+	jsonDataSlice, err := ioutil.ReadFile("./testdata/sample-slice.json")
+	assert.NoError(t, err)
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
+	pushes := make(map[string]string)
+	s := NewSynchronizer(WithPusher(mockPusher))
+
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+	apps, tp, upf, vcs := BuildSampleVcs()
+
+	vcs.DefaultBehavior = aStr("ALLOW-ALL")
+
+	device := models.Device{
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
+		Application:         &models.OnfApplication_Application{Application: apps},
+		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
+		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
+	}
+
+	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		pushes[endpoint] = string(data)
+		return nil
+	}).AnyTimes()
+	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		pushes[endpoint] = string(data)
+		return nil
+	}).AnyTimes()
+	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		pushes[endpoint] = string(data)
+		return nil
+	}).AnyTimes()
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
+	assert.Nil(t, err)
+
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
+	assert.True(t, okay)
+	if okay {
+		require.JSONEq(t, string(jsonDataDg), json)
+	}
+	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	assert.True(t, okay)
+	if okay {
+		require.JSONEq(t, string(jsonDataVcs), json)
+	}
+	json, okay = pushes["http://upf/v1/config/network-slices"]
+	assert.True(t, okay)
+	if okay {
+		require.JSONEq(t, string(jsonDataSlice), json)
+	}
+}
+
+func TestSynchronizeVCSAllowPublic(t *testing.T) {
+	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	assert.NoError(t, err)
+	jsonDataVcs, err := ioutil.ReadFile("./testdata/sample-vcs-allow-public.json")
+	assert.NoError(t, err)
+	jsonDataSlice, err := ioutil.ReadFile("./testdata/sample-slice.json")
+	assert.NoError(t, err)
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
+	pushes := make(map[string]string)
+	s := NewSynchronizer(WithPusher(mockPusher))
+
+	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
+	apps, tp, upf, vcs := BuildSampleVcs()
+
+	vcs.DefaultBehavior = aStr("ALLOW-PUBLIC")
+
+	device := models.Device{
+		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
+		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
+		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
+		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
+		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
+		Application:         &models.OnfApplication_Application{Application: apps},
+		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
+		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
+		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
+		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
+	}
+
+	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		pushes[endpoint] = string(data)
+		return nil
+	}).AnyTimes()
+	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-vcs", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		pushes[endpoint] = string(data)
+		return nil
+	}).AnyTimes()
+	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		pushes[endpoint] = string(data)
+		return nil
+	}).AnyTimes()
+	pushErrors, err := s.SynchronizeDevice(&device)
+	assert.Equal(t, 0, pushErrors)
+	assert.Nil(t, err)
+
+	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
+	assert.True(t, okay)
+	if okay {
+		require.JSONEq(t, string(jsonDataDg), json)
+	}
+	json, okay = pushes["http://5gcore/v1/network-slice/sample-vcs"]
+	assert.True(t, okay)
+	if okay {
+		require.JSONEq(t, string(jsonDataVcs), json)
+	}
+	json, okay = pushes["http://upf/v1/config/network-slices"]
+	assert.True(t, okay)
+	if okay {
+		require.JSONEq(t, string(jsonDataSlice), json)
+	}
+}
+
 func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)

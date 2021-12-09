@@ -3,6 +3,9 @@
     "sst": "222",
     "sd": "00006F"
   },
+  "site-device-group": [
+    "sample-dg"
+  ],  
   "site-info": {
     "site-name": "sample-site",
     "plmn": {
@@ -49,9 +52,27 @@
       }
     },
     {
-      "rule-name": "DENY-ALL",
-      "endpoint": "0.0.0.0/0",
+      "rule-name": "DENY-CLASS-A",
+      "endpoint": "10.0.0.0/8",
       "priority": 5,
       "action": "deny"
+    },
+    {
+      "rule-name": "DENY-CLASS-B",
+      "endpoint": "172.16.0.0/12",
+      "priority": 4,
+      "action": "deny"
+    },
+    {
+      "rule-name": "DENY-CLASS-C",
+      "endpoint": "192.168.0.0/16",
+      "priority": 3,
+      "action": "deny"
+    },    
+    {
+      "rule-name": "ALLOW-ALL",
+      "endpoint": "0.0.0.0/0",
+      "priority": 2,
+      "action": "permit"
     }]
 }

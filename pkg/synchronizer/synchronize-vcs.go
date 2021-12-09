@@ -15,6 +15,10 @@ import (
 	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 )
 
+func (s *Synchronizer) mapPriority(i uint8) uint8 {
+	return 255 - i // UPF expectation is priority is inverse of ROC's priority
+}
+
 // SynchronizeVcsCore synchronizes the VCSes
 // Return a count of push-related errors
 func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
@@ -212,23 +216,23 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 				appCore.TrafficClass = tcCore
 			}
 
-			appCore.Priority = DerefUint8Ptr(appRef.Priority, 0)
+			appCore.Priority = s.mapPriority(DerefUint8Ptr(appRef.Priority, 0))
 			slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
 		}
 	}
 
 	switch *vcs.DefaultBehavior {
 	case "ALLOW-ALL":
-		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: 250, Endpoint: "0.0.0.0/0"}
+		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: s.mapPriority(250), Endpoint: "0.0.0.0/0"}
 		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, allowAll)
 	case "DENY-ALL":
-		denyAll := appFilterRule{Name: "DENY-ALL", Action: "deny", Priority: 250, Endpoint: "0.0.0.0/0"}
+		denyAll := appFilterRule{Name: "DENY-ALL", Action: "deny", Priority: s.mapPriority(250), Endpoint: "0.0.0.0/0"}
 		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyAll)
 	case "ALLOW-PUBLIC":
-		denyClassA := appFilterRule{Name: "DENY-CLASS-A", Action: "deny", Priority: 250, Endpoint: "10.0.0.0/8"}
-		denyClassB := appFilterRule{Name: "DENY-CLASS-B", Action: "deny", Priority: 251, Endpoint: "172.16.0.0/12"}
-		denyClassC := appFilterRule{Name: "DENY-CLASS-C", Action: "deny", Priority: 252, Endpoint: "192.168.0.0/16"}
-		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: 253, Endpoint: "0.0.0.0/0"}
+		denyClassA := appFilterRule{Name: "DENY-CLASS-A", Action: "deny", Priority: s.mapPriority(250), Endpoint: "10.0.0.0/8"}
+		denyClassB := appFilterRule{Name: "DENY-CLASS-B", Action: "deny", Priority: s.mapPriority(251), Endpoint: "172.16.0.0/12"}
+		denyClassC := appFilterRule{Name: "DENY-CLASS-C", Action: "deny", Priority: s.mapPriority(252), Endpoint: "192.168.0.0/16"}
+		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: s.mapPriority(253), Endpoint: "0.0.0.0/0"}
 		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassA)
 		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassB)
 		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassC)

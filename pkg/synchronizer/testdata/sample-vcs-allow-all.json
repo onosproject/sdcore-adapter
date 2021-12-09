@@ -3,6 +3,9 @@
     "sst": "222",
     "sd": "00006F"
   },
+  "site-device-group": [
+    "sample-dg"
+  ],  
   "site-info": {
     "site-name": "sample-site",
     "plmn": {
@@ -49,9 +52,9 @@
       }
     },
     {
-      "rule-name": "DENY-ALL",
+      "rule-name": "ALLOW-ALL",
       "endpoint": "0.0.0.0/0",
       "priority": 5,
-      "action": "deny"
+      "action": "permit"
     }]
 }

@@ -32,10 +32,14 @@ const (
 
 	// Deleted is for specific paths that are deleted
 	Deleted
+
+	// configCallbackTypeLimit denotes the end of valid enums.
+	// Create additional ConfigCallbackType enums above this line
+	configCallbackTypeLimit
 )
 
 func (c ConfigCallbackType) String() string {
-	return [...]string{"Initial", "Apply", "Rollback", "Forced", "Delete"}[c]
+	return [...]string{"Initial", "Apply", "Rollback", "Forced", "Deleted"}[c]
 }
 
 // ConfigCallback is the signature of the function to apply a validated config to the physical device.

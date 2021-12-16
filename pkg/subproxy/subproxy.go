@@ -227,7 +227,7 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
 		return err
 	}
 	if site == nil {
-		log.Infof("Not site found for this imsi %s", imsi)
+		log.Infof("No sites found for this imsi %s", imsi)
 		dgroup := "defaultent-defaultsite-default"
 		return s.addImsiToDefaultGroup(device, dgroup, imsi)
 	}

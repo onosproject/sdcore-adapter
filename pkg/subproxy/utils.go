@@ -166,7 +166,7 @@ func ForwardReqToEndpoint(postURI string, payload []byte, postTimeout time.Durat
 
 //ExtractBaseURL extract base api url from the given config url
 func ExtractBaseURL(baseURL string) string {
-	strRegex := "http\\://(.*?)\\/"
+	strRegex := "(http|https)\\://(.*?)\\/"
 	re := regexp.MustCompile(strRegex)
 	return re.FindString(baseURL)
 }

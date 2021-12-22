@@ -14,6 +14,7 @@ import (
 	sync "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	"google.golang.org/grpc/metadata"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -144,6 +145,7 @@ func getSiteForDeviceGrp(device *models.Device, dg *models.OnfDeviceGroup_Device
 
 // ForwardReqToEndpoint will Call webui API for subscriber provision on the SD-Core
 func ForwardReqToEndpoint(postURI string, payload []byte, postTimeout time.Duration) (*http.Response, error) {
+	log.Info("Post URI :  ", postURI)
 	req, err := http.NewRequest("POST", postURI, bytes.NewBuffer(payload))
 	if err != nil {
 		return nil, errors.NewInvalid("Error while connecting  ", err.Error())
@@ -157,7 +159,16 @@ func ForwardReqToEndpoint(postURI string, payload []byte, postTimeout time.Durat
 	}
 	defer resp.Body.Close()
 
+	log.Info("Received response ", resp)
+
 	return resp, nil
+}
+
+//ExtractBaseURL extract base api url from the given config url
+func ExtractBaseURL(baseURL string) string {
+	strRegex := "(http|https)\\://(.*?)\\/"
+	re := regexp.MustCompile(strRegex)
+	return re.FindString(baseURL)
 }
 
 // NewGnmiContext - convert the gin context in to a gRPC Context

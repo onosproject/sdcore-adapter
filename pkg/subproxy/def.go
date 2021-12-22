@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	subscriberAPISuffix = "/api/subscriber/"
+	subscriberAPISuffix = "api/subscriber/"
 	log                 = logging.GetLogger("subscriber-proxy")
 	clientHTTP          HTTPClient
 )

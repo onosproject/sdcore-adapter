@@ -32,7 +32,7 @@ type HTTPClient interface {
 }
 
 func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
-	log.Debugf("Received One Subscriber Data")
+	log.Infof("Received One Subscriber Data")
 	ueID := c.Param("ueId")
 	var payload []byte
 	if c.Request.Body != nil {
@@ -45,7 +45,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		return
 	}
 
-	log.Debugf("Received subscriber id : %s ", ueID)
+	log.Infof("Received subscriber id : %s ", ueID)
 
 	split := strings.Split(ueID, "-")
 	imsiValue, err := strconv.ParseUint(split[1], 10, 64)
@@ -183,14 +183,18 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 		}
 	}
 
+	baseURL := ""
 	if device.ConnectivityService.ConnectivityService["cs4gtest"] != nil && device.ConnectivityService.ConnectivityService["cs4gtest"].Core_5GEndpoint != nil {
-		s.BaseWebConsoleURL = *device.ConnectivityService.ConnectivityService["cs4gtest"].Core_5GEndpoint
+		baseURL = *device.ConnectivityService.ConnectivityService["cs4gtest"].Core_5GEndpoint
 	}
 	if device.ConnectivityService.ConnectivityService["cs5gtest"] != nil && device.ConnectivityService.ConnectivityService["cs5gtest"].Core_5GEndpoint != nil {
-		s.BaseWebConsoleURL = *device.ConnectivityService.ConnectivityService["cs5gtest"].Core_5GEndpoint
+		baseURL = *device.ConnectivityService.ConnectivityService["cs5gtest"].Core_5GEndpoint
 	}
 	if device.ConnectivityService.ConnectivityService["aiab-cs"] != nil && device.ConnectivityService.ConnectivityService["aiab-cs"].Core_5GEndpoint != nil {
-		s.BaseWebConsoleURL = *device.ConnectivityService.ConnectivityService["aiab-cs"].Core_5GEndpoint
+		baseURL = *device.ConnectivityService.ConnectivityService["aiab-cs"].Core_5GEndpoint
+	}
+	if baseURL != "" {
+		s.BaseWebConsoleURL = ExtractBaseURL(baseURL)
 	}
 	log.Info("endpoint : ", s.BaseWebConsoleURL)
 	return device, nil
@@ -205,17 +209,17 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
 	}
 
 	if device.DeviceGroup == nil {
-		log.Debugf("No device groups founds")
+		log.Infof("No device groups founds")
 		return nil
 	}
 
 	// Check if the IMSI already exists
 	dg := findImsiInDeviceGroup(device, imsi)
 	if dg != nil {
-		log.Debugf("Imsi %v already exists in device group %s", imsi, *dg.Id)
+		log.Infof("Imsi %v already exists in device group %s", imsi, *dg.Id)
 		return nil
 	}
-	log.Debugf("Imsi doesn't exist in any device group")
+	log.Infof("Imsi doesn't exist in any device group")
 
 	//Check if the site exists
 	site, err := findSiteForTheImsi(device, imsi)
@@ -223,7 +227,7 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
 		return err
 	}
 	if site == nil {
-		log.Debugf("Not site found for this imsi %s", imsi)
+		log.Infof("No sites found for this imsi %s", imsi)
 		dgroup := "defaultent-defaultsite-default"
 		return s.addImsiToDefaultGroup(device, dgroup, imsi)
 	}
@@ -234,7 +238,7 @@ func (s *subscriberProxy) updateImsiDeviceGroup(imsi uint64) error {
 
 //addImsiToDefaultGroup adds Imsi to default group expect the group already exists
 func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup string, imsi uint64) error {
-	log.Debugf("AddImsiToDefaultGroup Name : %s", dgroup)
+	log.Infof("AddImsiToDefaultGroup Name : %s", dgroup)
 
 	// Now get the device group the caller wants us to add the IMSI to
 	dg, okay := device.DeviceGroup.DeviceGroup[dgroup]
@@ -251,7 +255,7 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 		return errors.NewInvalid("Failed to mask the subscriber: %v", err)
 	}
 
-	log.Debugf("Masked imsi is %v", maskedImsi)
+	log.Infof("Masked imsi is %v", maskedImsi)
 
 	// An imsi-range inside of a devicegroup needs a name. Let's just name our range after the imsi
 	// we're creating, prepended with "auto-" to make it clear it was automatically added. Don't worry
@@ -269,6 +273,7 @@ func (s *subscriberProxy) addImsiToDefaultGroup(device *models.Device, dgroup st
 	// Apply them
 	err = s.gnmiClient.Update(s.gnmiContext, prefix, s.AetherConfigTarget, s.AetherConfigAddress, updates)
 	if err != nil {
+		log.Errorf("Error while applying changes via gNMI %v", err)
 		return errors.NewInternal("Error executing gNMI: %v", err)
 	}
 	return nil

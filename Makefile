@@ -51,7 +51,6 @@ license_check: build-tools # @HELP examine and ensure license headers exist
 build: local-aether-models
 	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter
 	go build -o build/_output/add-imsi ./cmd/add-imsi
-	go build -o build/_output/imsi-range ./cmd/imsi-range
 	go build -o build/_output/sample-rocapp ./cmd/sample-rocapp
 	go build -o build/_output/sdcore-exporter ./cmd/sdcore-exporter
 	go build -o build/_output/sdcore-migrate ./cmd/sdcore-migrate

@@ -7,7 +7,7 @@ package synchronizer
 // helpers that are useful to multiple test cases
 
 import (
-	models "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
+	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 // TODO: Refactor to use mockgen and/or sample data files ?

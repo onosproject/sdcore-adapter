@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 
-	models_v4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
+	models_v4 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 func TestValidateVcs(t *testing.T) {

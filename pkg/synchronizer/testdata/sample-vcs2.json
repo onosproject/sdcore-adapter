@@ -30,7 +30,7 @@
     "endpoint": "1.2.3.4/32",
     "action": "permit",
     "protocol": 17,
-    "priority": 248
+    "priority": 7 
   },
     {
       "rule-name": "sample-app2-sample-app2-ep",
@@ -39,7 +39,7 @@
       "endpoint": "1.2.3.5/32",
       "action": "deny",
       "protocol": 17,
-      "priority": 247,
+      "priority": 8,
       "app-mbr-downlink": 55667788,
       "app-mbr-uplink": 11223344,
       "bitrate-unit": "bps",
@@ -54,7 +54,7 @@
     {
       "rule-name": "DENY-ALL",
       "endpoint": "0.0.0.0/0",
-      "priority": 5,
+      "priority": 250,
       "action": "deny"
     }]
 }

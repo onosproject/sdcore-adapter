@@ -13,9 +13,12 @@ import (
 	"testing"
 )
 
-func BuildRootPath(model string, key string) *pb.Path {
-	keyMap := map[string]string{"id": key}
-	path := &pb.Path{Elem: []*pb.PathElem{{Name: model}, {Name: model, Key: keyMap}}}
+// BuildRootPath builds a root path to a slice or dg
+func BuildRootPath(entID string, siteID string, modelKey string, model string, key string) *pb.Path {
+	entKeyMap := map[string]string{"ent-id": entID}
+	siteKeyMap := map[string]string{"site-id": siteID}
+	keyMap := map[string]string{modelKey: key}
+	path := &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKeyMap}, {Name: "site", Key: siteKeyMap}, {Name: model, Key: keyMap}}}
 	return path
 }
 
@@ -23,8 +26,12 @@ func BuildRootPath(model string, key string) *pb.Path {
 func TestHandleDeleteNotApplicable(t *testing.T) {
 	s := NewSynchronizer()
 
+	entKey := map[string]string{"ent-id": "sample-ent"}
+	siteKey := map[string]string{"site-id": "sample-site"}
+
+	device := BuildSampleDevice()
+
 	// Path is nil
-	device := &models.Device{}
 	err := s.HandleDelete(device, nil)
 	assert.Nil(t, err)
 
@@ -38,57 +45,67 @@ func TestHandleDeleteNotApplicable(t *testing.T) {
 	err = s.HandleDelete(device, path)
 	assert.EqualError(t, err, "Refusing to delete path anything because it is too broad")
 
-	// Path is not for a vcs or device-group
-	path = &pb.Path{Elem: []*pb.PathElem{{Name: "anything"}, {Name: "else"}}}
+	// Path is not for a slice or device-group
+	path = &pb.Path{Elem: []*pb.PathElem{{Name: "anything"}, {Name: "else"}, {Name: "at"}, {Name: "all"}}}
 	err = s.HandleDelete(device, path)
 	assert.Nil(t, err)
 
-	// Path is for a vcs but lacks a key
-	path = &pb.Path{Elem: []*pb.PathElem{{Name: "vcs"}, {Name: "vcs"}}}
+	// Path is for a slice but lacks an enterprise key
+	path = &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise"}, {Name: "site"}, {Name: "slice"}}}
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "Delete of vcs does not have an id key")
+	assert.EqualError(t, err, "Delete of slice does not have an ent-id key")
+
+	// Path is for a slice but lacks a site key
+	path = &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKey}, {Name: "site"}, {Name: "slice"}}}
+	err = s.HandleDelete(device, path)
+	assert.EqualError(t, err, "Delete of slice does not have a site-id key")
+
+	// Path is for a slice but lacks a key
+	path = &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKey}, {Name: "site", Key: siteKey}, {Name: "slice"}}}
+	err = s.HandleDelete(device, path)
+	assert.EqualError(t, err, "Delete of slice does not have an id key")
 
 	// Path is for a device-group but lacks a key
-	path = &pb.Path{Elem: []*pb.PathElem{{Name: "device-group"}, {Name: "device-group"}}}
+	path = &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKey}, {Name: "site", Key: siteKey}, {Name: "device-group"}}}
 	err = s.HandleDelete(device, path)
 	assert.EqualError(t, err, "Delete of device-group does not have an id key")
 
-	// Path is for a leaf within a vcs
-	path = BuildRootPath("vcs", "sample-vcs")
+	// Path is for a leaf within a slice
+	path = &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKey}, {Name: "site", Key: siteKey}, {Name: "slice"}, {Name: "inside"}}}
 	path.Elem = append(path.Elem, &pb.PathElem{Name: "leaf"})
 	err = s.HandleDelete(device, path)
 	assert.Nil(t, err)
 
 	// Path is for a leaf within a device-group
-	path = BuildRootPath("device-group", "sample-vcs")
+	path = &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKey}, {Name: "site", Key: siteKey}, {Name: "device-group"}, {Name: "inside"}}}
 	path.Elem = append(path.Elem, &pb.PathElem{Name: "sample-dg"})
 	err = s.HandleDelete(device, path)
 	assert.Nil(t, err)
 }
 
-func TestHandleDeleteVcs(t *testing.T) {
+func TestHandleDeleteSlice(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
 	device := BuildSampleDevice()
-	path := BuildRootPath("vcs", "sample-vcs")
-	mockPusher.EXPECT().PushDelete("http://5gcore/v1/network-slice/sample-vcs").DoAndReturn(func(endpoint string) error {
+	path := BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
+	mockPusher.EXPECT().PushDelete("http://5gcore/v1/network-slice/sample-slice").DoAndReturn(func(endpoint string) error {
 		return nil
 	}).AnyTimes()
 	err := s.HandleDelete(device, path)
 	assert.Nil(t, err)
 }
 
-func TestHandleDeleteVcsPushError(t *testing.T) {
+func TestHandleDeleteSlicePushError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
 	// 404 is treated as a non-error, because we may have already deleted it
 	device := BuildSampleDevice()
-	path := BuildRootPath("vcs", "sample-vcs")
-	mockPusher.EXPECT().PushDelete("http://5gcore/v1/network-slice/sample-vcs").DoAndReturn(func(endpoint string) error {
+	path := BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
+	mockPusher.EXPECT().PushDelete("http://5gcore/v1/network-slice/sample-slice").DoAndReturn(func(endpoint string) error {
 		return &PushError{Operation: "DELETE", Endpoint: endpoint, StatusCode: 404, Status: "Not Found"}
 	}).AnyTimes()
 	err := s.HandleDelete(device, path)
@@ -100,12 +117,12 @@ func TestHandleDeleteVcsPushError(t *testing.T) {
 
 	// 403 is a problem
 	device = BuildSampleDevice()
-	path = BuildRootPath("vcs", "sample-vcs")
-	mockPusher.EXPECT().PushDelete("http://5gcore/v1/network-slice/sample-vcs").DoAndReturn(func(endpoint string) error {
+	path = BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
+	mockPusher.EXPECT().PushDelete("http://5gcore/v1/network-slice/sample-slice").DoAndReturn(func(endpoint string) error {
 		return &PushError{Operation: "DELETE", Endpoint: endpoint, StatusCode: 403, Status: "Forbidden"}
 	}).AnyTimes()
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "Vcs sample-vcs failed to push delete: Push Error op=DELETE endpoint=http://5gcore/v1/network-slice/sample-vcs code=403 status=Forbidden")
+	assert.EqualError(t, err, "Slice sample-slice failed to push delete: Push Error op=DELETE endpoint=http://5gcore/v1/network-slice/sample-slice code=403 status=Forbidden")
 }
 
 func TestHandleDeleteVCSMissingDeps(t *testing.T) {
@@ -113,61 +130,61 @@ func TestHandleDeleteVCSMissingDeps(t *testing.T) {
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	// Vcs is nil
+	// Slice is nil
 	device := BuildSampleDevice()
-	device.Vcs = nil
-	path := BuildRootPath("vcs", "sample-vcs")
+	device.Enterprises.Enterprise["sample-ent"].Site["sample-site"].Slice = nil
+	path := BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
 	err := s.HandleDelete(device, path)
-	assert.EqualError(t, err, "No VCSes")
+	assert.EqualError(t, err, "Slice sample-slice not found")
 
-	// Vcs is empty
+	// Slice is empty
 	device = BuildSampleDevice()
-	device.Vcs = &models.OnfVcs_Vcs{}
-	path = BuildRootPath("vcs", "sample-vcs")
+	device.Enterprises.Enterprise["sample-ent"].Site["sample-site"].Slice = map[string]*Slice{}
+	path = BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "Vcs sample-vcs not found")
+	assert.EqualError(t, err, "Slice sample-slice not found")
 
 	// Site is nil
 	device = BuildSampleDevice()
-	device.Site = nil
-	path = BuildRootPath("vcs", "sample-vcs")
+	device.Enterprises.Enterprise["sample-ent"].Site = nil
+	path = BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "No Sites")
+	assert.EqualError(t, err, "Delete of slice failed to find site sample-site")
 
 	// Site is empty list
 	device = BuildSampleDevice()
-	device.Site = &models.OnfSite_Site{}
-	path = BuildRootPath("vcs", "sample-vcs")
+	device.Enterprises.Enterprise["sample-ent"].Site = map[string]*Site{}
+	path = BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "Site sample-site not found")
+	assert.EqualError(t, err, "Delete of slice failed to find site sample-site")
 
-	// Enterprise is nil
+	// Enterprises is nil
 	device = BuildSampleDevice()
-	device.Enterprise = nil
-	path = BuildRootPath("vcs", "sample-vcs")
+	device.Enterprises = nil
+	path = BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "No Enterprises")
+	assert.EqualError(t, err, "Delete of slice failed to find enterprise sample-ent")
 
 	// Enterprise is empty list
 	device = BuildSampleDevice()
-	device.Enterprise = &models.OnfEnterprise_Enterprise{}
-	path = BuildRootPath("vcs", "sample-vcs")
+	device.Enterprises = &models.OnfEnterprise_Enterprises{}
+	path = BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "Enterprise sample-ent not found")
+	assert.EqualError(t, err, "Delete of slice failed to find enterprise sample-ent")
 
-	// ConnectivityService is nil
+	// ConnectivityServices is nil
 	device = BuildSampleDevice()
-	device.ConnectivityService = nil
-	path = BuildRootPath("vcs", "sample-vcs")
+	device.ConnectivityServices = nil
+	path = BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
 	err = s.HandleDelete(device, path)
 	assert.EqualError(t, err, "No connectivity services")
 
 	// ConnectivityService is empty list
 	device = BuildSampleDevice()
-	device.ConnectivityService = &models.OnfConnectivityService_ConnectivityService{}
-	path = BuildRootPath("vcs", "sample-vcs")
+	device.ConnectivityServices = &models.OnfConnectivityService_ConnectivityServices{}
+	path = BuildRootPath("sample-ent", "sample-site", "slice-id", "slice", "sample-slice")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "ConnectivityService sample-cs not found")
+	assert.EqualError(t, err, "No connectivity services")
 }
 
 func TestHandleDeleteDeviceGroup(t *testing.T) {
@@ -176,7 +193,7 @@ func TestHandleDeleteDeviceGroup(t *testing.T) {
 	s := NewSynchronizer(WithPusher(mockPusher))
 
 	device := BuildSampleDevice()
-	path := BuildRootPath("device-group", "sample-dg")
+	path := BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	mockPusher.EXPECT().PushDelete("http://5gcore/v1/device-group/sample-dg").DoAndReturn(func(endpoint string) error {
 		return nil
 	}).AnyTimes()
@@ -191,7 +208,7 @@ func TestHandleDeleteDeviceGroupPushError(t *testing.T) {
 
 	// 404 is treated as a non-error, because we may have already deleted it
 	device := BuildSampleDevice()
-	path := BuildRootPath("device-group", "sample-dg")
+	path := BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	mockPusher.EXPECT().PushDelete("http://5gcore/v1/device-group/sample-dg").DoAndReturn(func(endpoint string) error {
 		return &PushError{Operation: "DELETE", Endpoint: endpoint, StatusCode: 404, Status: "Not Found"}
 	}).AnyTimes()
@@ -204,7 +221,7 @@ func TestHandleDeleteDeviceGroupPushError(t *testing.T) {
 
 	// 403 is a problem
 	device = BuildSampleDevice()
-	path = BuildRootPath("device-group", "sample-dg")
+	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	mockPusher.EXPECT().PushDelete("http://5gcore/v1/device-group/sample-dg").DoAndReturn(func(endpoint string) error {
 		return &PushError{Operation: "DELETE", Endpoint: endpoint, StatusCode: 403, Status: "Forbidden"}
 	}).AnyTimes()
@@ -219,57 +236,57 @@ func TestHandleDeleteDeviceGroupMissingDeps(t *testing.T) {
 
 	// DeviceGroup is nil
 	device := BuildSampleDevice()
-	device.DeviceGroup = nil
-	path := BuildRootPath("device-group", "sample-dg")
+	device.Enterprises.Enterprise["sample-ent"].Site["sample-site"].DeviceGroup = nil
+	path := BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err := s.HandleDelete(device, path)
-	assert.EqualError(t, err, "No DeviceGroups")
+	assert.EqualError(t, err, "DeviceGroup sample-dg not found")
 
-	// Vcs is empty
+	// Slice is empty
 	device = BuildSampleDevice()
-	device.DeviceGroup = &models.OnfDeviceGroup_DeviceGroup{}
-	path = BuildRootPath("device-group", "sample-dg")
+	device.Enterprises.Enterprise["sample-ent"].Site["sample-site"].DeviceGroup = map[string]*DeviceGroup{}
+	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err = s.HandleDelete(device, path)
 	assert.EqualError(t, err, "DeviceGroup sample-dg not found")
 
 	// Site is nil
 	device = BuildSampleDevice()
-	device.Site = nil
-	path = BuildRootPath("device-group", "sample-dg")
+	device.Enterprises.Enterprise["sample-ent"].Site = nil
+	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "No Sites")
+	assert.EqualError(t, err, "Delete of device-group failed to find site sample-site")
 
 	// Site is empty list
 	device = BuildSampleDevice()
-	device.Site = &models.OnfSite_Site{}
-	path = BuildRootPath("device-group", "sample-dg")
+	device.Enterprises.Enterprise["sample-ent"].Site = map[string]*Site{}
+	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "Site sample-site not found")
+	assert.EqualError(t, err, "Delete of device-group failed to find site sample-site")
 
-	// Enterprise is nil
+	// Enterprises is nil
 	device = BuildSampleDevice()
-	device.Enterprise = nil
-	path = BuildRootPath("device-group", "sample-dg")
+	device.Enterprises = nil
+	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "No Enterprises")
+	assert.EqualError(t, err, "Delete of device-group failed to find enterprise sample-ent")
 
-	// Enterprise is empty list
+	// Enterprises is empty list
 	device = BuildSampleDevice()
-	device.Enterprise = &models.OnfEnterprise_Enterprise{}
-	path = BuildRootPath("device-group", "sample-dg")
+	device.Enterprises = &models.OnfEnterprise_Enterprises{}
+	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "Enterprise sample-ent not found")
+	assert.EqualError(t, err, "Delete of device-group failed to find enterprise sample-ent")
 
 	// ConnectivityService is nil
 	device = BuildSampleDevice()
-	device.ConnectivityService = nil
-	path = BuildRootPath("device-group", "sample-dg")
+	device.ConnectivityServices = nil
+	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err = s.HandleDelete(device, path)
 	assert.EqualError(t, err, "No connectivity services")
 
 	// ConnectivityService is empty list
 	device = BuildSampleDevice()
-	device.ConnectivityService = &models.OnfConnectivityService_ConnectivityService{}
-	path = BuildRootPath("device-group", "sample-dg")
+	device.ConnectivityServices = &models.OnfConnectivityService_ConnectivityServices{}
+	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "ConnectivityService sample-cs not found")
+	assert.EqualError(t, err, "No connectivity services")
 }

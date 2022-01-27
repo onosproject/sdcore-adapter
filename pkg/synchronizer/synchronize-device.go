@@ -8,85 +8,78 @@ package synchronizer
 import (
 	"github.com/openconfig/ygot/ygot"
 	"time"
-
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 // SynchronizeDevice synchronizes a device. Two sets of error state are returned:
 //   1) pushFailures -- a count of pushes that failed to the core. Synchronizer should retry again later.
 //   2) error -- a fatal error that occurred during synchronization.
 func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, error) {
-	device := config.(*models.Device)
+	device := config.(*RootDevice)
 
-	if device.Enterprise == nil {
+	pushFailures := 0
+
+	if device.Enterprises == nil {
 		log.Info("No enteprises")
 		return 0, nil
 	}
 
-	if device.ConnectivityService == nil {
+	if device.ConnectivityServices == nil {
 		log.Info("No connectivity services")
 		return 0, nil
 	}
 
-	// For a given ConnectivityService, we want to know the list of Enterprises
-	// that use it. Precompute this so we can pass a list of valid Enterprises
-	// along to SynchronizeConnectivityService.
-	csEntMap := map[string]map[string]bool{}
-	for entID, ent := range device.Enterprise.Enterprise {
-		for csID := range ent.ConnectivityService {
-			m, okay := csEntMap[csID]
-			if !okay {
-				m = map[string]bool{}
-				csEntMap[csID] = m
-			}
-			m[entID] = true
-		}
-	}
-
-	pushFailures := 0
-
-	// All errors are treated as nonfatal, logged, and synchronization continues with the next connectivity service.
-	// PushFailures are counted and reported to the caller, who can decide whether to retry.
-
-	for csID, cs := range device.ConnectivityService.ConnectivityService {
-		if (cs.Core_5GEndpoint == nil) || (*cs.Core_5GEndpoint == "") {
-			log.Warnf("Skipping connectivity service %s because it has no 5G Endpoint", *cs.Id)
-			continue
-		}
-
-		// Get the list of valid Enterprises for this CS.
-		// Note: This could return an empty map if there is a CS that no
-		//   enterprises are linked to . In that case, we can still push models
-		//   that are not directly related to an enterprise, such as profiles.
-		m := csEntMap[csID]
-
+	for _, cs := range device.ConnectivityServices.ConnectivityService {
 		tStart := time.Now()
-		KpiSynchronizationTotal.WithLabelValues(csID).Inc()
+		KpiSynchronizationTotal.WithLabelValues(*cs.Id).Inc()
 
-		pushFailures += s.SynchronizeConnectivityService(device, cs, m)
+		scope := &AetherScope{
+			ConnectivityService: cs,
+			RootDevice:          device}
+		for _, enterprise := range device.Enterprises.Enterprise {
+			// Does this enterprise use the current ConnectivityService?
+			// If not, skip it
+			hasConnectivityService := false
+			for csID := range enterprise.ConnectivityService {
+				if csID == *cs.Id {
+					hasConnectivityService = true
+				}
+			}
+			if !hasConnectivityService {
+				continue
+			}
 
-		KpiSynchronizationDuration.WithLabelValues(csID).Observe(time.Since(tStart).Seconds())
+			scope.Enterprise = enterprise
+			for _, site := range enterprise.Site {
+				scope.Site = site
+				for _, dg := range site.DeviceGroup {
+					dgPushErrors, err := s.SynchronizeDeviceGroup(scope, dg)
+					if err != nil {
+						log.Warnf("DG %s failed to synchronize Core: %s", *dg.DgId, err)
+					}
+					pushFailures += dgPushErrors
+				}
+			sliceLoop:
+				for _, slice := range site.Slice {
+					slicePushFailures, err := s.SynchronizeSlice(scope, slice)
+					pushFailures += slicePushFailures
+					if err != nil {
+						log.Warnf("VCS %s failed to synchronize Core: %s", *slice.SliceId, err)
+						// Do not try to synchronize the UPF, if we've already failed
+						continue sliceLoop
+					}
+
+					upfPushFailures, err := s.SynchronizeSliceUPF(scope, slice)
+					pushFailures += upfPushFailures
+					if err != nil {
+						log.Warnf("Slice %s failed to synchronize UPF: %s", *slice.SliceId, err)
+						continue sliceLoop
+					}
+				}
+			}
+		}
+
+		KpiSynchronizationDuration.WithLabelValues(*cs.Id).Observe(time.Since(tStart).Seconds())
 	}
 
 	return pushFailures, nil
-}
-
-// SynchronizeConnectivityService synchronizes a connectivity service
-func (s *Synchronizer) SynchronizeConnectivityService(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) int {
-	log.Infof("Synchronizing Connectivity Service %s", *cs.Id)
-
-	pushFailures := 0
-
-	// All errors are treated as nonfatal, logged, and synchronization continues with the next model.
-	// PushFailures are counted and reported to the caller, who can decide whether to retry.
-
-	if device.DeviceGroup != nil {
-		pushFailures += s.SynchronizeAllDeviceGroups(device, cs, validEnterpriseIds)
-	}
-
-	if device.Vcs != nil {
-		pushFailures += s.SynchronizeAllVcs(device, cs, validEnterpriseIds)
-	}
-
-	return pushFailures
 }

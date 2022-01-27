@@ -15,53 +15,86 @@ package synchronizer
 
 import (
 	"fmt"
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 )
 
-// GetObjectID return the object id for a path.
+// GetEnterpriseObjectID return the object id for a path.
 // If the path is a top-level model, then return the id of the object. If
 // the object is not a top-level model then return nil.
-func (s *Synchronizer) GetObjectID(modelName string, path *pb.Path) (*string, error) {
-	// Example path: /vcs/vcs[id=something]
-	if len(path.Elem) > 2 {
+func (s *Synchronizer) GetEnterpriseObjectID(scope *AetherScope, modelName string, path *pb.Path, keyName string) (*AetherScope, *string, error) {
+	// Example path: /enterprises/enterprise[ent_id=sometthing]/site[site_id=something]/slice[id=something]
+	if len(path.Elem) > 4 {
 		// It's for some portion of the model, not the root of the model.
 		// We don't care.
-		return nil, nil
-	}
-	if path.Elem[1].Name != modelName {
-		// It's hard to imagine what else this could be. Future-proof by ignoring it.
-		return nil, nil
-	}
-	id, okay := path.Elem[1].Key["id"]
-	if !okay {
-		return nil, fmt.Errorf("Delete of %s does not have an id key", modelName)
+		return nil, nil, nil
 	}
 
-	return &id, nil
+	// The first element better be "enterprises"
+	if path.Elem[0].Name != "enterprises" {
+		return nil, nil, nil
+	}
+
+	// Extract and lookup the enterprise
+	if path.Elem[1].Name != "enterprise" {
+		return nil, nil, nil
+	}
+	entID, okay := path.Elem[1].Key["ent-id"]
+	if !okay {
+		return nil, nil, fmt.Errorf("Delete of %s does not have an ent-id key", modelName)
+	}
+	enterprise, err := s.GetEnterprise(scope, &entID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Delete of %s failed to find enterprise %s", modelName, entID)
+	}
+	scope.Enterprise = enterprise
+
+	// extract and lookup the site
+	if path.Elem[2].Name != "site" {
+		return nil, nil, nil
+	}
+	siteID, okay := path.Elem[2].Key["site-id"]
+	if !okay {
+		return nil, nil, fmt.Errorf("Delete of %s does not have a site-id key", modelName)
+	}
+	site, err := s.GetSite(scope, &siteID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Delete of %s failed to find site %s", modelName, siteID)
+	}
+	scope.Site = site
+
+	if path.Elem[3].Name != modelName {
+		// It's hard to imagine what else this could be. Future-proof by ignoring it.
+		return nil, nil, nil
+	}
+	id, okay := path.Elem[3].Key[keyName]
+	if !okay {
+		return nil, nil, fmt.Errorf("Delete of %s does not have an id key", modelName)
+	}
+
+	return scope, &id, nil
 }
 
-// DeleteVcs deletes a Vcs from the core
-func (s *Synchronizer) DeleteVcs(device *models.Device, path *pb.Path) error {
-	id, err := s.GetObjectID("vcs", path)
+// DeleteSlice deletes a Slice from the core
+func (s *Synchronizer) DeleteSlice(scope *AetherScope, path *pb.Path) error {
+	scope, id, err := s.GetEnterpriseObjectID(scope, "slice", path, "slice-id")
 	if err != nil {
 		return err
 	}
 	if id == nil {
 		return nil
 	}
-	log.Infof("Delete vcs %s", *id)
+	log.Infof("Delete slice %s", *id)
 
-	vcs, err := s.GetVcs(device, id)
+	_, err = s.GetSlice(scope, id)
 	if err != nil {
 		return err
 	}
 
 	// For each connectivity service, delete the VCS from the connectivity
 	// service.
-	csList, err := s.GetConnectivityServiceForSite(device, vcs.Site)
+	csList, err := s.GetConnectivityServicesForEnterprise(scope)
 	if err != nil {
 		return err
 	}
@@ -73,10 +106,10 @@ csLoop:
 			pushError, ok := err.(*PushError)
 			if ok && pushError.StatusCode == 404 {
 				// This may mean we already deleted it.
-				log.Infof("Tried to delete vcs %s but it does not exist", *id)
+				log.Infof("Tried to delete slice %s but it does not exist", *id)
 				continue csLoop
 			}
-			return fmt.Errorf("Vcs %s failed to push delete: %s", *id, err)
+			return fmt.Errorf("Slice %s failed to push delete: %s", *id, err)
 		}
 	}
 
@@ -88,8 +121,8 @@ csLoop:
 }
 
 // DeleteDeviceGroup deletes a devicegroup from the core
-func (s *Synchronizer) DeleteDeviceGroup(device *models.Device, path *pb.Path) error {
-	id, err := s.GetObjectID("device-group", path)
+func (s *Synchronizer) DeleteDeviceGroup(scope *AetherScope, path *pb.Path) error {
+	scope, id, err := s.GetEnterpriseObjectID(scope, "device-group", path, "dg-id")
 	if err != nil {
 		return err
 	}
@@ -98,12 +131,12 @@ func (s *Synchronizer) DeleteDeviceGroup(device *models.Device, path *pb.Path) e
 	}
 	log.Infof("Delete device-group %s", *id)
 
-	dg, err := s.GetDeviceGroup(device, id)
+	_, err = s.GetDeviceGroup(scope, id)
 	if err != nil {
 		return err
 	}
 
-	csList, err := s.GetConnectivityServiceForSite(device, dg.Site)
+	csList, err := s.GetConnectivityServicesForEnterprise(scope)
 	if err != nil {
 		return err
 	}
@@ -115,7 +148,7 @@ csLoop:
 			pushError, ok := err.(*PushError)
 			if ok && pushError.StatusCode == 404 {
 				// This may mean we already deleted it.
-				log.Infof("Tried to delete vcs %s but it does not exist", *id)
+				log.Infof("Tried to delete slice %s but it does not exist", *id)
 				continue csLoop
 			}
 			return fmt.Errorf("Device-Group %s failed to push delete: %s", *id, err)
@@ -130,21 +163,23 @@ csLoop:
 
 // HandleDelete synchronously performs a delete
 func (s *Synchronizer) HandleDelete(config ygot.ValidatedGoStruct, path *pb.Path) error {
-	device := config.(*models.Device)
+	rootDevice := config.(*RootDevice)
+
+	scope := &AetherScope{RootDevice: rootDevice}
 
 	if path == nil || len(path.Elem) == 0 {
 		return nil
 	}
-	if len(path.Elem) == 1 {
-		// Deleting a path of length == 1 could delete an entire class of objects (i.e. all Device-Groups)
+	if len(path.Elem) < 4 {
+		// Deleting a path of length < 4 could delete an entire class of objects (i.e. all Device-Groups)
 		// at once. The user probably doesn't want to do that.
 		return fmt.Errorf("Refusing to delete path %s because it is too broad", gnmi.PathToString(path))
 	}
-	switch path.Elem[0].Name {
-	case "vcs":
-		return s.DeleteVcs(device, path)
+	switch path.Elem[3].Name {
+	case "slice":
+		return s.DeleteSlice(scope, path)
 	case "device-group":
-		return s.DeleteDeviceGroup(device, path)
+		return s.DeleteDeviceGroup(scope, path)
 	}
 
 	// It for something else.

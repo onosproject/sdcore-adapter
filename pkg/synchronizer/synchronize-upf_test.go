@@ -14,35 +14,30 @@ import (
 	"testing"
 )
 
-func TestSynchronizeVcsUPF(t *testing.T) {
-	jsonData, err := ioutil.ReadFile("./testdata/sample-slice.json")
+func TestSynchronizeSliceUPF(t *testing.T) {
+	jsonData, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, upf, vcs := BuildSampleVcs()
+	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
+	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
 
-	device := models.Device{
-		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
-		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
-		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
-		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
-		Application:         &models.OnfApplication_Application{Application: apps},
-		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
-		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
-		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
+	device := &RootDevice{
+		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
+		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
 	}
+
+	scope, err := BuildScope(device, "sample-ent", "sample-site", "sample-cs")
+	assert.Nil(t, err)
 
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(jsonData)
 		return nil
 	}).AnyTimes()
-	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
+	pushFailures, err := s.SynchronizeSliceUPF(scope, slice)
 	assert.Nil(t, err)
 	json, okay := pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
@@ -52,38 +47,33 @@ func TestSynchronizeVcsUPF(t *testing.T) {
 	}
 }
 
-func TestSynchronizeVcsUPFWithBurst(t *testing.T) {
-	jsonData, err := ioutil.ReadFile("./testdata/sample-slice.json")
+func TestSynchronizeSliceUPFWithBurst(t *testing.T) {
+	jsonData, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, upf, vcs := BuildSampleVcs()
+	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
+	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
 
-	vcs.Slice.Mbr.UplinkBurstSize = aUint32(111222)
-	vcs.Slice.Mbr.DownlinkBurstSize = aUint32(333444)
+	slice.Mbr.UplinkBurstSize = aUint32(111222)
+	slice.Mbr.DownlinkBurstSize = aUint32(333444)
 
-	device := models.Device{
-		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
-		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
-		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
-		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
-		Application:         &models.OnfApplication_Application{Application: apps},
-		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
-		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
-		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
+	device := &RootDevice{
+		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
+		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
 	}
+
+	scope, err := BuildScope(device, "sample-ent", "sample-site", "sample-cs")
+	assert.Nil(t, err)
 
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(jsonData)
 		return nil
 	}).AnyTimes()
-	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
+	pushFailures, err := s.SynchronizeSliceUPF(scope, slice)
 	assert.Nil(t, err)
 	json, okay := pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)
@@ -93,37 +83,32 @@ func TestSynchronizeVcsUPFWithBurst(t *testing.T) {
 	}
 }
 
-func TestSynchronizeVcsUPFNoSliceQos(t *testing.T) {
-	jsonData, err := ioutil.ReadFile("./testdata/sample-slice1.json")
+func TestSynchronizeSliceUPFNoSliceQos(t *testing.T) {
+	jsonData, err := ioutil.ReadFile("./testdata/sample-upfslice1.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, upf, vcs := BuildSampleVcs()
+	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
+	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
 
-	vcs.Slice = nil // remove the slice QoS
+	slice.Mbr = nil // remove the slice QoS
 
-	device := models.Device{
-		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
-		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
-		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
-		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
-		Application:         &models.OnfApplication_Application{Application: apps},
-		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
-		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
-		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
+	device := &RootDevice{
+		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
+		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
 	}
+
+	scope, err := BuildScope(device, "sample-ent", "sample-site", "sample-cs")
+	assert.Nil(t, err)
 
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(jsonData)
 		return nil
 	}).AnyTimes()
-	pushFailures, err := s.SynchronizeVcsUPF(&device, vcs)
+	pushFailures, err := s.SynchronizeSliceUPF(scope, slice)
 	assert.Nil(t, err)
 	json, okay := pushes["http://upf/v1/config/network-slices"]
 	assert.True(t, okay)

@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 // BoolToUint32 convert a boolean to an unsigned integer
@@ -132,7 +130,7 @@ func FormatImsi(format string, mcc string, mnc string, ent uint32, sub uint64) (
 }
 
 // FormatImsiDef is a wrapper around FormatImsi that takes the ImsiDefinition gNMI instead of a set of arguments
-func FormatImsiDef(i *models.OnfSite_Site_Site_ImsiDefinition, sub uint64) (uint64, error) {
+func FormatImsiDef(i *ImsiDefinition, sub uint64) (uint64, error) {
 	var format string
 	if i.Format != nil {
 		format = *i.Format
@@ -171,7 +169,7 @@ func MaskSubscriberImsi(format string, sub uint64) (uint64, error) {
 }
 
 // MaskSubscriberImsiDef is a wrapper around MaskSubscriberImsi that takes the ImsiDefinition gNMI instead of a set of arguments
-func MaskSubscriberImsiDef(i *models.OnfSite_Site_Site_ImsiDefinition, sub uint64) (uint64, error) {
+func MaskSubscriberImsiDef(i *ImsiDefinition, sub uint64) (uint64, error) {
 	var format string
 	if i.Format != nil {
 		format = *i.Format

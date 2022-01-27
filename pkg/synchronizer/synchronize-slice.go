@@ -11,63 +11,51 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 func (s *Synchronizer) mapPriority(i uint8) uint8 {
 	return 255 - i // UPF expectation is priority is inverse of ROC's priority
 }
 
-// SynchronizeVcsCore synchronizes the VCSes
+// SynchronizeSlice synchronizes the VCSes
 // Return a count of push-related errors
-func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
-	dgList, err := s.GetVcsDG(device, vcs)
+func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, error) {
+	dgList, err := s.GetSliceDG(scope, slice)
 	if err != nil {
-		return 0, fmt.Errorf("Vcs %s unable to determine site: %s", *vcs.Id, err)
+		return 0, fmt.Errorf("Slice %s unable to determine site: %s", *slice.SliceId, err)
 	}
 
-	site, err := s.GetSite(device, vcs.Site)
+	err = validateSlice(slice)
 	if err != nil {
-		return 0, fmt.Errorf("Vcs %s unable to determine site: %s", *vcs.Id, err)
+		return 0, fmt.Errorf("Slice %s is invalid: %s", *slice.SliceId, err)
 	}
 
-	valid, okay := validEnterpriseIds[*site.Enterprise]
-	if (!okay) || (!valid) {
-		return 0, fmt.Errorf("VCS %s is not part of ConnectivityService %s", *vcs.Id, *cs.Id)
+	if scope.Site.ImsiDefinition == nil {
+		return 0, fmt.Errorf("Slice %s has nnil Site.ImsiDefinition", *slice.SliceId)
 	}
-
-	err = validateVcs(vcs)
+	err = validateImsiDefinition(scope.Site.ImsiDefinition)
 	if err != nil {
-		return 0, fmt.Errorf("Vcs %s is invalid: %s", *vcs.Id, err)
-	}
-
-	if site.ImsiDefinition == nil {
-		return 0, fmt.Errorf("Vcs %s has nnil Site.ImsiDefinition", *vcs.Id)
-	}
-	err = validateImsiDefinition(site.ImsiDefinition)
-	if err != nil {
-		return 0, fmt.Errorf("Vcs %s unable to determine Site.ImsiDefinition: %s", *vcs.Id, err)
+		return 0, fmt.Errorf("Slice %s unable to determine Site.ImsiDefinition: %s", *slice.SliceId, err)
 	}
 	plmn := plmn{
-		Mcc: *site.ImsiDefinition.Mcc,
-		Mnc: *site.ImsiDefinition.Mnc,
+		Mcc: *scope.Site.ImsiDefinition.Mcc,
+		Mnc: *scope.Site.ImsiDefinition.Mnc,
 	}
 	siteInfo := siteInfo{
-		SiteName: *site.Id,
+		SiteName: *scope.Site.SiteId,
 		Plmn:     plmn,
 	}
 
-	if site.SmallCell != nil {
+	if scope.Site.SmallCell != nil {
 		// be deterministic...
 		smallCellKeys := []string{}
-		for k := range site.SmallCell {
+		for k := range scope.Site.SmallCell {
 			smallCellKeys = append(smallCellKeys, k)
 		}
 		sort.Strings(smallCellKeys)
 
 		for _, k := range smallCellKeys {
-			ap := site.SmallCell[k]
+			ap := scope.Site.SmallCell[k]
 			err = validateSmallCell(ap)
 			if err != nil {
 				return 0, fmt.Errorf("SmallCell invalid: %s", err)
@@ -86,14 +74,14 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 		}
 	}
 
-	if vcs.Upf != nil {
-		aUpf, err := s.GetUpf(device, vcs.Upf)
+	if slice.Upf != nil {
+		aUpf, err := s.GetUpf(scope, slice.Upf)
 		if err != nil {
-			return 0, fmt.Errorf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
+			return 0, fmt.Errorf("Slice %s unable to determine upf: %s", *slice.SliceId, err)
 		}
 		err = validateUpf(aUpf)
 		if err != nil {
-			return 0, fmt.Errorf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
+			return 0, fmt.Errorf("Slice %s Upf is invalid: %s", *slice.SliceId, err)
 		}
 		siteInfo.Upf = upf{
 			Name: *aUpf.Address,
@@ -102,42 +90,42 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 	}
 
 	sliceID := sliceIDStruct{
-		Sst: strconv.FormatUint(uint64(*vcs.Sst), 10),
+		Sst: strconv.FormatUint(uint64(*slice.Sst), 10),
 	}
 
 	// If the SD is unset, then do not set SD in the output. If it is set,
 	// then emit it as a string of six hex digits.
-	if vcs.Sd != nil {
-		sliceID.Sd = fmt.Sprintf("%06X", *vcs.Sd)
+	if slice.Sd != nil {
+		sliceID.Sd = fmt.Sprintf("%06X", *slice.Sd)
 	}
 
-	slice := slice{
+	coreSlice := coreSlice{
 		ID:                        sliceID,
 		SiteInfo:                  siteInfo,
 		ApplicationFilteringRules: []appFilterRule{},
 	}
 
 	for _, dg := range dgList {
-		slice.DeviceGroup = append(slice.DeviceGroup, *dg.Id)
+		coreSlice.DeviceGroup = append(coreSlice.DeviceGroup, *dg.DgId)
 	}
 
 	// be deterministic...
 	appKeys := []string{}
-	for k := range vcs.Filter {
+	for k := range slice.Filter {
 		appKeys = append(appKeys, k)
 	}
 	sort.Strings(appKeys)
 
 	for _, k := range appKeys {
-		appRef := vcs.Filter[k]
-		app, err := s.GetApplication(device, appRef.Application)
+		appRef := slice.Filter[k]
+		app, err := s.GetApplication(scope, appRef.Application)
 		if err != nil {
-			return 0, fmt.Errorf("Vcs %s unable to determine application: %s", *vcs.Id, err)
+			return 0, fmt.Errorf("Slice %s unable to determine application: %s", *slice.SliceId, err)
 		}
 
 		if (app.Address == nil) || (*app.Address == "") {
 			// this is a temporary restriction
-			return 0, fmt.Errorf("Vcs %s Application %s has empty address", *vcs.Id, *app.Id)
+			return 0, fmt.Errorf("Slice %s Application %s has empty address", *slice.SliceId, *app.AppId)
 		}
 
 		// be deterministic...
@@ -150,12 +138,12 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 		for _, epName := range epKeys {
 			endpoint := app.Endpoint[epName]
 			appCore := appFilterRule{
-				Name: fmt.Sprintf("%s-%s", *app.Id, epName),
+				Name: fmt.Sprintf("%s-%s", *app.AppId, epName),
 			}
 
 			err = validateAppEndpoint(endpoint)
 			if err != nil {
-				log.Warnf("App %s invalid endpoint: %s", *app.Id, err)
+				log.Warnf("App %s invalid endpoint: %s", *app.AppId, err)
 			}
 			if strings.Contains(*app.Address, "/") {
 				appCore.Endpoint = *app.Address
@@ -176,7 +164,7 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 			if endpoint.Protocol != nil {
 				protoNum, err := ProtoStringToProtoNumber(*endpoint.Protocol)
 				if err != nil {
-					return 0, fmt.Errorf("Vcs %s Application %s unable to determine protocol: %s", *vcs.Id, *app.Id, err)
+					return 0, fmt.Errorf("Slice %s Application %s unable to determine protocol: %s", *slice.SliceId, *app.AppId, err)
 				}
 				appCore.Protocol = &protoNum
 			}
@@ -204,11 +192,11 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 			}
 
 			if endpoint.TrafficClass != nil {
-				rocTrafficClass, err := s.GetTrafficClass(device, endpoint.TrafficClass)
+				rocTrafficClass, err := s.GetTrafficClass(scope, endpoint.TrafficClass)
 				if err != nil {
-					return 0, fmt.Errorf("Vcs %s application %s unable to determine traffic class: %s", *vcs.Id, *app.Id, err)
+					return 0, fmt.Errorf("Slice %s application %s unable to determine traffic class: %s", *slice.SliceId, *app.AppId, err)
 				}
-				tcCore := &trafficClass{Name: *rocTrafficClass.Id,
+				tcCore := &trafficClass{Name: *rocTrafficClass.TcId,
 					PDB:  DerefUint16Ptr(rocTrafficClass.Pdb, 300),
 					PELR: uint8(DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
 					QCI:  DerefUint8Ptr(rocTrafficClass.Qci, 9),
@@ -217,72 +205,47 @@ func (s *Synchronizer) SynchronizeVcsCore(device *models.Device, vcs *models.Onf
 			}
 
 			appCore.Priority = s.mapPriority(DerefUint8Ptr(appRef.Priority, 0))
-			slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, appCore)
+			coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, appCore)
 		}
 	}
 
-	switch *vcs.DefaultBehavior {
+	switch *slice.DefaultBehavior {
 	case "ALLOW-ALL":
 		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: s.mapPriority(250), Endpoint: "0.0.0.0/0"}
-		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, allowAll)
+		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, allowAll)
 	case "DENY-ALL":
 		denyAll := appFilterRule{Name: "DENY-ALL", Action: "deny", Priority: s.mapPriority(250), Endpoint: "0.0.0.0/0"}
-		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyAll)
+		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, denyAll)
 	case "ALLOW-PUBLIC":
 		denyClassA := appFilterRule{Name: "DENY-CLASS-A", Action: "deny", Priority: s.mapPriority(250), Endpoint: "10.0.0.0/8"}
 		denyClassB := appFilterRule{Name: "DENY-CLASS-B", Action: "deny", Priority: s.mapPriority(251), Endpoint: "172.16.0.0/12"}
 		denyClassC := appFilterRule{Name: "DENY-CLASS-C", Action: "deny", Priority: s.mapPriority(252), Endpoint: "192.168.0.0/16"}
 		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: s.mapPriority(253), Endpoint: "0.0.0.0/0"}
-		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassA)
-		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassB)
-		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, denyClassC)
-		slice.ApplicationFilteringRules = append(slice.ApplicationFilteringRules, allowAll)
+		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, denyClassA)
+		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, denyClassB)
+		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, denyClassC)
+		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, allowAll)
 	default:
-		return 0, fmt.Errorf("Vcs %s has invalid defauilt-behavior %s", *vcs.Id, *vcs.DefaultBehavior)
+		return 0, fmt.Errorf("Slice %s has invalid defauilt-behavior %s", *slice.SliceId, *slice.DefaultBehavior)
 	}
 
-	if s.partialUpdateEnable && s.CacheCheck(CacheModelSlice, *vcs.Id, slice) {
-		log.Infof("Core Slice %s has not changed", *vcs.Id)
+	if s.partialUpdateEnable && s.CacheCheck(CacheModelSlice, *slice.SliceId, coreSlice) {
+		log.Infof("Core Slice %s has not changed", *slice.SliceId)
 		return 0, nil
 	}
 
-	data, err := json.MarshalIndent(slice, "", "  ")
+	data, err := json.MarshalIndent(coreSlice, "", "  ")
 	if err != nil {
-		return 0, fmt.Errorf("Vcs %s failed to marshal JSON: %s", *vcs.Id, err)
+		return 0, fmt.Errorf("Slice %s failed to marshal JSON: %s", *slice.SliceId, err)
 	}
 
-	url := fmt.Sprintf("%s/v1/network-slice/%s", *cs.Core_5GEndpoint, *vcs.Id)
+	url := fmt.Sprintf("%s/v1/network-slice/%s", *scope.ConnectivityService.Core_5GEndpoint, *slice.SliceId)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {
-		return 1, fmt.Errorf("Vcs %s failed to push update: %s", *vcs.Id, err)
+		return 1, fmt.Errorf("Slice %s failed to push update: %s", *slice.SliceId, err)
 	}
 
-	s.CacheUpdate(CacheModelSlice, *vcs.Id, slice)
+	s.CacheUpdate(CacheModelSlice, *slice.SliceId, coreSlice)
 
 	return 0, nil
-}
-
-// SynchronizeAllVcs synchronizes the VCSes
-func (s *Synchronizer) SynchronizeAllVcs(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) int {
-	pushFailures := 0
-vcsLoop:
-	// All errors are treated as nonfatal, logged, and synchronization continues with the next VCS.
-	// PushFailures are counted and reported to the caller, who can decide whether to retry.
-	for _, vcs := range device.Vcs.Vcs {
-		corePushFailures, err := s.SynchronizeVcsCore(device, vcs, cs, validEnterpriseIds)
-		pushFailures += corePushFailures
-		if err != nil {
-			log.Warnf("Vcs %s failed to synchronize Core: %s", *vcs.Id, err)
-			continue vcsLoop
-		}
-
-		upfPushFailures, err := s.SynchronizeVcsUPF(device, vcs)
-		pushFailures += upfPushFailures
-		if err != nil {
-			log.Warnf("Vcs %s failed to synchronize UPF: %s", *vcs.Id, err)
-			continue vcsLoop
-		}
-	}
-
-	return pushFailures
 }

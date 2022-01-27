@@ -100,7 +100,7 @@ type appFilterRule struct {
 	TrafficClass  *trafficClass `json:"traffic-class,omitempty"`
 }
 
-type slice struct {
+type coreSlice struct {
 	ID                        sliceIDStruct   `json:"slice-id"`
 	DeviceGroup               []string        `json:"site-device-group,omitempty"`
 	SiteInfo                  siteInfo        `json:"site-info"`

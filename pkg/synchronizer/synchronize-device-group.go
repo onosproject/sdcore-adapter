@@ -9,139 +9,109 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 // SynchronizeDeviceGroup synchronizes a device group
-func (s *Synchronizer) SynchronizeDeviceGroup(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) (int, error) {
+func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGroup) (int, error) {
 	err := validateDeviceGroup(dg)
 	if err != nil {
-		return 0, fmt.Errorf("DeviceGroup %s failed validation: %v", *dg.Id, err)
-	}
-
-	site, err := s.GetDeviceGroupSite(device, dg)
-	if err != nil {
-		return 0, fmt.Errorf("DeviceGroup %s unable to determine site: %s", *dg.Id, err)
-	}
-
-	valid, okay := validEnterpriseIds[*site.Enterprise]
-	if (!okay) || (!valid) {
-		return 0, fmt.Errorf("DeviceGroup %s is not part of ConnectivityService %s", *dg.Id, *cs.Id)
+		return 0, fmt.Errorf("DeviceGroup %s failed validation: %v", *dg.DgId, err)
 	}
 
 	dgCore := deviceGroup{
-		IPDomainName: *dg.Id,
-		SiteInfo:     *dg.Site,
+		IPDomainName: *dg.DgId,
+		SiteInfo:     *scope.Site.SiteId,
 	}
 
-	if site.ImsiDefinition == nil {
-		return 0, fmt.Errorf("DeviceGroup %s site has nil ImsiDefinition", *dg.Id)
+	if scope.Site.ImsiDefinition == nil {
+		return 0, fmt.Errorf("DeviceGroup %s site has nil ImsiDefinition", *dg.DgId)
 	}
-	err = validateImsiDefinition(site.ImsiDefinition)
+	err = validateImsiDefinition(scope.Site.ImsiDefinition)
 	if err != nil {
-		return 0, fmt.Errorf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.Id, err)
+		return 0, fmt.Errorf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.DgId, err)
 	}
 
 	// be deterministic...
-	imsiKeys := []string{}
-	for k := range dg.Imsis {
-		imsiKeys = append(imsiKeys, k)
+	deviceLinkKeys := []string{}
+	for k := range dg.Device {
+		deviceLinkKeys = append(deviceLinkKeys, k)
 	}
-	sort.Strings(imsiKeys)
+	sort.Strings(deviceLinkKeys)
 
 	// populate the imsi list
-	for _, k := range imsiKeys {
-		imsiBlock := dg.Imsis[k]
-		if imsiBlock.ImsiRangeFrom == nil {
-			return 0, fmt.Errorf("imsiBlock has blank ImsiRangeFrom: %v", imsiBlock)
-		}
-		var firstImsi uint64
-		firstImsi, err = FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeFrom)
-		if err != nil {
-			return 0, fmt.Errorf("Failed to format IMSI in dg %s: %v", *dg.Id, err)
-		}
-		var lastImsi uint64
-		if imsiBlock.ImsiRangeTo == nil {
-			lastImsi = firstImsi
-		} else {
-			lastImsi, err = FormatImsiDef(site.ImsiDefinition, *imsiBlock.ImsiRangeTo)
-			if err != nil {
-				return 0, fmt.Errorf("Failed to format IMSI in dg %s: %v", *dg.Id, err)
-			}
+	for _, k := range deviceLinkKeys {
+		deviceID := dg.Device[k].DeviceId
 
+		device, err := s.GetDevice(scope, deviceID)
+		if err != nil {
+			return 0, fmt.Errorf("DeviceGroup %s failed to get Device: %s", *dg.DgId, err)
 		}
-		for i := firstImsi; i <= lastImsi; i++ {
-			dgCore.Imsis = append(dgCore.Imsis, fmt.Sprintf("%015d", i))
+
+		if (device.SimCard == nil) || (*device.SimCard == "") {
+			continue
 		}
+
+		simCard, err := s.GetSimCard(scope, device.SimCard)
+		if err != nil {
+			return 0, fmt.Errorf("DeviceGroup %s failed to get SimCard: %s", *dg.DgId, err)
+		}
+
+		imsi, err := FormatImsiDef(scope.Site.ImsiDefinition, *simCard.Imsi)
+		if err != nil {
+			return 0, fmt.Errorf("Failed to format IMSI in dg %s: %v", *dg.DgId, err)
+		}
+		dgCore.Imsis = append(dgCore.Imsis, fmt.Sprintf("%015d", imsi))
 	}
 
-	ipd, err := s.GetIPDomain(device, dg.IpDomain)
+	ipd, err := s.GetIPDomain(scope, dg.IpDomain)
 	if err != nil {
-		return 0, fmt.Errorf("DeviceGroup %s failed to get IpDomain: %s", *dg.Id, err)
+		return 0, fmt.Errorf("DeviceGroup %s failed to get IpDomain: %s", *dg.DgId, err)
 	}
 
 	err = validateIPDomain(ipd)
 	if err != nil {
-		return 0, fmt.Errorf("DeviceGroup %s invalid: %s", *dg.Id, err)
+		return 0, fmt.Errorf("DeviceGroup %s invalid: %s", *dg.DgId, err)
 	}
 
-	dgCore.IPDomainName = *ipd.Id
+	dgCore.IPDomainName = *ipd.IpId
 	ipdCore := ipDomain{
 		Dnn:          DerefStrPtr(ipd.Dnn, "internet"),
 		Pool:         *ipd.Subnet,
 		DNSPrimary:   DerefStrPtr(ipd.DnsPrimary, ""),
 		DNSSecondary: DerefStrPtr(ipd.DnsSecondary, ""),
 		Mtu:          DerefUint16Ptr(ipd.Mtu, DefaultMTU),
-		Qos:          &ipdQos{Uplink: *dg.Device.Mbr.Uplink, Downlink: *dg.Device.Mbr.Downlink, Unit: aStr(DefaultBitrateUnit)},
+		Qos:          &ipdQos{Uplink: *dg.Mbr.Uplink, Downlink: *dg.Mbr.Downlink, Unit: aStr(DefaultBitrateUnit)},
 	}
 	dgCore.IPDomain = ipdCore
 
-	rocTrafficClass, err := s.GetTrafficClass(device, dg.Device.TrafficClass)
+	rocTrafficClass, err := s.GetTrafficClass(scope, dg.Mbr.TrafficClass)
 	if err != nil {
-		return 0, fmt.Errorf("DG %s unable to determine traffic class: %s", *dg.Id, err)
+		return 0, fmt.Errorf("DG %s unable to determine traffic class: %s", *dg.DgId, err)
 	}
-	tcCore := &trafficClass{Name: *rocTrafficClass.Id,
+	tcCore := &trafficClass{Name: *rocTrafficClass.TcId,
 		PDB:  DerefUint16Ptr(rocTrafficClass.Pdb, 300),
 		PELR: uint8(DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
 		QCI:  DerefUint8Ptr(rocTrafficClass.Qci, 9),
 		ARP:  DerefUint8Ptr(rocTrafficClass.Arp, 9)}
 	dgCore.IPDomain.Qos.TrafficClass = tcCore
 
-	if s.partialUpdateEnable && s.CacheCheck(CacheModelDeviceGroup, *dg.Id, dgCore) {
-		log.Infof("Core Device-Group %s has not changed", *dg.Id)
+	if s.partialUpdateEnable && s.CacheCheck(CacheModelDeviceGroup, *dg.DgId, dgCore) {
+		log.Infof("Core Device-Group %s has not changed", *dg.DgId)
 		return 0, nil
 	}
 
 	data, err := json.MarshalIndent(dgCore, "", "  ")
 	if err != nil {
-		return 0, fmt.Errorf("DeviceGroup %s failed to Marshal Json: %s", *dg.Id, err)
+		return 0, fmt.Errorf("DeviceGroup %s failed to Marshal Json: %s", *dg.DgId, err)
 	}
 
-	url := fmt.Sprintf("%s/v1/device-group/%s", *cs.Core_5GEndpoint, *dg.Id)
+	url := fmt.Sprintf("%s/v1/device-group/%s", *scope.ConnectivityService.Core_5GEndpoint, *dg.DgId)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {
-		return 1, fmt.Errorf("DeviceGroup %s failed to Push update: %s", *dg.Id, err)
+		return 1, fmt.Errorf("DeviceGroup %s failed to Push update: %s", *dg.DgId, err)
 	}
 
-	s.CacheUpdate(CacheModelDeviceGroup, *dg.Id, dgCore)
+	s.CacheUpdate(CacheModelDeviceGroup, *dg.DgId, dgCore)
 
 	return 0, nil
-}
-
-// SynchronizeAllDeviceGroups synchronizes the device groups
-func (s *Synchronizer) SynchronizeAllDeviceGroups(device *models.Device, cs *models.OnfConnectivityService_ConnectivityService_ConnectivityService, validEnterpriseIds map[string]bool) int {
-	pushFailures := 0
-deviceGroupLoop:
-	// All errors are treated as nonfatal, logged, and synchronization continues with the next device-group.
-	// PushFailures are counted and reported to the caller, who can decide whether to retry.
-	for _, dg := range device.DeviceGroup.DeviceGroup {
-		dgFailures, err := s.SynchronizeDeviceGroup(device, dg, cs, validEnterpriseIds)
-		pushFailures += dgFailures
-		if err != nil {
-			log.Warnf("DG %s failed to synchronize Core: %s", *dg.Id, err)
-			continue deviceGroupLoop
-		}
-	}
-	return pushFailures
 }

@@ -7,26 +7,27 @@ package synchronizer
 // helpers that are useful to multiple test cases
 
 import (
+	"fmt"
 	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 // TODO: Refactor to use mockgen and/or sample data files ?
 
 // MakeEnterprise populates an Enterprise structure for unit tests
-func MakeEnterprise(desc string, displayName string, id string, cs []string) *models.OnfEnterprise_Enterprise_Enterprise {
-	csList := map[string]*models.OnfEnterprise_Enterprise_Enterprise_ConnectivityService{}
+func MakeEnterprise(desc string, displayName string, id string, cs []string) *Enterprise {
+	csList := map[string]*EnterpriseConnectivityService{}
 
 	for _, csID := range cs {
-		csList[csID] = &models.OnfEnterprise_Enterprise_Enterprise_ConnectivityService{
+		csList[csID] = &EnterpriseConnectivityService{
 			ConnectivityService: aStr(csID),
 			Enabled:             aBool(true),
 		}
 	}
 
-	ent := models.OnfEnterprise_Enterprise_Enterprise{
+	ent := Enterprise{
 		Description:         aStr(desc),
 		DisplayName:         aStr(displayName),
-		Id:                  aStr(id),
+		EntId:               aStr(id),
 		ConnectivityService: csList,
 	}
 
@@ -34,8 +35,8 @@ func MakeEnterprise(desc string, displayName string, id string, cs []string) *mo
 }
 
 // MakeCs makes a connectivity service structure for unit tests
-func MakeCs(desc string, displayName string, id string) *models.OnfConnectivityService_ConnectivityService_ConnectivityService {
-	cs := models.OnfConnectivityService_ConnectivityService_ConnectivityService{
+func MakeCs(desc string, displayName string, id string) *ConnectivityService {
+	cs := ConnectivityService{
 		Description:     aStr(desc),
 		DisplayName:     aStr(displayName),
 		Id:              aStr(id),
@@ -47,104 +48,119 @@ func MakeCs(desc string, displayName string, id string) *models.OnfConnectivityS
 
 // BuildSampleDeviceGroup builds a sample device group for unit testing
 func BuildSampleDeviceGroup() (
-	*models.OnfEnterprise_Enterprise_Enterprise,
-	*models.OnfConnectivityService_ConnectivityService_ConnectivityService,
-	map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass,
-	*models.OnfIpDomain_IpDomain_IpDomain,
-	*models.OnfSite_Site_Site,
-	*models.OnfDeviceGroup_DeviceGroup_DeviceGroup) {
+	*Enterprise,
+	*ConnectivityService,
+	map[string]*TrafficClass,
+	*IpDomain,
+	*Site,
+	*DeviceGroup) {
 	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
 	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
 
-	tc := &models.OnfTrafficClass_TrafficClass_TrafficClass{
-		Id:          aStr("sample-traffic-class"),
+	tc := &TrafficClass{
+		TcId:        aStr("sample-traffic-class"),
 		Description: aStr("sample-traffic-class-desc"),
 		DisplayName: aStr("sample-traffic-class-dn"),
 		Qci:         aUint8(55),
 		Arp:         aUint8(3),
 	}
 
-	ipd := &models.OnfIpDomain_IpDomain_IpDomain{
+	ipd := &IpDomain{
 		Description: aStr("sample-ipd-desc"),
 		DisplayName: aStr("sample-ipd-dn"),
-		Id:          aStr("sample-ipd"),
+		IpId:        aStr("sample-ipd"),
 		Subnet:      aStr("1.2.3.4/24"),
 		DnsPrimary:  aStr("8.8.8.8"),
 		Mtu:         aUint16(1492),
 		Dnn:         aStr("5ginternet"),
 	}
-	imsiDef := &models.OnfSite_Site_Site_ImsiDefinition{
+	imsiDef := &ImsiDefinition{
 		Mcc:        aStr("123"),
 		Mnc:        aStr("456"),
 		Enterprise: aUint32(789),
 		Format:     aStr("CCCNNNEEESSSSSS"),
 	}
-	sc := &models.OnfSite_Site_Site_SmallCell{
+	sc := &SmallCell{
 		SmallCellId: aStr("myradio"),
 		Address:     aStr("6.7.8.9"),
 		Enable:      aBool(true),
 		Tac:         aStr("77AB"),
 	}
-	site := &models.OnfSite_Site_Site{
-		Description:    aStr("sample-site-desc"),
-		DisplayName:    aStr("sample-site-dn"),
-		Id:             aStr("sample-site"),
-		Enterprise:     aStr("sample-ent"),
-		ImsiDefinition: imsiDef,
-		SmallCell:      map[string]*models.OnfSite_Site_Site_SmallCell{"myradio": sc},
+	simCard := &SimCard{
+		SimId: aStr("sample-sim"),
+		Imsi:  aUint64(1),
 	}
-	imsi := models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{
-		ImsiRangeFrom: aUint64(1),
-		ImsiId:        aStr("sample-imsi"),
+	device := &Device{
+		DevId:   aStr("sample-device"),
+		SimCard: aStr("sample-sim"),
 	}
-	dgDevMbr := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device_Mbr{
-		Downlink: aUint64(4321),
-		Uplink:   aUint64(8765),
+	dgDevice := &DeviceGroupDevice{
+		DeviceId: aStr("sample-device"),
+		// SimCard: ...
 	}
-	dg := &models.OnfDeviceGroup_DeviceGroup_DeviceGroup{
+	dgDevMbr := &DeviceGroupMbr{
+		Downlink:     aUint64(4321),
+		Uplink:       aUint64(8765),
+		TrafficClass: tc.TcId,
+	}
+	dg := &DeviceGroup{
 		//Description: aStr("sample-dg-desc"),
 		DisplayName: aStr("sample-dg-dn"),
-		Id:          aStr("sample-dg"),
-		Site:        aStr("sample-site"),
+		DgId:        aStr("sample-dg"),
 		IpDomain:    aStr("sample-ipd"),
-		Imsis:       map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis{*imsi.ImsiId: &imsi},
-		Device:      &models.OnfDeviceGroup_DeviceGroup_DeviceGroup_Device{Mbr: dgDevMbr, TrafficClass: tc.Id},
+		Device:      map[string]*DeviceGroupDevice{*dgDevice.DeviceId: dgDevice},
+		Mbr:         dgDevMbr,
+	}
+	site := &Site{
+		Description:    aStr("sample-site-desc"),
+		DisplayName:    aStr("sample-site-dn"),
+		SiteId:         aStr("sample-site"),
+		ImsiDefinition: imsiDef,
+		Device:         map[string]*Device{*device.DevId: device},
+		SimCard:        map[string]*SimCard{*simCard.SimId: simCard},
+		SmallCell:      map[string]*SmallCell{*sc.SmallCellId: sc},
+		DeviceGroup:    map[string]*DeviceGroup{*dg.DgId: dg},
+		IpDomain:       map[string]*IpDomain{*ipd.IpId: ipd},
 	}
 
-	tcList := map[string]*models.OnfTrafficClass_TrafficClass_TrafficClass{*tc.Id: tc}
+	tcList := map[string]*TrafficClass{*tc.TcId: tc}
+
+	ent.TrafficClass = tcList
+	ent.Site = map[string]*Site{*site.SiteId: site}
 
 	return ent, cs, tcList, ipd, site, dg
 }
 
-// BuildSampleVcs builds a sample vcs for testing
-func BuildSampleVcs() (
-	map[string]*models.OnfApplication_Application_Application,
-	*models.OnfTemplate_Template_Template,
-	*models.OnfUpf_Upf_Upf,
-	*models.OnfVcs_Vcs_Vcs) {
+// BuildSampleSlice builds a sample slice and application for testing. The
+// Slice and its related artifacts are attached to the Enterprise and Site
+// that are passed as arguments.
+func BuildSampleSlice(ent *Enterprise, site *Site) (
+	map[string]*Application,
+	*Template,
+	*Upf,
+	*Slice) {
 
-	ep := &models.OnfApplication_Application_Application_Endpoint{
+	ep := &ApplicationEndpoint{
 		EndpointId: aStr("sample-app-ep"),
 		PortStart:  aUint16(123),
 		PortEnd:    aUint16(124),
 		Protocol:   aStr("UDP"),
 	}
 
-	app1 := &models.OnfApplication_Application_Application{
-		Id:          aStr("sample-app"),
+	app1 := &Application{
+		AppId:       aStr("sample-app"),
 		Description: aStr("sample-app-desc"),
 		DisplayName: aStr("sample-app-dn"),
 		Address:     aStr("1.2.3.4"),
-		Endpoint:    map[string]*models.OnfApplication_Application_Application_Endpoint{"sample-app-ep": ep},
-		Enterprise:  aStr("sample-ent"),
+		Endpoint:    map[string]*ApplicationEndpoint{"sample-app-ep": ep},
 	}
 
-	mbr := &models.OnfApplication_Application_Application_Endpoint_Mbr{
+	mbr := &ApplicationEndpointMbr{
 		Uplink:   aUint64(11223344),
 		Downlink: aUint64(55667788),
 	}
 
-	ep2 := &models.OnfApplication_Application_Application_Endpoint{
+	ep2 := &ApplicationEndpoint{
 		EndpointId:   aStr("sample-app-ep"),
 		PortStart:    aUint16(123),
 		PortEnd:      aUint16(124),
@@ -153,42 +169,41 @@ func BuildSampleVcs() (
 		TrafficClass: aStr("sample-traffic-class"),
 	}
 
-	app2 := &models.OnfApplication_Application_Application{
-		Id:          aStr("sample-app2"),
+	app2 := &Application{
+		AppId:       aStr("sample-app2"),
 		Description: aStr("sample-app2-desc"),
 		DisplayName: aStr("sample-app2-dn"),
 		Address:     aStr("1.2.3.5"),
-		Endpoint:    map[string]*models.OnfApplication_Application_Application_Endpoint{"sample-app2-ep": ep2},
-		Enterprise:  aStr("sample-ent"),
+		Endpoint:    map[string]*ApplicationEndpoint{"sample-app2-ep": ep2},
 	}
 
-	appLink := &models.OnfVcs_Vcs_Vcs_Filter{
+	appLink := &SliceFilter{
 		Allow:       aBool(true),
 		Priority:    aUint8(7),
 		Application: aStr("sample-app"),
 	}
 
-	app2Link := &models.OnfVcs_Vcs_Vcs_Filter{
+	app2Link := &SliceFilter{
 		Allow:       aBool(false),
 		Priority:    aUint8(8),
 		Application: aStr("sample-app2"),
 	}
 
-	dgLink := &models.OnfVcs_Vcs_Vcs_DeviceGroup{
+	dgLink := &SliceDeviceGroup{
 		DeviceGroup: aStr("sample-dg"),
 		Enable:      aBool(true),
 	}
 
-	tp := &models.OnfTemplate_Template_Template{
-		Id:          aStr("sample-template"),
+	tp := &Template{
+		TpId:        aStr("sample-template"),
 		Description: aStr("sample-template-desc"),
 		DisplayName: aStr("sample-template-dn"),
 		Sd:          aUint32(111),
 		Sst:         aUint8(222),
 	}
 
-	upf := &models.OnfUpf_Upf_Upf{
-		Id:             aStr("sample-upf"),
+	upf := &Upf{
+		UpfId:          aStr("sample-upf"),
 		Address:        aStr("2.3.4.5"),
 		ConfigEndpoint: aStr("http://upf"),
 		Description:    aStr("sample-upf-desc"),
@@ -196,45 +211,65 @@ func BuildSampleVcs() (
 		Port:           aUint16(66),
 	}
 
-	sliceQosMbr := &models.OnfVcs_Vcs_Vcs_Slice_Mbr{Uplink: aUint64(333), Downlink: aUint64(444)}
-	sliceQos := &models.OnfVcs_Vcs_Vcs_Slice{Mbr: sliceQosMbr}
+	sliceMbr := &SliceMbr{Uplink: aUint64(333), Downlink: aUint64(444)}
 
-	vcs := &models.OnfVcs_Vcs_Vcs{
-		Filter:          map[string]*models.OnfVcs_Vcs_Vcs_Filter{"sample-app": appLink, "sample-app2": app2Link},
-		Description:     aStr("sample-vcs-desc"),
-		DeviceGroup:     map[string]*models.OnfVcs_Vcs_Vcs_DeviceGroup{"sample-dg": dgLink},
+	slice := &Slice{
+		Filter:          map[string]*SliceFilter{"sample-app": appLink, "sample-app2": app2Link},
+		Description:     aStr("sample-slice-desc"),
+		DeviceGroup:     map[string]*SliceDeviceGroup{"sample-dg": dgLink},
 		DisplayName:     aStr("sample-app-dn"),
-		Id:              aStr("sample-vcs"),
+		SliceId:         aStr("sample-slice"),
 		Sd:              aUint32(111),
 		Sst:             aUint8(222),
-		Slice:           sliceQos,
-		Site:            aStr("sample-site"),
+		Mbr:             sliceMbr,
 		Upf:             aStr("sample-upf"),
 		DefaultBehavior: aStr("DENY-ALL"),
 	}
 
-	apps := map[string]*models.OnfApplication_Application_Application{*app1.Id: app1, *app2.Id: app2}
+	apps := map[string]*Application{*app1.AppId: app1, *app2.AppId: app2}
 
-	return apps, tp, upf, vcs
+	ent.Application = apps
+	site.Slice = map[string]*Slice{*slice.SliceId: slice}
+	site.Upf = map[string]*Upf{*upf.UpfId: upf}
+
+	return apps, tp, upf, slice
 }
 
 // BuildSampleDevice builds a sample device, with VCS and Device-Group
-func BuildSampleDevice() *models.Device {
-	ent, cs, tcList, ipd, site, dg := BuildSampleDeviceGroup()
-	apps, tp, upf, vcs := BuildSampleVcs()
+func BuildSampleDevice() *RootDevice {
+	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
+	_, _, _, _ = BuildSampleSlice(ent, site)           // nolint dogsled
 
-	device := &models.Device{
-		Enterprise:          &models.OnfEnterprise_Enterprise{Enterprise: map[string]*models.OnfEnterprise_Enterprise_Enterprise{"sample-ent": ent}},
-		ConnectivityService: &models.OnfConnectivityService_ConnectivityService{ConnectivityService: map[string]*models.OnfConnectivityService_ConnectivityService_ConnectivityService{"sample-cs": cs}},
-		Site:                &models.OnfSite_Site{Site: map[string]*models.OnfSite_Site_Site{"sample-site": site}},
-		IpDomain:            &models.OnfIpDomain_IpDomain{IpDomain: map[string]*models.OnfIpDomain_IpDomain_IpDomain{"sample-ipd": ipd}},
-		DeviceGroup:         &models.OnfDeviceGroup_DeviceGroup{DeviceGroup: map[string]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{*dg.Id: dg}},
-		Application:         &models.OnfApplication_Application{Application: apps},
-		Template:            &models.OnfTemplate_Template{Template: map[string]*models.OnfTemplate_Template_Template{*tp.Id: tp}},
-		TrafficClass:        &models.OnfTrafficClass_TrafficClass{TrafficClass: tcList},
-		Upf:                 &models.OnfUpf_Upf{Upf: map[string]*models.OnfUpf_Upf_Upf{*upf.Id: upf}},
-		Vcs:                 &models.OnfVcs_Vcs{Vcs: map[string]*models.OnfVcs_Vcs_Vcs{*vcs.Id: vcs}},
+	device := &RootDevice{
+		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
+		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
 	}
 
 	return device
+}
+
+// BuildScope creates a scope for the sample device
+func BuildScope(device *RootDevice, entID string, siteID string, csID string) (*AetherScope, error) {
+	enterprise, okay := device.Enterprises.Enterprise[entID]
+	if !okay {
+		return nil, fmt.Errorf("Failed to find enterprise %s", entID)
+	}
+
+	site, okay := enterprise.Site[siteID]
+	if !okay {
+		return nil, fmt.Errorf("Failed to find enterprise %s", siteID)
+	}
+
+	cs, okay := device.ConnectivityServices.ConnectivityService[csID]
+	if !okay {
+		return nil, fmt.Errorf("Failed to find cs %s", csID)
+	}
+
+	return &AetherScope{
+		RootDevice:          device,
+		ConnectivityService: cs,
+		Enterprise:          enterprise,
+		Site:                site,
+	}, nil
+
 }

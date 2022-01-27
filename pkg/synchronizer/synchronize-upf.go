@@ -8,8 +8,6 @@ package synchronizer
 import (
 	"encoding/json"
 	"fmt"
-
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 type sliceQos struct {
@@ -31,40 +29,40 @@ type upfSliceConfig struct {
 	UEResourceInfo []ueResourceInfo `json:"ueResourceInfo,omitempty"`
 }
 
-// SynchronizeVcsUPF synchronizes the VCSes to the UPF
+// SynchronizeSliceUPF synchronizes the VCSes to the UPF
 // Return a count of push-related errors
-func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) (int, error) {
-	if vcs.Upf == nil {
-		return 0, fmt.Errorf("Vcs %s has no UPFs to synchronize", *vcs.Id)
+func (s *Synchronizer) SynchronizeSliceUPF(scope *AetherScope, slice *Slice) (int, error) {
+	if slice.Upf == nil {
+		return 0, fmt.Errorf("Slice %s has no UPFs to synchronize", *slice.SliceId)
 	}
 
-	aUpf, err := s.GetUpf(device, vcs.Upf)
+	aUpf, err := s.GetUpf(scope, slice.Upf)
 	if err != nil {
-		return 0, fmt.Errorf("Vcs %s unable to determine upf: %s", *vcs.Id, err)
+		return 0, fmt.Errorf("Slice %s unable to determine upf: %s", *slice.SliceId, err)
 	}
 	err = validateUpf(aUpf)
 	if err != nil {
-		return 0, fmt.Errorf("Vcs %s Upf is invalid: %s", *vcs.Id, err)
+		return 0, fmt.Errorf("Slice %s Upf is invalid: %s", *slice.SliceId, err)
 	}
 
 	if aUpf.ConfigEndpoint == nil {
-		return 0, fmt.Errorf("Vcs %s UPF has no configuration endpoint", *vcs.Id)
+		return 0, fmt.Errorf("Slice %s UPF has no configuration endpoint", *slice.SliceId)
 	}
 
 	sc := &upfSliceConfig{
-		SliceName: *vcs.Id,
+		SliceName: *slice.SliceId,
 	}
 
 	hasQos := false
-	if (vcs.Slice != nil) && (vcs.Slice.Mbr != nil) {
-		if vcs.Slice.Mbr.Uplink != nil {
-			sc.SliceQos.Uplink = *vcs.Slice.Mbr.Uplink
-			sc.SliceQos.UplinkBurst = DerefUint32Ptr(vcs.Slice.Mbr.UplinkBurstSize, DefaultUplinkBurst)
+	if slice.Mbr != nil {
+		if slice.Mbr.Uplink != nil {
+			sc.SliceQos.Uplink = *slice.Mbr.Uplink
+			sc.SliceQos.UplinkBurst = DerefUint32Ptr(slice.Mbr.UplinkBurstSize, DefaultUplinkBurst)
 			hasQos = true
 		}
-		if vcs.Slice.Mbr.Downlink != nil {
-			sc.SliceQos.Downlink = *vcs.Slice.Mbr.Downlink
-			sc.SliceQos.DownlinkBurst = DerefUint32Ptr(vcs.Slice.Mbr.DownlinkBurstSize, DefaultDownlinkBurst)
+		if slice.Mbr.Downlink != nil {
+			sc.SliceQos.Downlink = *slice.Mbr.Downlink
+			sc.SliceQos.DownlinkBurst = DerefUint32Ptr(slice.Mbr.DownlinkBurstSize, DefaultDownlinkBurst)
 			hasQos = true
 		}
 	}
@@ -73,41 +71,41 @@ func (s *Synchronizer) SynchronizeVcsUPF(device *models.Device, vcs *models.OnfV
 		sc.SliceQos.Unit = aStr(DefaultBitrateUnit)
 	}
 
-	dgList, err := s.GetVcsDG(device, vcs)
+	dgList, err := s.GetSliceDG(scope, slice)
 	if err != nil {
-		return 0, fmt.Errorf("Vcs %s unable to determine dgList: %s", *vcs.Id, err)
+		return 0, fmt.Errorf("Slice %s unable to determine dgList: %s", *slice.SliceId, err)
 	}
 
 	for _, dg := range dgList {
-		ipd, err := s.GetIPDomain(device, dg.IpDomain)
+		ipd, err := s.GetIPDomain(scope, dg.IpDomain)
 		if err != nil {
-			return 0, fmt.Errorf("DeviceGroup %s failed to get IpDomain: %s", *dg.Id, err)
+			return 0, fmt.Errorf("DeviceGroup %s failed to get IpDomain: %s", *dg.DgId, err)
 		}
 
 		if ipd.Dnn != nil {
-			ueRes := ueResourceInfo{Pool: *dg.Id,
+			ueRes := ueResourceInfo{Pool: *dg.DgId,
 				DNN: *ipd.Dnn}
 			sc.UEResourceInfo = append(sc.UEResourceInfo, ueRes)
 		}
 	}
 
-	if s.partialUpdateEnable && s.CacheCheck(CacheModelSliceUpf, *vcs.Id, sc) {
-		log.Infof("UPF Slice %s has not changed", *vcs.Id)
+	if s.partialUpdateEnable && s.CacheCheck(CacheModelSliceUpf, *slice.SliceId, sc) {
+		log.Infof("UPF Slice %s has not changed", *slice.SliceId)
 		return 0, nil
 	}
 
 	data, err := json.MarshalIndent(sc, "", "  ")
 	if err != nil {
-		return 0, fmt.Errorf("Vcs %s failed to marshal UPF JSON: %s", *vcs.Id, err)
+		return 0, fmt.Errorf("Slice %s failed to marshal UPF JSON: %s", *slice.SliceId, err)
 	}
 
 	url := fmt.Sprintf("%s/v1/config/network-slices", *aUpf.ConfigEndpoint)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {
-		return 1, fmt.Errorf("vcs %s failed to push UPF JSON: %s", *vcs.Id, err)
+		return 1, fmt.Errorf("slice %s failed to push UPF JSON: %s", *slice.SliceId, err)
 	}
 
-	s.CacheUpdate(CacheModelSliceUpf, *vcs.Id, sc)
+	s.CacheUpdate(CacheModelSliceUpf, *slice.SliceId, sc)
 
 	return 0, nil
 }

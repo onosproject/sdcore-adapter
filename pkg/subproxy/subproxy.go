@@ -32,7 +32,9 @@ type HTTPClient interface {
 }
 
 func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
-	log.Infof("Received One Subscriber Data")
+	log.Infof("Received One Subscriber Data : %v", c.Request.Header)
+	s.BaseWebConsoleURL = c.Request.Header.Get("Dest-Url")
+	log.Info("Base URL  : ", s.BaseWebConsoleURL)
 	ueID := c.Param("ueId")
 	var payload []byte
 	if c.Request.Body != nil {
@@ -65,7 +67,7 @@ func (s *subscriberProxy) addSubscriberByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := ForwardReqToEndpoint(s.BaseWebConsoleURL+subscriberAPISuffix+ueID, payload, s.PostTimeout)
+	resp, err := ForwardReqToEndpoint(s.BaseWebConsoleURL, payload, s.PostTimeout)
 	if err != nil {
 		jsonByte, okay := getJSONResponse(err.Error())
 		if okay != nil {
@@ -149,12 +151,6 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 		return nil, errors.NewInvalid("failed to get the Site from onos-config: %v", err)
 	}
 
-	origValCS, err := s.gnmiClient.GetPath(s.gnmiContext, "/connectivity-service", s.AetherConfigTarget, s.AetherConfigAddress)
-	if err != nil {
-		return nil, errors.NewInvalid("failed to get the CS from onos-config: %v", err.Error())
-	}
-	log.Info("origValCS = ", string(origValCS.GetJsonVal()))
-
 	device := &models.Device{}
 	// Convert the JSON config into a Device structure for Device Group
 	origJSONBytes := origValDg.GetJsonVal()
@@ -174,29 +170,6 @@ func (s *subscriberProxy) getDevice() (*models.Device, error) {
 		}
 	}
 
-	// Convert the JSON config into a Device structure for Device Group
-	origJSONBytes = origValCS.GetJsonVal()
-	if len(origJSONBytes) > 0 {
-		if err := models.Unmarshal(origJSONBytes, device); err != nil {
-			log.Error("Failed to unmarshal json : ", err)
-			return nil, errors.NewInvalid("failed to unmarshal json", err)
-		}
-	}
-
-	baseURL := ""
-	if device.ConnectivityService.ConnectivityService["cs4gtest"] != nil && device.ConnectivityService.ConnectivityService["cs4gtest"].Core_5GEndpoint != nil {
-		baseURL = *device.ConnectivityService.ConnectivityService["cs4gtest"].Core_5GEndpoint
-	}
-	if device.ConnectivityService.ConnectivityService["cs5gtest"] != nil && device.ConnectivityService.ConnectivityService["cs5gtest"].Core_5GEndpoint != nil {
-		baseURL = *device.ConnectivityService.ConnectivityService["cs5gtest"].Core_5GEndpoint
-	}
-	if device.ConnectivityService.ConnectivityService["aiab-cs"] != nil && device.ConnectivityService.ConnectivityService["aiab-cs"].Core_5GEndpoint != nil {
-		baseURL = *device.ConnectivityService.ConnectivityService["aiab-cs"].Core_5GEndpoint
-	}
-	if baseURL != "" {
-		s.BaseWebConsoleURL = ExtractBaseURL(baseURL)
-	}
-	log.Info("endpoint : ", s.BaseWebConsoleURL)
 	return device, nil
 }
 

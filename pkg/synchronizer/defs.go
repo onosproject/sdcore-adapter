@@ -53,3 +53,14 @@ type ConfigUpdate struct {
 
 // SynchronizerOption is for options passed when creating a new synchronizer
 type SynchronizerOption func(c *Synchronizer) // nolint
+
+// AetherScope is used within the synchronizer to convey the scope we're working at within the
+// tree. Contexts were considered for this implementation, but rejected due to the lack of
+// static checking.
+type AetherScope struct {
+	RootDevice          *RootDevice
+	ConnectivityService *ConnectivityService
+	Enterprise          *Enterprise
+	Site                *Site
+	Slice               *Slice
+}

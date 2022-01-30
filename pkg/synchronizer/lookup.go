@@ -8,19 +8,14 @@ package synchronizer
 import (
 	"fmt"
 	"sort"
-
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 )
 
 // GetIPDomain looks up an IpDomain
-func (s *Synchronizer) GetIPDomain(device *models.Device, id *string) (*models.OnfIpDomain_IpDomain_IpDomain, error) {
-	if device.IpDomain == nil {
-		return nil, fmt.Errorf("Device contains no IpDomains")
-	}
+func (s *Synchronizer) GetIPDomain(scope *AetherScope, id *string) (*IpDomain, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("IpDomain id is blank")
 	}
-	ipd, okay := device.IpDomain.IpDomain[*id]
+	ipd, okay := scope.Site.IpDomain[*id]
 	if !okay {
 		return nil, fmt.Errorf("IpDomain %s not found", *id)
 	}
@@ -28,14 +23,11 @@ func (s *Synchronizer) GetIPDomain(device *models.Device, id *string) (*models.O
 }
 
 // GetUpf looks up a Upf
-func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.OnfUpf_Upf_Upf, error) {
-	if device.Upf == nil {
-		return nil, fmt.Errorf("Device contains no Upfs")
-	}
+func (s *Synchronizer) GetUpf(scope *AetherScope, id *string) (*Upf, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("Upf id is blank")
 	}
-	upf, okay := device.Upf.Upf[*id]
+	upf, okay := scope.Site.Upf[*id]
 	if !okay {
 		return nil, fmt.Errorf("Upf %s not found", *id)
 	}
@@ -43,14 +35,11 @@ func (s *Synchronizer) GetUpf(device *models.Device, id *string) (*models.OnfUpf
 }
 
 // GetApplication looks up an application
-func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*models.OnfApplication_Application_Application, error) {
-	if device.Application == nil {
-		return nil, fmt.Errorf("Device contains no Applications")
-	}
+func (s *Synchronizer) GetApplication(scope *AetherScope, id *string) (*Application, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("Application id is blank")
 	}
-	app, okay := device.Application.Application[*id]
+	app, okay := scope.Enterprise.Application[*id]
 	if !okay {
 		return nil, fmt.Errorf("Application %s not found", *id)
 	}
@@ -58,14 +47,11 @@ func (s *Synchronizer) GetApplication(device *models.Device, id *string) (*model
 }
 
 // GetDeviceGroup looks up a DeviceGroup
-func (s *Synchronizer) GetDeviceGroup(device *models.Device, id *string) (*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, error) {
+func (s *Synchronizer) GetDeviceGroup(scope *AetherScope, id *string) (*DeviceGroup, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("DeviceGroup id is blank")
 	}
-	if device.DeviceGroup == nil {
-		return nil, fmt.Errorf("No DeviceGroups")
-	}
-	dg, okay := device.DeviceGroup.DeviceGroup[*id]
+	dg, okay := scope.Site.DeviceGroup[*id]
 	if !okay {
 		return nil, fmt.Errorf("DeviceGroup %s not found", *id)
 	}
@@ -73,14 +59,11 @@ func (s *Synchronizer) GetDeviceGroup(device *models.Device, id *string) (*model
 }
 
 // GetTrafficClass looks up a TrafficClass
-func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*models.OnfTrafficClass_TrafficClass_TrafficClass, error) {
-	if device.TrafficClass == nil {
-		return nil, fmt.Errorf("Device contains no Traffic Classes")
-	}
+func (s *Synchronizer) GetTrafficClass(scope *AetherScope, id *string) (*TrafficClass, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("Traffic Class id is blank")
 	}
-	tc, okay := device.TrafficClass.TrafficClass[*id]
+	tc, okay := scope.Enterprise.TrafficClass[*id]
 	if !okay {
 		return nil, fmt.Errorf("TrafficClass %s not found", *id)
 	}
@@ -88,14 +71,14 @@ func (s *Synchronizer) GetTrafficClass(device *models.Device, id *string) (*mode
 }
 
 // GetEnterprise looks up an Enterprise
-func (s *Synchronizer) GetEnterprise(device *models.Device, id *string) (*models.OnfEnterprise_Enterprise_Enterprise, error) {
+func (s *Synchronizer) GetEnterprise(scope *AetherScope, id *string) (*Enterprise, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("Enterprise id is blank")
 	}
-	if device.Enterprise == nil {
-		return nil, fmt.Errorf("No Enterprises")
+	if (scope.RootDevice.Enterprises == nil) || (scope.RootDevice.Enterprises.Enterprise == nil) {
+		return nil, fmt.Errorf("No enterprises")
 	}
-	ent, okay := device.Enterprise.Enterprise[*id]
+	ent, okay := scope.RootDevice.Enterprises.Enterprise[*id]
 	if !okay {
 		return nil, fmt.Errorf("Enterprise %s not found", *id)
 	}
@@ -103,92 +86,85 @@ func (s *Synchronizer) GetEnterprise(device *models.Device, id *string) (*models
 }
 
 // GetSite looks up a Site
-func (s *Synchronizer) GetSite(device *models.Device, id *string) (*models.OnfSite_Site_Site, error) {
+func (s *Synchronizer) GetSite(scope *AetherScope, id *string) (*Site, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("Site id is blank")
 	}
-	if device.Site == nil {
-		return nil, fmt.Errorf("No Sites")
-	}
-	site, okay := device.Site.Site[*id]
+	site, okay := scope.Enterprise.Site[*id]
 	if !okay {
 		return nil, fmt.Errorf("Site %s not found", *id)
-	}
-	if (site.Enterprise == nil) || (*site.Enterprise == "") {
-		return nil, fmt.Errorf("Site %s has no enterprise", *id)
 	}
 	return site, nil
 }
 
-// GetVcs looks up a VCS
-func (s *Synchronizer) GetVcs(device *models.Device, id *string) (*models.OnfVcs_Vcs_Vcs, error) {
+// GetSlice looks up a Slice
+func (s *Synchronizer) GetSlice(scope *AetherScope, id *string) (*Slice, error) {
 	if (id == nil) || (*id == "") {
-		return nil, fmt.Errorf("Vcs id is blank")
+		return nil, fmt.Errorf("Slice id is blank")
 	}
-	if device.Vcs == nil {
-		return nil, fmt.Errorf("No VCSes")
-	}
-	vcs, okay := device.Vcs.Vcs[*id]
+	slice, okay := scope.Site.Slice[*id]
 	if !okay {
-		return nil, fmt.Errorf("Vcs %s not found", *id)
+		return nil, fmt.Errorf("Slice %s not found", *id)
 	}
-	return vcs, nil
+	return slice, nil
+}
+
+// GetDevice looks up a Device
+func (s *Synchronizer) GetDevice(scope *AetherScope, id *string) (*Device, error) {
+	if (id == nil) || (*id == "") {
+		return nil, fmt.Errorf("Device id is blank")
+	}
+	device, okay := scope.Site.Device[*id]
+	if !okay {
+		return nil, fmt.Errorf("Device %s not found", *id)
+	}
+	return device, nil
+}
+
+// GetSimCard looks up a SimCard
+func (s *Synchronizer) GetSimCard(scope *AetherScope, id *string) (*SimCard, error) {
+	if (id == nil) || (*id == "") {
+		return nil, fmt.Errorf("SimCard id is blank")
+	}
+	simCard, okay := scope.Site.SimCard[*id]
+	if !okay {
+		return nil, fmt.Errorf("SimCard %s not found", *id)
+	}
+	return simCard, nil
 }
 
 // GetConnectivityService looks up a Connectivity Service
-func (s *Synchronizer) GetConnectivityService(device *models.Device, id *string) (*models.OnfConnectivityService_ConnectivityService_ConnectivityService, error) {
+func (s *Synchronizer) GetConnectivityService(scope *AetherScope, id *string) (*ConnectivityService, error) {
 	if (id == nil) || (*id == "") {
 		return nil, fmt.Errorf("ConnectivityService id is blank")
 	}
-	if device.ConnectivityService == nil {
+	if (scope.RootDevice.ConnectivityServices == nil) || (scope.RootDevice.ConnectivityServices.ConnectivityService == nil) {
 		return nil, fmt.Errorf("No connectivity services")
 	}
-	cs, okay := device.ConnectivityService.ConnectivityService[*id]
+	cs, okay := scope.RootDevice.ConnectivityServices.ConnectivityService[*id]
 	if !okay {
 		return nil, fmt.Errorf("ConnectivityService %s not found", *id)
 	}
 	return cs, nil
 }
 
-// GetDeviceGroupSite gets the site for a DeviceGroup
-func (s *Synchronizer) GetDeviceGroupSite(device *models.Device, dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) (*models.OnfSite_Site_Site, error) {
-	if (dg.Site == nil) || (*dg.Site == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no site", *dg.Id)
-	}
-	site, okay := device.Site.Site[*dg.Site]
-	if !okay {
-		return nil, fmt.Errorf("DeviceGroup %s site %s not found", *dg.Id, *dg.Site)
-	}
-	if (site.Enterprise == nil) || (*site.Enterprise == "") {
-		return nil, fmt.Errorf("DeviceGroup %s has no enterprise", *dg.Id)
-	}
-	return site, nil
-}
-
-// GetVcsDG given a VCS, return the set of DeviceGroup attached to it
-func (s *Synchronizer) GetVcsDG(device *models.Device, vcs *models.OnfVcs_Vcs_Vcs) ([]*models.OnfDeviceGroup_DeviceGroup_DeviceGroup, error) {
-	dgList := []*models.OnfDeviceGroup_DeviceGroup_DeviceGroup{}
+// GetSliceDG given a Slice, return the set of DeviceGroup attached to it
+func (s *Synchronizer) GetSliceDG(scope *AetherScope, slice *Slice) ([]*DeviceGroup, error) {
+	dgList := []*DeviceGroup{}
 
 	// be deterministic...
 	dgKeys := []string{}
-	for k := range vcs.DeviceGroup {
+	for k := range slice.DeviceGroup {
 		dgKeys = append(dgKeys, k)
 	}
 	sort.Strings(dgKeys)
 
 	for _, k := range dgKeys {
-		dgLink := vcs.DeviceGroup[k]
+		dgLink := slice.DeviceGroup[k]
 
-		dg, okay := device.DeviceGroup.DeviceGroup[*dgLink.DeviceGroup]
+		dg, okay := scope.Site.DeviceGroup[*dgLink.DeviceGroup]
 		if !okay {
-			return nil, fmt.Errorf("Vcs %s deviceGroup %s not found", *vcs.Id, *dgLink.DeviceGroup)
-		}
-		if (dg.Site == nil) || (*dg.Site == "") {
-			return nil, fmt.Errorf("Vcs %s deviceGroup %s has no site", *vcs.Id, *dgLink.DeviceGroup)
-		}
-
-		if len(dgList) > 0 && (*dgList[0].Site != *dg.Site) {
-			return nil, fmt.Errorf("Vcs %s deviceGroups %s and %s have different sites", *vcs.Id, *dgList[0].Site, *dg.Site)
+			return nil, fmt.Errorf("Slice %s deviceGroup %s not found", *slice.SliceId, *dgLink.DeviceGroup)
 		}
 
 		// Only add it to the list if it's enabled
@@ -200,24 +176,14 @@ func (s *Synchronizer) GetVcsDG(device *models.Device, vcs *models.OnfVcs_Vcs_Vc
 	return dgList, nil
 }
 
-// GetConnectivityServiceForSite given a siteName returns a list of connectivity services
-func (s *Synchronizer) GetConnectivityServiceForSite(device *models.Device, siteName *string) ([]*models.OnfConnectivityService_ConnectivityService_ConnectivityService, error) {
-	site, err := s.GetSite(device, siteName)
-	if err != nil {
-		return nil, err
-	}
-
-	ent, err := s.GetEnterprise(device, site.Enterprise)
-	if err != nil {
-		return nil, err
-	}
-
-	eligibleCS := []*models.OnfConnectivityService_ConnectivityService_ConnectivityService{}
-	for csID, cs := range ent.ConnectivityService {
+// GetConnectivityServicesForEnterprise given a siteName returns a list of connectivity services
+func (s *Synchronizer) GetConnectivityServicesForEnterprise(scope *AetherScope) ([]*ConnectivityService, error) {
+	eligibleCS := []*ConnectivityService{}
+	for csID, cs := range scope.Enterprise.ConnectivityService {
 		if !*cs.Enabled {
 			continue
 		}
-		csModel, err := s.GetConnectivityService(device, &csID)
+		csModel, err := s.GetConnectivityService(scope, &csID)
 		if err != nil {
 			return nil, err
 		}

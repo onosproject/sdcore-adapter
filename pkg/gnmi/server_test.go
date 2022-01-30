@@ -78,15 +78,26 @@ func TestGet(t *testing.T) {
 	}{{
 		desc: "get ip-domain",
 		textPbPath: `
-			elem: <name: "ip-domain" >
+		    elem: <name: 'enterprises'>
+			elem: <name: "enterprise"
+			             key: <
+			                 key:'ent-id',
+			                 value:'acme'
+			                   >
+						>
+			elem: <name: "site"
+						key: <
+							key:'site-id',
+							value:'acme-site'
+							  >
+					   >						
 			elem: <name: "ip-domain" 
 						 key: <
-							 key:'id',
-							 value:'acme-chicago'
+							 key:'ip-id',
+							 value:'acme-chicago-ip'
 							 >
 						>
 			elem: <name: "subnet">
-
 		`,
 		wantRetCode: codes.OK,
 		wantRespVal: "163.25.44.0/31",
@@ -178,13 +189,23 @@ func TestSet(t *testing.T) {
 		desc: "set ip-domain",
 		textPbPrefix: `
 		target: 'connectivity-service-v4'
-		elem: <
-			name: 'ip-domain'
-		>
+		elem: <name: 'enterprises'>
+		elem: <name: 'enterprise'
+		    key: <
+			    key:'ent-id',
+			    value:'acme'
+			>
+	    >
+        elem: <name: 'site'
+	        key: <
+		       key:'site-id',
+		       value:'acme-site'
+			>
+	    >			
 		elem: <
 			name: 'ip-domain'
 			key:<
-				key:'id'
+				key:'ip-id'
 				value:'ip-domain-demo-1'
 			>
 		>

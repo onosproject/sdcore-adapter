@@ -1,5 +1,5 @@
 {
-  "sliceName": "sample-vcs",
+  "sliceName": "sample-slice",
   "sliceQos": {
     "uplinkMBR": 333,
     "downlinkMBR": 444,

@@ -8,7 +8,6 @@ package synchronizer
 import (
 	"errors"
 	"fmt"
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
 	"strings"
 )
 
@@ -18,18 +17,18 @@ import (
 // TODO: See if there is a way to do this automatically using ygot
 
 // return error if VCS cannot be synchronized due to missing data
-func validateVcs(vcs *models.OnfVcs_Vcs_Vcs) error {
-	if vcs.Sst == nil {
+func validateSlice(slice *Slice) error {
+	if slice.Sst == nil {
 		return fmt.Errorf("Sst is nil")
 	}
-	if vcs.DefaultBehavior == nil {
+	if slice.DefaultBehavior == nil {
 		return fmt.Errorf("DefaultBehavior is nil")
 	}
 	return nil
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func validateAppEndpoint(ep *models.OnfApplication_Application_Application_Endpoint) error {
+func validateAppEndpoint(ep *ApplicationEndpoint) error {
 	if ep.PortStart == nil {
 		return fmt.Errorf("PortStart is nil")
 	}
@@ -37,7 +36,7 @@ func validateAppEndpoint(ep *models.OnfApplication_Application_Application_Endpo
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func validateIPDomain(ipd *models.OnfIpDomain_IpDomain_IpDomain) error {
+func validateIPDomain(ipd *IpDomain) error {
 	if ipd.Subnet == nil {
 		return fmt.Errorf("Subnet is nil")
 	}
@@ -45,7 +44,7 @@ func validateIPDomain(ipd *models.OnfIpDomain_IpDomain_IpDomain) error {
 }
 
 // return error if SmallCell cannot be synchronized due to missing data
-func validateSmallCell(ap *models.OnfSite_Site_Site_SmallCell) error {
+func validateSmallCell(ap *SmallCell) error {
 	if ap.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -56,7 +55,7 @@ func validateSmallCell(ap *models.OnfSite_Site_Site_SmallCell) error {
 }
 
 // return error if UPF cannot be synchronized due to missing data
-func validateUpf(u *models.OnfUpf_Upf_Upf) error {
+func validateUpf(u *Upf) error {
 	if u.Address == nil {
 		return fmt.Errorf("Address is nil")
 	}
@@ -66,7 +65,7 @@ func validateUpf(u *models.OnfUpf_Upf_Upf) error {
 	return nil
 }
 
-func validateImsiDefinition(i *models.OnfSite_Site_Site_ImsiDefinition) error {
+func validateImsiDefinition(i *ImsiDefinition) error {
 	var format string
 	if i.Format != nil {
 		format = *i.Format
@@ -93,24 +92,24 @@ func validateImsiDefinition(i *models.OnfSite_Site_Site_ImsiDefinition) error {
 	return nil
 }
 
-func validateDeviceGroup(dg *models.OnfDeviceGroup_DeviceGroup_DeviceGroup) error {
+func validateDeviceGroup(dg *DeviceGroup) error {
 	if dg.Device == nil {
 		return fmt.Errorf("has no per-Device settings")
 	}
 
-	if dg.Device.Mbr == nil {
+	if dg.Mbr == nil {
 		return fmt.Errorf("has per-Device settings, but no MBR")
 	}
 
-	if dg.Device.Mbr.Uplink == nil {
+	if dg.Mbr.Uplink == nil {
 		return fmt.Errorf("Device.MBR.Uplink is unset")
 	}
 
-	if dg.Device.Mbr.Downlink == nil {
+	if dg.Mbr.Downlink == nil {
 		return fmt.Errorf("Device.MBR.Downlink is unset")
 	}
 
-	if dg.Device.TrafficClass == nil {
+	if dg.Mbr.TrafficClass == nil {
 		return fmt.Errorf("has no Device.Traffic-Class")
 	}
 

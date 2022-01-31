@@ -80,7 +80,7 @@ func main() {
 	// Initialize the migration engine and register migration steps.
 	mig := migration.NewMigrator(gnmiClient)
 	mig.AddMigrationStep("3.0.0", v3Models, "4.0.0", v4Models, steps.MigrateV3V4)
-	mig.AddMigrationStep("4.0.0", v3Models, "2.0.0", v2Models, steps.MigrateV4V2)
+	mig.AddMigrationStep("4.0.0", v4Models, "2.0.0", v2Models, steps.MigrateV4V2)
 
 	if *fromVersion == "" {
 		log.Fatalf("--from-version not specified. Supports: %s", strings.Join(mig.SupportedVersions(), ", "))

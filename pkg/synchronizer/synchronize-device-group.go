@@ -84,7 +84,7 @@ func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGrou
 	}
 	dgCore.IPDomain = ipdCore
 
-	rocTrafficClass, err := s.GetTrafficClass(scope, dg.Mbr.TrafficClass)
+	rocTrafficClass, err := s.GetTrafficClass(scope, dg.TrafficClass)
 	if err != nil {
 		return 0, fmt.Errorf("DG %s unable to determine traffic class: %s", *dg.DgId, err)
 	}

@@ -63,7 +63,7 @@ test: build deps license_check linters images
 	go test -cover -race `go list github.com/onosproject/sdcore-adapter/cmd/... | grep -v subscriber-proxy`
 
 jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
-jenkins-test: build deps license_check linters images
+jenkins-test: build deps license_check linters images jenkins-tools
 	TEST_PACKAGES=`go list github.com/onosproject/sdcore-adapter/... | grep -v subscriber-proxy | grep -v subproxy` ./../build-tools/build/jenkins/make-unit
 
 sdcore-adapter-docker: local-aether-models

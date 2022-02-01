@@ -99,17 +99,17 @@ func BuildSampleDeviceGroup() (
 		// SimCard: ...
 	}
 	dgDevMbr := &DeviceGroupMbr{
-		Downlink:     aUint64(4321),
-		Uplink:       aUint64(8765),
-		TrafficClass: tc.TcId,
+		Downlink: aUint64(4321),
+		Uplink:   aUint64(8765),
 	}
 	dg := &DeviceGroup{
 		//Description: aStr("sample-dg-desc"),
-		DisplayName: aStr("sample-dg-dn"),
-		DgId:        aStr("sample-dg"),
-		IpDomain:    aStr("sample-ipd"),
-		Device:      map[string]*DeviceGroupDevice{*dgDevice.DeviceId: dgDevice},
-		Mbr:         dgDevMbr,
+		DisplayName:  aStr("sample-dg-dn"),
+		DgId:         aStr("sample-dg"),
+		IpDomain:     aStr("sample-ipd"),
+		Device:       map[string]*DeviceGroupDevice{*dgDevice.DeviceId: dgDevice},
+		Mbr:          dgDevMbr,
+		TrafficClass: tc.TcId,
 	}
 	site := &Site{
 		Description:    aStr("sample-site-desc"),

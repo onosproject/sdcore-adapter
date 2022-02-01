@@ -109,7 +109,7 @@ func validateDeviceGroup(dg *DeviceGroup) error {
 		return fmt.Errorf("Device.MBR.Downlink is unset")
 	}
 
-	if dg.Mbr.TrafficClass == nil {
+	if dg.TrafficClass == nil {
 		return fmt.Errorf("has no Device.Traffic-Class")
 	}
 

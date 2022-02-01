@@ -130,7 +130,7 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 
 	ent, cs, _, _, _, dg := BuildSampleDeviceGroup() // nolint dogsled
 
-	dg.Mbr.TrafficClass = nil
+	dg.TrafficClass = nil
 
 	device := &RootDevice{
 		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},

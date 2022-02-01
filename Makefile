@@ -55,7 +55,7 @@ build: local-aether-models
 	go build -o build/_output/sdcore-migrate ./cmd/sdcore-migrate
 #	go build -o build/_output/subscriber-proxy ./cmd/subscriber-proxy
 
-test: build deps license_check linters
+test: build deps license_check linters images
 	# TODO: Skipping subscriber-proxy tests until they're updated
 	#go test -cover -race github.com/onosproject/sdcore-adapter/pkg/...
 	#go test -cover -race github.com/onosproject/sdcore-adapter/cmd/...
@@ -63,16 +63,8 @@ test: build deps license_check linters
 	go test -cover -race `go list github.com/onosproject/sdcore-adapter/cmd/... | grep -v subscriber-proxy`
 
 jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
-jenkins-test: build deps license_check linters
+jenkins-test: build deps license_check linters images jenkins-tools
 	TEST_PACKAGES=`go list github.com/onosproject/sdcore-adapter/... | grep -v subscriber-proxy | grep -v subproxy` ./../build-tools/build/jenkins/make-unit
-
-coverage: # @HELP generate unit test coverage data
-coverage: build deps linters license_check
-	export GOPRIVATE="github.com/onosproject/*"
-	go test -covermode=count -coverprofile=onos.coverprofile github.com/onosproject/sdcore-adapter/pkg/...
-	cd .. && go get github.com/mattn/goveralls && cd sdcore-adapter
-	grep -v .pb.go onos.coverprofile >onos-nogrpc.coverprofile
-	goveralls -coverprofile=onos-nogrpc.coverprofile -service travis-pro -repotoken McoQ4G2hx3rgBaA45sm2aVO25hconX70N
 
 sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \

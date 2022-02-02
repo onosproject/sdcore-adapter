@@ -239,9 +239,12 @@ func migrateV4V2Enterprise(fromTarget string, toTarget string, ent *modelsv4.Onf
 	var updates []*gpb.Update
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, ent.Description))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, ent.DisplayName))
-	for _, cs := range ent.ConnectivityService {
-		updStr := fmt.Sprintf("connectivity-service[connectivity-service=%s]/enabled", *cs.ConnectivityService)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, cs.Enabled))
+
+	if ent.ConnectivityService != nil {
+		for _, cs := range ent.ConnectivityService {
+			updStr := fmt.Sprintf("connectivity-service[connectivity-service=%s]/enabled", *cs.ConnectivityService)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, cs.Enabled))
+		}
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[ent-id=%s]", *ent.Id), toTarget)
@@ -254,21 +257,24 @@ func migrateV4V2Application(fromTarget string, toTarget string, app *modelsv4.On
 	var updates []*gpb.Update
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, app.Description))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, app.DisplayName))
-	for _, ap := range app.Endpoint {
-		updStr := fmt.Sprintf("endpoint[endpoint-id=%s]/display-name", *ap.EndpointId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ap.DisplayName))
-		updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/protocol", *ap.EndpointId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ap.Protocol))
-		updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/port-start", *ap.EndpointId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt16(updStr, toTarget, ap.PortStart))
-		updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/port-end", *ap.EndpointId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt16(updStr, toTarget, ap.PortEnd))
-		updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/mbr/uplink", *ap.EndpointId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64(updStr, toTarget, ap.Mbr.Uplink))
-		updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/mbr/downlink", *ap.EndpointId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64(updStr, toTarget, ap.Mbr.Downlink))
-		updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/traffic-class", *ap.EndpointId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ap.TrafficClass))
+
+	if app.Endpoint != nil {
+		for _, ap := range app.Endpoint {
+			updStr := fmt.Sprintf("endpoint[endpoint-id=%s]/display-name", *ap.EndpointId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ap.DisplayName))
+			updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/protocol", *ap.EndpointId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ap.Protocol))
+			updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/port-start", *ap.EndpointId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt16(updStr, toTarget, ap.PortStart))
+			updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/port-end", *ap.EndpointId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt16(updStr, toTarget, ap.PortEnd))
+			updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/mbr/uplink", *ap.EndpointId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64(updStr, toTarget, ap.Mbr.Uplink))
+			updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/mbr/downlink", *ap.EndpointId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64(updStr, toTarget, ap.Mbr.Downlink))
+			updStr = fmt.Sprintf("endpoint[endpoint-id=%s]/traffic-class", *ap.EndpointId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ap.TrafficClass))
+		}
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[id=%s]/application[app-id=%s]", *app.Enterprise, *app.Id), toTarget)
@@ -314,23 +320,29 @@ func migrateV4V2Site(fromTarget string, toTarget string, st *modelsv4.OnfSite_Si
 	var updates []*gpb.Update
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, st.Description))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, st.DisplayName))
-	for _, sc := range st.SmallCell {
-		updStr := fmt.Sprintf("small-cell[small-cell-id=%s]/display-name", *sc.SmallCellId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, sc.DisplayName))
-		updStr = fmt.Sprintf("small-cell[small-cell-id=%s]/address", *sc.SmallCellId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, sc.Address))
-		updStr = fmt.Sprintf("small-cell[small-cell-id=%s]/tac", *sc.SmallCellId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, sc.Tac))
-		updStr = fmt.Sprintf("small-cell[small-cell-id=%s]/enable", *sc.SmallCellId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, sc.Enable))
+
+	if st.SmallCell != nil {
+		for _, sc := range st.SmallCell {
+			updStr := fmt.Sprintf("small-cell[small-cell-id=%s]/display-name", *sc.SmallCellId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, sc.DisplayName))
+			updStr = fmt.Sprintf("small-cell[small-cell-id=%s]/address", *sc.SmallCellId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, sc.Address))
+			updStr = fmt.Sprintf("small-cell[small-cell-id=%s]/tac", *sc.SmallCellId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, sc.Tac))
+			updStr = fmt.Sprintf("small-cell[small-cell-id=%s]/enable", *sc.SmallCellId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, sc.Enable))
+		}
 	}
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("monitoring/edge-cluster-prometheus-url", toTarget, st.Monitoring.EdgeClusterPrometheusUrl))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("monitoring/edge-monitoring-prometheus-url", toTarget, st.Monitoring.EdgeMonitoringPrometheusUrl))
-	for _, ed := range st.Monitoring.EdgeDevice {
-		updStr := fmt.Sprintf("monitoring/edge-device[edge-device-id=%s]/display-name", *ed.EdgeDeviceId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ed.DisplayName))
-		updStr = fmt.Sprintf("monitoring/edge-device[edge-device-id=%s]/description", *ed.EdgeDeviceId)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ed.Description))
+
+	if st.Monitoring != nil {
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("monitoring/edge-cluster-prometheus-url", toTarget, st.Monitoring.EdgeClusterPrometheusUrl))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("monitoring/edge-monitoring-prometheus-url", toTarget, st.Monitoring.EdgeMonitoringPrometheusUrl))
+		for _, ed := range st.Monitoring.EdgeDevice {
+			updStr := fmt.Sprintf("monitoring/edge-device[edge-device-id=%s]/display-name", *ed.EdgeDeviceId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ed.DisplayName))
+			updStr = fmt.Sprintf("monitoring/edge-device[edge-device-id=%s]/description", *ed.EdgeDeviceId)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ed.Description))
+		}
 	}
 
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("imsi-definition/mcc", toTarget, st.ImsiDefinition.Mcc))
@@ -367,15 +379,21 @@ func migrateV4V2Vcs(fromTarget string, toTarget string, vc *modelsv4.OnfVcs_Vcs_
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt8("sst", toTarget, vc.Sst))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("sd", toTarget, vc.Sd))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("default-behavior", toTarget, vc.DefaultBehavior))
-	for _, dg := range vc.DeviceGroup {
-		updStr := fmt.Sprintf("device-group[device-group=%s]/enable", *dg.DeviceGroup)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, dg.Enable))
+
+	if vc.DeviceGroup != nil {
+		for _, dg := range vc.DeviceGroup {
+			updStr := fmt.Sprintf("device-group[device-group=%s]/enable", *dg.DeviceGroup)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, dg.Enable))
+		}
 	}
-	for _, fi := range vc.Filter {
-		updStr := fmt.Sprintf("filter[application=%s]/priority", *fi.Application)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt8(updStr, toTarget, fi.Priority))
-		updStr = fmt.Sprintf("filter[application=%s]/allow", *fi.Application)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, fi.Allow))
+
+	if vc.Filter != nil {
+		for _, fi := range vc.Filter {
+			updStr := fmt.Sprintf("filter[application=%s]/priority", *fi.Application)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt8(updStr, toTarget, fi.Priority))
+			updStr = fmt.Sprintf("filter[application=%s]/allow", *fi.Application)
+			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, fi.Allow))
+		}
 	}
 
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("/mbr/uplink", toTarget, vc.Slice.Mbr.Uplink))
@@ -399,15 +417,18 @@ func migrateV4V2DeviceGroup(fromTarget string, toTarget string, entID *string, s
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("mbr/uplink", toTarget, dg.Device.Mbr.Uplink))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("mbr/downlink", toTarget, dg.Device.Mbr.Downlink))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("traffic-class", toTarget, dg.Device.TrafficClass))
-	for _, im := range dg.Imsis {
 
-		for dev := *im.ImsiRangeFrom; dev <= *im.ImsiRangeTo; dev++ {
-			devID := fmt.Sprintf(*im.ImsiId+"-imsi-range-%d", dev)
-			updStr := fmt.Sprintf("device[dev-id=%s]/enable", devID)
-			enable := true
-			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, &enable))
+	if dg.Imsis != nil {
+		for _, im := range dg.Imsis {
+
+			for dev := *im.ImsiRangeFrom; dev <= *im.ImsiRangeTo; dev++ {
+				devID := fmt.Sprintf(*im.ImsiId+"-imsi-range-%d", dev)
+				updStr := fmt.Sprintf("device[dev-id=%s]/enable", devID)
+				enable := true
+				updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, &enable))
+			}
+
 		}
-
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[ent-id=%s]/site[site-id=%s]/device-group[dg-id=%s]",

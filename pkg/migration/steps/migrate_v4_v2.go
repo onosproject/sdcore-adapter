@@ -459,32 +459,25 @@ func migrateV4V2DeviceGroupImsis(fromTarget string, toTarget string, entID *stri
 	var updates []*gpb.Update
 
 	for dev := *im.ImsiRangeFrom; dev <= *im.ImsiRangeTo; dev++ {
-		devID := fmt.Sprintf(*im.ImsiId+"-imsi-range-%d", dev)
-		displayName := fmt.Sprintf(*im.ImsiId+" imsi-range-%d", dev)
-		devDescription := "imsi description"
-		simCardID := fmt.Sprintf("sim-"+*im.ImsiId+"-imsi-range-%d", dev)
+		devID := fmt.Sprintf(*im.ImsiId+"-%d", dev)
+		displayName := fmt.Sprintf(*im.ImsiId+" %d", dev)
+		simCardID := fmt.Sprintf("sim-"+*im.ImsiId+"-%d", dev)
 
 		updStr := fmt.Sprintf("device[dev-id=%s]/display-name", devID)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, &displayName))
-		updStr = fmt.Sprintf("device[dev-id=%s]/description", devID)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, &devDescription))
 		updStr = fmt.Sprintf("device[dev-id=%s]/sim-card", devID)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, &simCardID))
 
-		simDescription := "sim description"
-		simDisplayName := fmt.Sprintf("Sim "+*im.ImsiId+" imsi-range-%d", dev)
-		ims, err := synchronizer.FormatImsi(*imDef.Format, *imDef.Mcc, *imDef.Mnc, *imDef.Enterprise, dev)
+		simDisplayName := fmt.Sprintf("Sim "+*im.ImsiId+" %d", dev)
+		imsi, err := synchronizer.FormatImsi(*imDef.Format, *imDef.Mcc, *imDef.Mnc, *imDef.Enterprise, dev)
 		if err != nil {
 			log.Warn(err.Error())
 		}
-		imsi := fmt.Sprintf("%d", ims)
 
-		updStr = fmt.Sprintf("sim-card[sim-id=%s]/description", simCardID)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, &simDescription))
 		updStr = fmt.Sprintf("sim-card[sim-id=%s]/display-name", simCardID)
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, &simDisplayName))
 		updStr = fmt.Sprintf("sim-card[sim-id=%s]/imsi", simCardID)
-		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, &imsi))
+		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64(updStr, toTarget, &imsi))
 
 	}
 

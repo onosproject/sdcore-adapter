@@ -277,7 +277,7 @@ func migrateV4V2Application(fromTarget string, toTarget string, app *modelsv4.On
 		}
 	}
 
-	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[id=%s]/application[app-id=%s]", *app.Enterprise, *app.Id), toTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[ent-id=%s]/application[app-id=%s]", *app.Enterprise, *app.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("application/application[id=%s]", *app.Id), fromTarget)
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
@@ -292,7 +292,7 @@ func migrateV4V2TrafficClass(fromTarget string, toTarget string, entID *string, 
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt16("pdb", toTarget, tc.Pdb))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt8("arp", toTarget, tc.Arp))
 
-	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[id=%s]/traffic-class[tc-id=%s]", *entID, *tc.Id), toTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[ent-id=%s]/traffic-class[tc-id=%s]", *entID, *tc.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("traffic-class/traffic-class[id=%s]", *tc.Id), fromTarget)
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
 }
@@ -310,7 +310,7 @@ func migrateV4V2Template(fromTarget string, toTarget string, entID *string, te *
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("slice/mbr/uplink-burst-size", toTarget, te.Slice.Mbr.UplinkBurstSize))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("slice/mbr/downlink-burst-size", toTarget, te.Slice.Mbr.DownlinkBurstSize))
 
-	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[id=%s]/template[tp-id=%s]", *entID, *te.Id), toTarget)
+	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[ent-id=%s]/template[tp-id=%s]", *entID, *te.Id), toTarget)
 	deletePath := gnmiclient.StringToPath(fmt.Sprintf("template/template[id=%s]", *te.Id), fromTarget)
 
 	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil

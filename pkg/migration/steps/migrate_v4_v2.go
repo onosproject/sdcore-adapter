@@ -412,7 +412,6 @@ func migrateV4V2DeviceGroup(fromTarget string, toTarget string, entID *string, s
 	var updates []*gpb.Update
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, dg.Description))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, dg.DisplayName))
-	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("site", toTarget, dg.Site))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("ip-domain", toTarget, dg.IpDomain))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("mbr/uplink", toTarget, dg.Device.Mbr.Uplink))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt64("mbr/downlink", toTarget, dg.Device.Mbr.Downlink))
@@ -422,8 +421,8 @@ func migrateV4V2DeviceGroup(fromTarget string, toTarget string, entID *string, s
 		for _, im := range dg.Imsis {
 
 			for dev := *im.ImsiRangeFrom; dev <= *im.ImsiRangeTo; dev++ {
-				devID := fmt.Sprintf(*im.ImsiId+"-imsi-range-%d", dev)
-				updStr := fmt.Sprintf("device[dev-id=%s]/enable", devID)
+				devID := fmt.Sprintf(*im.ImsiId+"-%d", dev)
+				updStr := fmt.Sprintf("device[device-id=%s]/enable", devID)
 				enable := true
 				updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, &enable))
 			}

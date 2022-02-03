@@ -106,7 +106,7 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 	}
 
 	for _, dg := range dgList {
-		coreSlice.DeviceGroup = append(coreSlice.DeviceGroup, *dg.DgId)
+		coreSlice.DeviceGroup = append(coreSlice.DeviceGroup, *dg.DeviceGroupId)
 	}
 
 	// be deterministic...
@@ -125,7 +125,7 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 
 		if (app.Address == nil) || (*app.Address == "") {
 			// this is a temporary restriction
-			return 0, fmt.Errorf("Slice %s Application %s has empty address", *slice.SliceId, *app.AppId)
+			return 0, fmt.Errorf("Slice %s Application %s has empty address", *slice.SliceId, *app.ApplicationId)
 		}
 
 		// be deterministic...
@@ -138,12 +138,12 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 		for _, epName := range epKeys {
 			endpoint := app.Endpoint[epName]
 			appCore := appFilterRule{
-				Name: fmt.Sprintf("%s-%s", *app.AppId, epName),
+				Name: fmt.Sprintf("%s-%s", *app.ApplicationId, epName),
 			}
 
 			err = validateAppEndpoint(endpoint)
 			if err != nil {
-				log.Warnf("App %s invalid endpoint: %s", *app.AppId, err)
+				log.Warnf("App %s invalid endpoint: %s", *app.ApplicationId, err)
 			}
 			if strings.Contains(*app.Address, "/") {
 				appCore.Endpoint = *app.Address
@@ -164,7 +164,7 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 			if endpoint.Protocol != nil {
 				protoNum, err := ProtoStringToProtoNumber(*endpoint.Protocol)
 				if err != nil {
-					return 0, fmt.Errorf("Slice %s Application %s unable to determine protocol: %s", *slice.SliceId, *app.AppId, err)
+					return 0, fmt.Errorf("Slice %s Application %s unable to determine protocol: %s", *slice.SliceId, *app.ApplicationId, err)
 				}
 				appCore.Protocol = &protoNum
 			}
@@ -194,9 +194,9 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 			if endpoint.TrafficClass != nil {
 				rocTrafficClass, err := s.GetTrafficClass(scope, endpoint.TrafficClass)
 				if err != nil {
-					return 0, fmt.Errorf("Slice %s application %s unable to determine traffic class: %s", *slice.SliceId, *app.AppId, err)
+					return 0, fmt.Errorf("Slice %s application %s unable to determine traffic class: %s", *slice.SliceId, *app.ApplicationId, err)
 				}
-				tcCore := &trafficClass{Name: *rocTrafficClass.TcId,
+				tcCore := &trafficClass{Name: *rocTrafficClass.TrafficClassId,
 					PDB:  DerefUint16Ptr(rocTrafficClass.Pdb, 300),
 					PELR: uint8(DerefInt8Ptr(rocTrafficClass.Pelr, 6)),
 					QCI:  DerefUint8Ptr(rocTrafficClass.Qci, 9),

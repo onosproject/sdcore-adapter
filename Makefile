@@ -55,7 +55,11 @@ build: local-aether-models
 	go build -o build/_output/sdcore-migrate ./cmd/sdcore-migrate
 #	go build -o build/_output/subscriber-proxy ./cmd/subscriber-proxy
 
-test: build deps license_check linters images
+# @HELP run various tests
+test: build unit-test deps license_check linters images
+
+# @HELP run init tests
+unit-test:
 	# TODO: Skipping subscriber-proxy tests until they're updated
 	#go test -cover -race github.com/onosproject/sdcore-adapter/pkg/...
 	#go test -cover -race github.com/onosproject/sdcore-adapter/cmd/...

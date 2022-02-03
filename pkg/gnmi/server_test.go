@@ -81,7 +81,7 @@ func TestGet(t *testing.T) {
 		    elem: <name: 'enterprises'>
 			elem: <name: "enterprise"
 			             key: <
-			                 key:'ent-id',
+			                 key:'enterprise-id',
 			                 value:'acme'
 			                   >
 						>
@@ -93,7 +93,7 @@ func TestGet(t *testing.T) {
 					   >						
 			elem: <name: "ip-domain" 
 						 key: <
-							 key:'ip-id',
+							 key:'ip-domain-id',
 							 value:'acme-chicago-ip'
 							 >
 						>
@@ -192,7 +192,7 @@ func TestSet(t *testing.T) {
 		elem: <name: 'enterprises'>
 		elem: <name: 'enterprise'
 		    key: <
-			    key:'ent-id',
+			    key:'enterprise-id',
 			    value:'acme'
 			>
 	    >
@@ -205,7 +205,7 @@ func TestSet(t *testing.T) {
 		elem: <
 			name: 'ip-domain'
 			key:<
-				key:'ip-id'
+				key:'ip-domain-id'
 				value:'ip-domain-demo-1'
 			>
 		>

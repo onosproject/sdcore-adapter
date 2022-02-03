@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2019-present Open Networking Foundation <info@opennetworking.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Subscribe Proxy 
 
 This component acts as proxy between the sdcore simapp and config pods config4g in case of 4G or 

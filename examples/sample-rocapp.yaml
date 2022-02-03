@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 #
-# SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+# SPDX-License-Identifier: Apache-2.0
 
 # This example simulates a peer-to-peer virtual reality game. As the number of
 # participants in the game increases, the amount of data to each participant increases,

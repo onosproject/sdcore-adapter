@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 //
-// SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * Various certificate-related functions that configure the gNMI client used by migration.

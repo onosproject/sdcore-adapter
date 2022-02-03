@@ -10,7 +10,7 @@ require (
 	github.com/google/gnxi v0.0.0-20210716134716-cb5c55758a07
 	github.com/gorilla/mux v1.8.0
 	github.com/onosproject/config-models v0.9.0 // indirect
-	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20220131183123-65c2a603e4e2
+	github.com/onosproject/config-models/modelplugin/aether-2.0.0 v0.0.0-20220203163204-03e1533b4e1b
 	github.com/onosproject/config-models/modelplugin/aether-3.0.0 v0.9.1
 	github.com/onosproject/config-models/modelplugin/aether-4.0.0 v0.9.1
 	github.com/onosproject/onos-lib-go v0.7.18

@@ -79,11 +79,11 @@ func (s *Synchronizer) SynchronizeSliceUPF(scope *AetherScope, slice *Slice) (in
 	for _, dg := range dgList {
 		ipd, err := s.GetIPDomain(scope, dg.IpDomain)
 		if err != nil {
-			return 0, fmt.Errorf("DeviceGroup %s failed to get IpDomain: %s", *dg.DgId, err)
+			return 0, fmt.Errorf("DeviceGroup %s failed to get IpDomain: %s", *dg.DeviceGroupId, err)
 		}
 
 		if ipd.Dnn != nil {
-			ueRes := ueResourceInfo{Pool: *dg.DgId,
+			ueRes := ueResourceInfo{Pool: *dg.DeviceGroupId,
 				DNN: *ipd.Dnn}
 			sc.UEResourceInfo = append(sc.UEResourceInfo, ueRes)
 		}

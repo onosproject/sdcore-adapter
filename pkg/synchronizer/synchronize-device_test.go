@@ -557,7 +557,7 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 	_, _, _, slice := BuildSampleSlice(ent, site)       // nolint dogsled
 
 	// Disable the one and only DeviceGroup
-	slice.DeviceGroup[*dg.DgId].Enable = aBool(false)
+	slice.DeviceGroup[*dg.DeviceGroupId].Enable = aBool(false)
 
 	device := &RootDevice{
 		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},

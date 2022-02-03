@@ -27,7 +27,7 @@ func MakeEnterprise(desc string, displayName string, id string, cs []string) *En
 	ent := Enterprise{
 		Description:         aStr(desc),
 		DisplayName:         aStr(displayName),
-		EntId:               aStr(id),
+		EnterpriseId:        aStr(id),
 		ConnectivityService: csList,
 	}
 
@@ -37,10 +37,10 @@ func MakeEnterprise(desc string, displayName string, id string, cs []string) *En
 // MakeCs makes a connectivity service structure for unit tests
 func MakeCs(desc string, displayName string, id string) *ConnectivityService {
 	cs := ConnectivityService{
-		Description:     aStr(desc),
-		DisplayName:     aStr(displayName),
-		Id:              aStr(id),
-		Core_5GEndpoint: aStr("http://5gcore"),
+		Description:           aStr(desc),
+		DisplayName:           aStr(displayName),
+		ConnectivityServiceId: aStr(id),
+		Core_5GEndpoint:       aStr("http://5gcore"),
 	}
 
 	return &cs
@@ -58,17 +58,17 @@ func BuildSampleDeviceGroup() (
 	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
 
 	tc := &TrafficClass{
-		TcId:        aStr("sample-traffic-class"),
-		Description: aStr("sample-traffic-class-desc"),
-		DisplayName: aStr("sample-traffic-class-dn"),
-		Qci:         aUint8(55),
-		Arp:         aUint8(3),
+		TrafficClassId: aStr("sample-traffic-class"),
+		Description:    aStr("sample-traffic-class-desc"),
+		DisplayName:    aStr("sample-traffic-class-dn"),
+		Qci:            aUint8(55),
+		Arp:            aUint8(3),
 	}
 
 	ipd := &IpDomain{
 		Description: aStr("sample-ipd-desc"),
 		DisplayName: aStr("sample-ipd-dn"),
-		IpId:        aStr("sample-ipd"),
+		IpDomainId:  aStr("sample-ipd"),
 		Subnet:      aStr("1.2.3.4/24"),
 		DnsPrimary:  aStr("8.8.8.8"),
 		Mtu:         aUint16(1492),
@@ -91,8 +91,8 @@ func BuildSampleDeviceGroup() (
 		Imsi:  aUint64(1),
 	}
 	device := &Device{
-		DevId:   aStr("sample-device"),
-		SimCard: aStr("sample-sim"),
+		DeviceId: aStr("sample-device"),
+		SimCard:  aStr("sample-sim"),
 	}
 	dgDevice := &DeviceGroupDevice{
 		DeviceId: aStr("sample-device"),
@@ -104,26 +104,26 @@ func BuildSampleDeviceGroup() (
 	}
 	dg := &DeviceGroup{
 		//Description: aStr("sample-dg-desc"),
-		DisplayName:  aStr("sample-dg-dn"),
-		DgId:         aStr("sample-dg"),
-		IpDomain:     aStr("sample-ipd"),
-		Device:       map[string]*DeviceGroupDevice{*dgDevice.DeviceId: dgDevice},
-		Mbr:          dgDevMbr,
-		TrafficClass: tc.TcId,
+		DisplayName:   aStr("sample-dg-dn"),
+		DeviceGroupId: aStr("sample-dg"),
+		IpDomain:      aStr("sample-ipd"),
+		Device:        map[string]*DeviceGroupDevice{*dgDevice.DeviceId: dgDevice},
+		Mbr:           dgDevMbr,
+		TrafficClass:  tc.TrafficClassId,
 	}
 	site := &Site{
 		Description:    aStr("sample-site-desc"),
 		DisplayName:    aStr("sample-site-dn"),
 		SiteId:         aStr("sample-site"),
 		ImsiDefinition: imsiDef,
-		Device:         map[string]*Device{*device.DevId: device},
+		Device:         map[string]*Device{*device.DeviceId: device},
 		SimCard:        map[string]*SimCard{*simCard.SimId: simCard},
 		SmallCell:      map[string]*SmallCell{*sc.SmallCellId: sc},
-		DeviceGroup:    map[string]*DeviceGroup{*dg.DgId: dg},
-		IpDomain:       map[string]*IpDomain{*ipd.IpId: ipd},
+		DeviceGroup:    map[string]*DeviceGroup{*dg.DeviceGroupId: dg},
+		IpDomain:       map[string]*IpDomain{*ipd.IpDomainId: ipd},
 	}
 
-	tcList := map[string]*TrafficClass{*tc.TcId: tc}
+	tcList := map[string]*TrafficClass{*tc.TrafficClassId: tc}
 
 	ent.TrafficClass = tcList
 	ent.Site = map[string]*Site{*site.SiteId: site}
@@ -148,11 +148,11 @@ func BuildSampleSlice(ent *Enterprise, site *Site) (
 	}
 
 	app1 := &Application{
-		AppId:       aStr("sample-app"),
-		Description: aStr("sample-app-desc"),
-		DisplayName: aStr("sample-app-dn"),
-		Address:     aStr("1.2.3.4"),
-		Endpoint:    map[string]*ApplicationEndpoint{"sample-app-ep": ep},
+		ApplicationId: aStr("sample-app"),
+		Description:   aStr("sample-app-desc"),
+		DisplayName:   aStr("sample-app-dn"),
+		Address:       aStr("1.2.3.4"),
+		Endpoint:      map[string]*ApplicationEndpoint{"sample-app-ep": ep},
 	}
 
 	mbr := &ApplicationEndpointMbr{
@@ -170,11 +170,11 @@ func BuildSampleSlice(ent *Enterprise, site *Site) (
 	}
 
 	app2 := &Application{
-		AppId:       aStr("sample-app2"),
-		Description: aStr("sample-app2-desc"),
-		DisplayName: aStr("sample-app2-dn"),
-		Address:     aStr("1.2.3.5"),
-		Endpoint:    map[string]*ApplicationEndpoint{"sample-app2-ep": ep2},
+		ApplicationId: aStr("sample-app2"),
+		Description:   aStr("sample-app2-desc"),
+		DisplayName:   aStr("sample-app2-dn"),
+		Address:       aStr("1.2.3.5"),
+		Endpoint:      map[string]*ApplicationEndpoint{"sample-app2-ep": ep2},
 	}
 
 	appLink := &SliceFilter{
@@ -195,7 +195,7 @@ func BuildSampleSlice(ent *Enterprise, site *Site) (
 	}
 
 	tp := &Template{
-		TpId:        aStr("sample-template"),
+		TemplateId:  aStr("sample-template"),
 		Description: aStr("sample-template-desc"),
 		DisplayName: aStr("sample-template-dn"),
 		Sd:          aUint32(111),
@@ -226,7 +226,7 @@ func BuildSampleSlice(ent *Enterprise, site *Site) (
 		DefaultBehavior: aStr("DENY-ALL"),
 	}
 
-	apps := map[string]*Application{*app1.AppId: app1, *app2.AppId: app2}
+	apps := map[string]*Application{*app1.ApplicationId: app1, *app2.ApplicationId: app2}
 
 	ent.Application = apps
 	site.Slice = map[string]*Slice{*slice.SliceId: slice}

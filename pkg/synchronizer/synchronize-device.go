@@ -30,7 +30,7 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, er
 
 	for _, cs := range device.ConnectivityServices.ConnectivityService {
 		tStart := time.Now()
-		KpiSynchronizationTotal.WithLabelValues(*cs.Id).Inc()
+		KpiSynchronizationTotal.WithLabelValues(*cs.ConnectivityServiceId).Inc()
 
 		scope := &AetherScope{
 			ConnectivityService: cs,
@@ -40,7 +40,7 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, er
 			// If not, skip it
 			hasConnectivityService := false
 			for csID := range enterprise.ConnectivityService {
-				if csID == *cs.Id {
+				if csID == *cs.ConnectivityServiceId {
 					hasConnectivityService = true
 				}
 			}
@@ -54,7 +54,7 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, er
 				for _, dg := range site.DeviceGroup {
 					dgPushErrors, err := s.SynchronizeDeviceGroup(scope, dg)
 					if err != nil {
-						log.Warnf("DG %s failed to synchronize Core: %s", *dg.DgId, err)
+						log.Warnf("DG %s failed to synchronize Core: %s", *dg.DeviceGroupId, err)
 					}
 					pushFailures += dgPushErrors
 				}
@@ -78,7 +78,7 @@ func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, er
 			}
 		}
 
-		KpiSynchronizationDuration.WithLabelValues(*cs.Id).Observe(time.Since(tStart).Seconds())
+		KpiSynchronizationDuration.WithLabelValues(*cs.ConnectivityServiceId).Observe(time.Since(tStart).Seconds())
 	}
 
 	return pushFailures, nil

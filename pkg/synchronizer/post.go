@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 //
-// SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+// SPDX-License-Identifier: Apache-2.0
 
 // RESTPusher implements a pusher that pushes to a REST API endpoint.
 

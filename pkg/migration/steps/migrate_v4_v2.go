@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2022-present Open Networking Foundation <info@opennetworking.org>
 //
-// SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * Implements the migration function from v4.0.0 aether models to v2.0.0 aether models. This

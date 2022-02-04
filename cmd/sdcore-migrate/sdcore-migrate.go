@@ -14,6 +14,8 @@ package main
 
 import (
 	"flag"
+	modelsv2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
+	modelpluginv2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
 	modelsv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/aether_3_0_0"
 	modelpluginv3 "github.com/onosproject/config-models/modelplugin/aether-3.0.0/modelplugin"
 	modelsv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
@@ -67,9 +69,18 @@ func main() {
 		map[string]map[int64]ygot.EnumDefinition{},
 	)
 
+	v2Models := gnmi.NewModel(modelpluginv2.ModelData,
+		reflect.TypeOf((*modelsv2.Device)(nil)),
+		modelsv2.SchemaTree["Device"],
+		modelsv2.Unmarshal,
+		//models.ΛEnum  // NOTE: There is no Enum in the aether models? So use a blank map.
+		map[string]map[int64]ygot.EnumDefinition{},
+	)
+
 	// Initialize the migration engine and register migration steps.
 	mig := migration.NewMigrator(gnmiClient)
 	mig.AddMigrationStep("3.0.0", v3Models, "4.0.0", v4Models, steps.MigrateV3V4)
+	mig.AddMigrationStep("4.0.0", v4Models, "2.0.0", v2Models, steps.MigrateV4V2)
 
 	if *fromVersion == "" {
 		log.Fatalf("--from-version not specified. Supports: %s", strings.Join(mig.SupportedVersions(), ", "))

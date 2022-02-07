@@ -136,7 +136,7 @@ func (m *Migrator) outputActions(actions []*MigrationActions,
 	deleteModel := make(map[string]interface{})
 	topLevel["Deletes"] = deleteModel
 	topLevel["Extensions"] = map[string]string{
-		"model-version-101": "4.0.0",
+		"model-version-101": "2.0.0",
 		"model-type-102":    "Aether",
 	}
 

@@ -120,17 +120,17 @@ func Test_MigrateV4V2(t *testing.T) {
 		assert.Equal(t, "application", applicationAction.UpdatePrefix.GetElem()[2].GetName(),
 			"unexpected type for %d", idx)
 		assert.Len(t, applicationAction.Deletes, 1)
-		assert.Len(t, applicationAction.Updates, 9)
+		assert.Len(t, applicationAction.Updates, 10)
 		appID, ok := applicationAction.UpdatePrefix.GetElem()[2].GetKey()["application-id"]
 		assert.True(t, ok)
 		switch appID {
 		case "acme-dataacquisition":
 			assert.Equal(t, "Data Acquisition", applicationAction.Updates[0].Val.GetStringVal())
-			assert.Equal(t, "data acquisition endpoint", applicationAction.Updates[2].Val.GetStringVal())
+			assert.Equal(t, "data acquisition endpoint", applicationAction.Updates[3].Val.GetStringVal())
 			assert.Equal(t, "da", applicationAction.Updates[3].GetPath().GetElem()[0].Key["endpoint-id"])
 		case "starbucks-fidelio":
 			assert.Equal(t, "Fidelio", applicationAction.Updates[1].Val.GetStringVal())
-			assert.Equal(t, uint64(2000000), applicationAction.Updates[6].Val.GetUintVal())
+			assert.Equal(t, uint64(2000000), applicationAction.Updates[7].Val.GetUintVal())
 			assert.Equal(t, "fidelio", applicationAction.Updates[3].GetPath().GetElem()[0].Key["endpoint-id"])
 		case "starbucks-nvr":
 			assert.Equal(t, "NVR", applicationAction.Updates[1].Val.GetStringVal())

@@ -38,6 +38,10 @@ func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGrou
 	}
 	sort.Strings(deviceLinkKeys)
 
+	// Make sure no devices gets passed as an empty list rather than None.
+	// SD-Core would ignore the None, but it will act on the empty list.
+	dgCore.Imsis = []string{}
+
 	// populate the imsi list
 	for _, k := range deviceLinkKeys {
 		deviceID := dg.Device[k].DeviceId

@@ -65,7 +65,7 @@ func Test_MigrateV4V2(t *testing.T) {
 	for idx := 0; idx <= 1; idx++ {
 		csAction := actions[idx]
 		assert.Empty(t, csAction.DeletePrefix)
-		assert.Len(t, csAction.Deletes, 1)
+		assert.Len(t, csAction.Deletes, 0)
 		assert.Equal(t, "connectivity-services", csAction.UpdatePrefix.GetElem()[0].GetName())
 		assert.Equal(t, "cs2", csAction.Updates[0].Path.Target)
 	}
@@ -83,7 +83,7 @@ func Test_MigrateV4V2(t *testing.T) {
 		case "acme", "defaultent", "starbucks":
 			assert.Equal(t, "description", enterpriseAction.Updates[0].Path.GetElem()[0].Name)
 			if entname == "acme" {
-				assert.Len(t, enterpriseAction.Deletes, 1)
+				assert.Len(t, enterpriseAction.Deletes, 0)
 				assert.Len(t, enterpriseAction.Updates, 3)
 				assert.Equal(t, "ACME Corporation", enterpriseAction.Updates[0].Val.GetStringVal())
 				assert.Equal(t, "ACME Corp", enterpriseAction.Updates[1].Val.GetStringVal())
@@ -94,13 +94,13 @@ func Test_MigrateV4V2(t *testing.T) {
 				assert.Equal(t, len(entname)%2 == 0, enterpriseAction.Updates[2].Val.GetBoolVal(),
 					"expected connectivity-service for %s to be true", entname)
 			} else if entname == "defaultent" {
-				assert.Len(t, enterpriseAction.Deletes, 1)
+				assert.Len(t, enterpriseAction.Deletes, 0)
 				assert.Len(t, enterpriseAction.Updates, 2)
 				assert.Equal(t, "This Enterprise holds discovered IMSIs that cannot be associated elsewhere.",
 					enterpriseAction.Updates[0].Val.GetStringVal())
 				assert.Equal(t, "Default Enterprise", enterpriseAction.Updates[1].Val.GetStringVal())
 			} else if entname == "starbucks" {
-				assert.Len(t, enterpriseAction.Deletes, 1)
+				assert.Len(t, enterpriseAction.Deletes, 0)
 				assert.Len(t, enterpriseAction.Updates, 4)
 				assert.Equal(t, "Starbucks Corporation", enterpriseAction.Updates[0].Val.GetStringVal())
 				assert.Equal(t, "Starbucks Inc.", enterpriseAction.Updates[1].Val.GetStringVal())
@@ -176,7 +176,7 @@ func Test_MigrateV4V2(t *testing.T) {
 		templateAction := actions[idx]
 		assert.Empty(t, templateAction.DeletePrefix)
 		assert.Equal(t, "template", templateAction.UpdatePrefix.GetElem()[2].GetName(), "unexpected type for %d", idx)
-		assert.Len(t, templateAction.Deletes, 1)
+		assert.Len(t, templateAction.Deletes, 0)
 		templateID, ok := templateAction.UpdatePrefix.GetElem()[2].GetKey()["template-id"]
 		assert.True(t, ok)
 		switch templateID {
@@ -200,7 +200,7 @@ func Test_MigrateV4V2(t *testing.T) {
 		siteAction := actions[idx]
 		assert.Empty(t, siteAction.DeletePrefix)
 		assert.Equal(t, "site", siteAction.UpdatePrefix.GetElem()[2].GetName(), "unexpected type for %d", idx)
-		assert.Len(t, siteAction.Deletes, 1)
+		assert.Len(t, siteAction.Deletes, 0)
 		siteID, ok := siteAction.UpdatePrefix.GetElem()[2].GetKey()["site-id"]
 		assert.True(t, ok)
 		switch siteID {
@@ -345,7 +345,7 @@ func Test_MigrateV4V2(t *testing.T) {
 		ipDomainAction := actions[idx]
 		assert.Empty(t, ipDomainAction.DeletePrefix)
 		assert.Equal(t, "ip-domain", ipDomainAction.UpdatePrefix.GetElem()[3].GetName(), "unexpected type for %d", idx)
-		assert.Len(t, ipDomainAction.Deletes, 1)
+		assert.Len(t, ipDomainAction.Deletes, 0)
 		assert.Len(t, ipDomainAction.Updates, 8)
 		ipdID, ok := ipDomainAction.UpdatePrefix.GetElem()[3].GetKey()["ip-domain-id"]
 		assert.True(t, ok)

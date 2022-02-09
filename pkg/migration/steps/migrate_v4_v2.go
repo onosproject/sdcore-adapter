@@ -230,9 +230,9 @@ func migrateV4V2ConnectivityService(fromTarget string, toTarget string, cs *mode
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("acc-prometheus-url", toTarget, cs.AccPrometheusUrl))
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("connectivity-services/connectivity-service[connectivity-service-id=%s]", *cs.Id), toTarget)
-	deletePath := gnmiclient.StringToPath(fmt.Sprintf("connectivity-service/connectivity-service[id=%s]", *cs.Id), fromTarget)
+	//deletePath := gnmiclient.StringToPath(fmt.Sprintf("connectivity-service/connectivity-service[id=%s]", *cs.Id), fromTarget)
 
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}, nil
 }
 
 func migrateV4V2Enterprise(fromTarget string, toTarget string, ent *modelsv4.OnfEnterprise_Enterprise_Enterprise) (*migration.MigrationActions, error) {
@@ -248,9 +248,9 @@ func migrateV4V2Enterprise(fromTarget string, toTarget string, ent *modelsv4.Onf
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]", *ent.Id), toTarget)
-	deletePath := gnmiclient.StringToPath(fmt.Sprintf("enterprise/enterprise[id=%s]", *ent.Id), fromTarget)
+	//deletePath := gnmiclient.StringToPath(fmt.Sprintf("enterprise/enterprise[id=%s]", *ent.Id), fromTarget)
 
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}, nil
 }
 
 func migrateV4V2Application(fromTarget string, toTarget string, app *modelsv4.OnfApplication_Application_Application) (*migration.MigrationActions, error) {
@@ -313,10 +313,10 @@ func migrateV4V2Template(fromTarget string, toTarget string, entID *string, te *
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("slice/mbr/downlink-burst-size", toTarget, te.Slice.Mbr.DownlinkBurstSize))
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/template[template-id=%s]", *entID, *te.Id), toTarget)
-	deletePath := gnmiclient.StringToPath(fmt.Sprintf("template/template[id=%s]", *te.Id), fromTarget)
-	deletePath.Origin = "default-behavior"
+	//deletePath := gnmiclient.StringToPath(fmt.Sprintf("template/template[id=%s]", *te.Id), fromTarget)
+	//deletePath.Origin = "default-behavior"
 
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}, nil
 }
 
 func migrateV4V2Site(fromTarget string, toTarget string, st *modelsv4.OnfSite_Site_Site) (*migration.MigrationActions, error) {
@@ -354,10 +354,10 @@ func migrateV4V2Site(fromTarget string, toTarget string, st *modelsv4.OnfSite_Si
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/enterprise", toTarget, st.ImsiDefinition.Enterprise))
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]", *st.Enterprise, *st.Id), toTarget)
-	deletePath := gnmiclient.StringToPath(fmt.Sprintf("site/site[id=%s]", *st.Id), fromTarget)
-	deletePath.Origin = "enterprise,imsi-definition"
+	//deletePath := gnmiclient.StringToPath(fmt.Sprintf("site/site[id=%s]", *st.Id), fromTarget)
+	//deletePath.Origin = "enterprise,imsi-definition"
 
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}, nil
 }
 
 func migrateV4V2Upf(fromTarget string, toTarget string, up *modelsv4.OnfUpf_Upf_Upf) (*migration.MigrationActions, error) {
@@ -456,10 +456,10 @@ func migrateV4V2IpDomain(fromTarget string, toTarget string, entID *string, site
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]/ip-domain[ip-domain-id=%s]",
 		*entID, *siteID, *ipd.Id), toTarget)
-	deletePath := gnmiclient.StringToPath(fmt.Sprintf("ip-domain/ip-domain[id=%s]", *ipd.Id), fromTarget)
-	deletePath.Origin = "dnn,subnet,enterprise"
+	//deletePath := gnmiclient.StringToPath(fmt.Sprintf("ip-domain/ip-domain[id=%s]", *ipd.Id), fromTarget)
+	//deletePath.Origin = "dnn,subnet,enterprise"
 
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}, nil
 }
 
 func migrateV4V2DeviceGroupImsis(fromTarget string, toTarget string, entID *string, siteID *string, imDef *modelsv4.OnfSite_Site_Site_ImsiDefinition, im *modelsv4.OnfDeviceGroup_DeviceGroup_DeviceGroup_Imsis) (*migration.MigrationActions, error) {
@@ -489,6 +489,6 @@ func migrateV4V2DeviceGroupImsis(fromTarget string, toTarget string, entID *stri
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]", *entID, *siteID), toTarget)
-	deletePath := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsi[imsi-id]", *im.ImsiId), fromTarget)
-	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}, nil
+	//deletePath := gnmiclient.StringToPath(fmt.Sprintf("device-group/device-group[id=%s]/imsi[imsi-id]", *im.ImsiId), fromTarget)
+	return &migration.MigrationActions{UpdatePrefix: prefix, Updates: updates, Deletes: []*gpb.Path{}}, nil
 }

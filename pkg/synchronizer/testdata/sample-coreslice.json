@@ -26,7 +26,7 @@
   "application-filtering-rules": [
     {
       "rule-name": "sample-app-sample-app-ep",
-      "priority": 248,
+      "priority": 7,
       "action": "permit",
       "endpoint": "1.2.3.4/32",
       "dest-port-start": 123,
@@ -35,7 +35,7 @@
     },
     {
       "rule-name": "sample-app2-sample-app2-ep",
-      "priority": 247,
+      "priority": 8,
       "action": "deny",
       "endpoint": "1.2.3.5/32",
       "dest-port-start": 123,
@@ -54,7 +54,7 @@
     },
     {
       "rule-name": "DENY-ALL",
-      "priority": 5,
+      "priority": 250,
       "action": "deny",
       "endpoint": "0.0.0.0/0"
     }

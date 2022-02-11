@@ -13,9 +13,8 @@ import (
 )
 
 var (
-	subscriberAPISuffix = "api/subscriber/"
-	log                 = logging.GetLogger("subscriber-proxy")
-	clientHTTP          HTTPClient
+	log        = logging.GetLogger("subscriber-proxy")
+	clientHTTP HTTPClient
 )
 
 type subscriberProxy struct {

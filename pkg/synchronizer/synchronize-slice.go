@@ -14,7 +14,7 @@ import (
 )
 
 func (s *Synchronizer) mapPriority(i uint8) uint8 {
-	return 255 - i // UPF expectation is priority is inverse of ROC's priority
+	return i // // At one point priority was flipped but this was incorrect
 }
 
 // SynchronizeSlice synchronizes the VCSes

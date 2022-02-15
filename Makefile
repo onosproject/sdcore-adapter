@@ -28,14 +28,12 @@ ifdef LOCAL_AETHER_MODELS
 endif
 
 deps: # @HELP ensure that the required dependencies are in place
-	# TODO: Skipping subscriber-proxy tests until they're updated
-	GOPRIVATE="github.com/onosproject/*" go build -v `go list ./... | grep -v subproxy | grep -v subscriber-proxy`
+	GOPRIVATE="github.com/onosproject/*" go build -v `go list ./...`
 	bash -c "diff -u <(echo -n) <(git diff go.mod)"
 	bash -c "diff -u <(echo -n) <(git diff go.sum)"
 
 linters: golang-ci # @HELP examines Go source code and reports coding problems
-	# TODO: disabled subscriber proxy linter
-	golangci-lint run --timeout 5m --skip-dirs='subproxy'
+	golangci-lint run --timeout 5m
 
 build-tools: # @HELP install the ONOS build tools if needed
 	@if [ ! -d "../build-tools" ]; then cd .. && git clone https://github.com/onosproject/build-tools.git; fi
@@ -53,22 +51,19 @@ license_check: build-tools # @HELP examine and ensure license headers exist
 build: local-aether-models
 	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter
 	go build -o build/_output/sdcore-migrate ./cmd/sdcore-migrate
-#	go build -o build/_output/subscriber-proxy ./cmd/subscriber-proxy
 
 # @HELP run various tests
 test: build unit-test deps license_check linters images
 
 # @HELP run init tests
 unit-test:
-	# TODO: Skipping subscriber-proxy tests until they're updated
-	#go test -cover -race github.com/onosproject/sdcore-adapter/pkg/...
-	#go test -cover -race github.com/onosproject/sdcore-adapter/cmd/...
-	go test -cover -race `go list github.com/onosproject/sdcore-adapter/pkg/... | grep -v subproxy`
-	go test -cover -race `go list github.com/onosproject/sdcore-adapter/cmd/... | grep -v subscriber-proxy`
+	go test -cover -race github.com/onosproject/sdcore-adapter/pkg/...
+	go test -cover -race github.com/onosproject/sdcore-adapter/cmd/...
+
 
 jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
 jenkins-test: build deps license_check linters images jenkins-tools
-	TEST_PACKAGES=`go list github.com/onosproject/sdcore-adapter/... | grep -v subscriber-proxy | grep -v subproxy` ./../build-tools/build/jenkins/make-unit
+	TEST_PACKAGES=`go list github.com/onosproject/sdcore-adapter/...` ./../build-tools/build/jenkins/make-unit
 
 sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \

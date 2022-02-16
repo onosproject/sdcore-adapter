@@ -117,6 +117,31 @@ func TestFormatImsiDef(t *testing.T) {
 	imsi, err = FormatImsiDef(i, 123456789012345)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(123456789012345), imsi)
+
+	i = &ImsiDefinition{
+		Mcc:        aStr("123"),
+		Mnc:        aStr("45"),
+		Enterprise: aUint32(789),
+		Format:     aStr("CCCNN0EEESSSSSS"),
+	}
+	// user passed in a full 15-digit IMSI
+	imsi, err = FormatImsiDef(i, 123456789012345)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(123456789012345), imsi)
+
+	// user passed in a 14-digit IMSI (aka 15-digit with a leading zero)
+	imsi, err = FormatImsiDef(i, 12345678901234)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(12345678901234), imsi)
+
+	// user passed in a 13-digit IMSI (aka 15-digit with two leading zeros)
+	imsi, err = FormatImsiDef(i, 1234567890123)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(1234567890123), imsi)
+
+	// passing in a 12-digit imsi is malformed
+	_, err = FormatImsiDef(i, 123456789012)
+	assert.EqualError(t, err, "Failed to convert all Subscriber digits")
 }
 
 func TestProtoStringToProtoNumber(t *testing.T) {

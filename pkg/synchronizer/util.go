@@ -68,6 +68,20 @@ func FormatImsi(format string, mcc string, mnc string, ent uint32, sub uint64) (
 	var err error
 	mult = 1
 
+	if len(strconv.FormatUint(sub, 10)) >= 13 {
+		// If the subscriber is at least 13 digits long, then the user is passing us a full
+		// IMSI and we dont want to change the MCC, MNC, or ENT bits. The reason we check
+		// for 13 digits instead of for a full 15 is the assumption that there could be
+		// leading zeros (i.e. 001 for the MCC).
+
+		// It's possible that `sub` might contains a MCC, MNC, and/or ENT that do not match
+		// the site's MCC, MNC, or ENT. We assume this is not an error; the user can choose
+		// to permit IMSIs on the site that do not match the default values for these
+		// fields.
+
+		return sub, nil
+	}
+
 	if mcc != "" {
 		mccUint, err = strconv.ParseUint(mcc, 10, 64)
 		if err != nil {
@@ -111,7 +125,7 @@ func FormatImsi(format string, mcc string, mnc string, ent uint32, sub uint64) (
 			return 0, fmt.Errorf("Unrecognized IMSI format specifier '%c'", format[i])
 		}
 	}
-	// IF there are any bits left in any of the fields, then it means we
+	// If there are any bits left in any of the fields, then it means we
 	// had more digits than the IMSI format called for.
 	if mccUint > 0 && strings.Contains(format, "C") {
 		return 0, errors.New("Failed to convert all MCC digits")

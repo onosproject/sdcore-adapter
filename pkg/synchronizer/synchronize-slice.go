@@ -239,6 +239,10 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 		return 0, fmt.Errorf("Slice %s failed to marshal JSON: %s", *slice.SliceId, err)
 	}
 
+	if scope.ConnectivityService.Core_5GEndpoint == nil {
+		return 0, fmt.Errorf("Slice %s Connectivity Service %s has no Core Endpoint", *slice.SliceId, *scope.ConnectivityService.ConnectivityServiceId)
+	}
+
 	url := fmt.Sprintf("%s/v1/network-slice/%s", *scope.ConnectivityService.Core_5GEndpoint, *slice.SliceId)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {

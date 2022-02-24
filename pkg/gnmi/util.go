@@ -54,6 +54,28 @@ func getGNMIServiceVersion() (*string, error) {
 	return ver.(*string), nil
 }
 
+// tryChoices checks to see if elemName is behind a choice.
+// An Example is:
+//    gNMI: slice.mbr
+//    schema: slice.bitrate.mbr-case.mbr
+func tryChoices(schema *yang.Entry, elemName string) *yang.Entry {
+	for _, entry := range schema.Dir {
+		// Check each entry in Schema to see if it's a choice
+		if entry.IsChoice() {
+			// If it's a choice, then check each subentry to see if it's
+			// a choice option with the field we're looking for hanging
+			// off it.
+			for _, subEntry := range entry.Dir {
+				nextSchema, ok := subEntry.Dir[elemName]
+				if ok {
+					return nextSchema
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // getChildNode gets a node's child with corresponding schema specified by path
 // element. If not found and createIfNotExist is set as true, an empty node is
 // created and returned.
@@ -62,7 +84,10 @@ func getChildNode(node map[string]interface{}, schema *yang.Entry, elem *pb.Path
 	var ok bool
 
 	if nextSchema, ok = schema.Dir[elem.Name]; !ok {
-		return nil, nil
+		nextSchema = tryChoices(schema, elem.Name)
+		if nextSchema == nil {
+			return nil, nil
+		}
 	}
 
 	var nextNode interface{}

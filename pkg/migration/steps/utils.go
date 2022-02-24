@@ -9,17 +9,17 @@ import (
 	"strings"
 )
 
-var validId = regexp.MustCompile("^[a-z]([a-z0-9-]?[a-z0-9])*$")
+var validID = regexp.MustCompile("^[a-z]([a-z0-9-]?[a-z0-9])*$")
 var splCharMatch = regexp.MustCompile("[^a-zA-Z0-9-]")
 var firstCapMatch = regexp.MustCompile("(.)([A-Z][a-z]+)")
 var allCapMatch = regexp.MustCompile("([a-z0-9])([A-Z])")
 
-func IsValidIdentifier(identifier string) bool {
-	match := validId.MatchString(identifier)
+func isValidIdentifier(identifier string) bool {
+	match := validID.MatchString(identifier)
 	return match
 }
 
-func ConvertIdentifier(identifier string) string {
+func convertIdentifier(identifier string) string {
 	var flag bool
 	//Removing Special characters from the identifier
 	id := splCharMatch.ReplaceAllString(identifier, "")

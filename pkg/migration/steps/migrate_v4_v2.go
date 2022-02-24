@@ -230,8 +230,8 @@ func migrateV4V2ConnectivityService(fromTarget string, toTarget string, cs *mode
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("acc-prometheus-url", toTarget, cs.AccPrometheusUrl))
 
 	csID := *cs.Id
-	if !IsValidIdentifier(csID) {
-		csID = ConvertIdentifier(csID)
+	if !isValidIdentifier(csID) {
+		csID = convertIdentifier(csID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("connectivity-services/connectivity-service[connectivity-service-id=%s]", csID), toTarget)
@@ -248,8 +248,8 @@ func migrateV4V2Enterprise(fromTarget string, toTarget string, ent *modelsv4.Onf
 	if ent.ConnectivityService != nil {
 		for _, cs := range ent.ConnectivityService {
 			csID := *cs.ConnectivityService
-			if !IsValidIdentifier(csID) {
-				csID = ConvertIdentifier(csID)
+			if !isValidIdentifier(csID) {
+				csID = convertIdentifier(csID)
 			}
 			updStr := fmt.Sprintf("connectivity-service[connectivity-service=%s]/enabled", csID)
 			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, cs.Enabled))
@@ -257,8 +257,8 @@ func migrateV4V2Enterprise(fromTarget string, toTarget string, ent *modelsv4.Onf
 	}
 
 	entID := *ent.Id
-	if !IsValidIdentifier(entID) {
-		entID = ConvertIdentifier(entID)
+	if !isValidIdentifier(entID) {
+		entID = convertIdentifier(entID)
 	}
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]", entID), toTarget)
 	//deletePath := gnmiclient.StringToPath(fmt.Sprintf("enterprise/enterprise[id=%s]", *ent.Id), fromTarget)
@@ -275,8 +275,8 @@ func migrateV4V2Application(fromTarget string, toTarget string, app *modelsv4.On
 	if app.Endpoint != nil {
 		for _, ap := range app.Endpoint {
 			epID := *ap.EndpointId
-			if !IsValidIdentifier(epID) {
-				epID = ConvertIdentifier(epID)
+			if !isValidIdentifier(epID) {
+				epID = convertIdentifier(epID)
 			}
 			updStr := fmt.Sprintf("endpoint[endpoint-id=%s]/display-name", epID)
 			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ap.DisplayName))
@@ -296,13 +296,13 @@ func migrateV4V2Application(fromTarget string, toTarget string, app *modelsv4.On
 	}
 
 	entID := *app.Enterprise
-	if !IsValidIdentifier(entID) {
-		entID = ConvertIdentifier(entID)
+	if !isValidIdentifier(entID) {
+		entID = convertIdentifier(entID)
 	}
 
 	appID := *app.Id
-	if !IsValidIdentifier(appID) {
-		appID = ConvertIdentifier(appID)
+	if !isValidIdentifier(appID) {
+		appID = convertIdentifier(appID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/application[application-id=%s]", entID, appID), toTarget)
@@ -322,13 +322,13 @@ func migrateV4V2TrafficClass(fromTarget string, toTarget string, entID *string, 
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt8("arp", toTarget, tc.Arp))
 
 	enID := *entID
-	if !IsValidIdentifier(enID) {
-		enID = ConvertIdentifier(enID)
+	if !isValidIdentifier(enID) {
+		enID = convertIdentifier(enID)
 	}
 
 	tcID := *tc.Id
-	if !IsValidIdentifier(tcID) {
-		tcID = ConvertIdentifier(tcID)
+	if !isValidIdentifier(tcID) {
+		tcID = convertIdentifier(tcID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/traffic-class[traffic-class-id=%s]", enID, tcID), toTarget)
@@ -350,13 +350,13 @@ func migrateV4V2Template(fromTarget string, toTarget string, entID *string, te *
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("slice/mbr/downlink-burst-size", toTarget, te.Slice.Mbr.DownlinkBurstSize))
 
 	enID := *entID
-	if !IsValidIdentifier(enID) {
-		enID = ConvertIdentifier(enID)
+	if !isValidIdentifier(enID) {
+		enID = convertIdentifier(enID)
 	}
 
 	teID := *te.Id
-	if !IsValidIdentifier(teID) {
-		teID = ConvertIdentifier(teID)
+	if !isValidIdentifier(teID) {
+		teID = convertIdentifier(teID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/template[template-id=%s]", enID, teID), toTarget)
@@ -374,8 +374,8 @@ func migrateV4V2Site(fromTarget string, toTarget string, st *modelsv4.OnfSite_Si
 	if st.SmallCell != nil {
 		for _, sc := range st.SmallCell {
 			smcID := *sc.SmallCellId
-			if !IsValidIdentifier(smcID) {
-				smcID = ConvertIdentifier(smcID)
+			if !isValidIdentifier(smcID) {
+				smcID = convertIdentifier(smcID)
 			}
 			updStr := fmt.Sprintf("small-cell[small-cell-id=%s]/display-name", smcID)
 			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, sc.DisplayName))
@@ -393,8 +393,8 @@ func migrateV4V2Site(fromTarget string, toTarget string, st *modelsv4.OnfSite_Si
 		updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("monitoring/edge-monitoring-prometheus-url", toTarget, st.Monitoring.EdgeMonitoringPrometheusUrl))
 		for _, ed := range st.Monitoring.EdgeDevice {
 			edID := *ed.EdgeDeviceId
-			if !IsValidIdentifier(edID) {
-				edID = ConvertIdentifier(edID)
+			if !isValidIdentifier(edID) {
+				edID = convertIdentifier(edID)
 			}
 			updStr := fmt.Sprintf("monitoring/edge-device[edge-device-id=%s]/display-name", edID)
 			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString(updStr, toTarget, ed.DisplayName))
@@ -409,13 +409,13 @@ func migrateV4V2Site(fromTarget string, toTarget string, st *modelsv4.OnfSite_Si
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("imsi-definition/enterprise", toTarget, st.ImsiDefinition.Enterprise))
 
 	enID := *st.Enterprise
-	if !IsValidIdentifier(enID) {
-		enID = ConvertIdentifier(enID)
+	if !isValidIdentifier(enID) {
+		enID = convertIdentifier(enID)
 	}
 
 	stID := *st.Id
-	if !IsValidIdentifier(stID) {
-		stID = ConvertIdentifier(stID)
+	if !isValidIdentifier(stID) {
+		stID = convertIdentifier(stID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]", enID, stID), toTarget)
@@ -434,18 +434,18 @@ func migrateV4V2Upf(fromTarget string, toTarget string, up *modelsv4.OnfUpf_Upf_
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("config-endpoint", toTarget, up.ConfigEndpoint))
 
 	enID := *up.Enterprise
-	if !IsValidIdentifier(enID) {
-		enID = ConvertIdentifier(enID)
+	if !isValidIdentifier(enID) {
+		enID = convertIdentifier(enID)
 	}
 
 	stID := *up.Site
-	if !IsValidIdentifier(stID) {
-		stID = ConvertIdentifier(stID)
+	if !isValidIdentifier(stID) {
+		stID = convertIdentifier(stID)
 	}
 
 	upfID := *up.Id
-	if !IsValidIdentifier(upfID) {
-		upfID = ConvertIdentifier(upfID)
+	if !isValidIdentifier(upfID) {
+		upfID = convertIdentifier(upfID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]/upf[upf-id=%s]",
@@ -468,8 +468,8 @@ func migrateV4V2Vcs(fromTarget string, toTarget string, vc *modelsv4.OnfVcs_Vcs_
 	if vc.DeviceGroup != nil {
 		for _, dg := range vc.DeviceGroup {
 			dgID := *dg.DeviceGroup
-			if !IsValidIdentifier(dgID) {
-				dgID = ConvertIdentifier(dgID)
+			if !isValidIdentifier(dgID) {
+				dgID = convertIdentifier(dgID)
 			}
 			updStr := fmt.Sprintf("device-group[device-group=%s]/enable", dgID)
 			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateBool(updStr, toTarget, dg.Enable))
@@ -479,8 +479,8 @@ func migrateV4V2Vcs(fromTarget string, toTarget string, vc *modelsv4.OnfVcs_Vcs_
 	if vc.Filter != nil {
 		for _, fi := range vc.Filter {
 			appID := *fi.Application
-			if !IsValidIdentifier(appID) {
-				appID = ConvertIdentifier(appID)
+			if !isValidIdentifier(appID) {
+				appID = convertIdentifier(appID)
 			}
 			updStr := fmt.Sprintf("filter[application=%s]/priority", appID)
 			updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt8(updStr, toTarget, fi.Priority))
@@ -495,18 +495,18 @@ func migrateV4V2Vcs(fromTarget string, toTarget string, vc *modelsv4.OnfVcs_Vcs_
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateUInt32("/mbr/downlink-burst-size", toTarget, vc.Slice.Mbr.DownlinkBurstSize))
 
 	enID := *vc.Enterprise
-	if !IsValidIdentifier(enID) {
-		enID = ConvertIdentifier(enID)
+	if !isValidIdentifier(enID) {
+		enID = convertIdentifier(enID)
 	}
 
 	stID := *vc.Site
-	if !IsValidIdentifier(stID) {
-		stID = ConvertIdentifier(stID)
+	if !isValidIdentifier(stID) {
+		stID = convertIdentifier(stID)
 	}
 
 	slID := *vc.Id
-	if !IsValidIdentifier(slID) {
-		slID = ConvertIdentifier(slID)
+	if !isValidIdentifier(slID) {
+		slID = convertIdentifier(slID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]/slice[slice-id=%s]",
@@ -531,8 +531,8 @@ func migrateV4V2DeviceGroup(fromTarget string, toTarget string, entID *string, s
 
 			for dev := *im.ImsiRangeFrom; dev <= *im.ImsiRangeTo; dev++ {
 				devID := fmt.Sprintf(*im.ImsiId+"-%d", dev)
-				if !IsValidIdentifier(devID) {
-					devID = ConvertIdentifier(devID)
+				if !isValidIdentifier(devID) {
+					devID = convertIdentifier(devID)
 				}
 				updStr := fmt.Sprintf("device[device-id=%s]/enable", devID)
 				enable := true
@@ -543,18 +543,18 @@ func migrateV4V2DeviceGroup(fromTarget string, toTarget string, entID *string, s
 	}
 
 	enID := *entID
-	if !IsValidIdentifier(enID) {
-		enID = ConvertIdentifier(enID)
+	if !isValidIdentifier(enID) {
+		enID = convertIdentifier(enID)
 	}
 
 	stID := *siteID
-	if !IsValidIdentifier(stID) {
-		stID = ConvertIdentifier(stID)
+	if !isValidIdentifier(stID) {
+		stID = convertIdentifier(stID)
 	}
 
 	dgID := *dg.Id
-	if !IsValidIdentifier(dgID) {
-		dgID = ConvertIdentifier(dgID)
+	if !isValidIdentifier(dgID) {
+		dgID = convertIdentifier(dgID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]/device-group[device-group-id=%s]",
@@ -576,18 +576,18 @@ func migrateV4V2IpDomain(fromTarget string, toTarget string, entID *string, site
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("admin-status", toTarget, ipd.AdminStatus))
 
 	enID := *entID
-	if !IsValidIdentifier(enID) {
-		enID = ConvertIdentifier(enID)
+	if !isValidIdentifier(enID) {
+		enID = convertIdentifier(enID)
 	}
 
 	stID := *siteID
-	if !IsValidIdentifier(stID) {
-		stID = ConvertIdentifier(stID)
+	if !isValidIdentifier(stID) {
+		stID = convertIdentifier(stID)
 	}
 
 	ipdID := *ipd.Id
-	if !IsValidIdentifier(ipdID) {
-		ipdID = ConvertIdentifier(ipdID)
+	if !isValidIdentifier(ipdID) {
+		ipdID = convertIdentifier(ipdID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]/ip-domain[ip-domain-id=%s]",
@@ -603,14 +603,14 @@ func migrateV4V2DeviceGroupImsis(fromTarget string, toTarget string, entID *stri
 
 	for dev := *im.ImsiRangeFrom; dev <= *im.ImsiRangeTo; dev++ {
 		devID := fmt.Sprintf(*im.ImsiId+"-%d", dev)
-		if !IsValidIdentifier(devID) {
-			devID = ConvertIdentifier(devID)
+		if !isValidIdentifier(devID) {
+			devID = convertIdentifier(devID)
 		}
 
 		displayName := fmt.Sprintf(*im.ImsiId+" %d", dev)
 		simCardID := fmt.Sprintf("sim-"+*im.ImsiId+"-%d", dev)
-		if !IsValidIdentifier(simCardID) {
-			simCardID = ConvertIdentifier(simCardID)
+		if !isValidIdentifier(simCardID) {
+			simCardID = convertIdentifier(simCardID)
 		}
 
 		updStr := fmt.Sprintf("device[device-id=%s]/display-name", devID)
@@ -632,13 +632,13 @@ func migrateV4V2DeviceGroupImsis(fromTarget string, toTarget string, entID *stri
 	}
 
 	enID := *entID
-	if !IsValidIdentifier(enID) {
-		enID = ConvertIdentifier(enID)
+	if !isValidIdentifier(enID) {
+		enID = convertIdentifier(enID)
 	}
 
 	stID := *siteID
-	if !IsValidIdentifier(stID) {
-		stID = ConvertIdentifier(stID)
+	if !isValidIdentifier(stID) {
+		stID = convertIdentifier(stID)
 	}
 
 	prefix := gnmiclient.StringToPath(fmt.Sprintf("enterprises/enterprise[enterprise-id=%s]/site[site-id=%s]", enID, stID), toTarget)

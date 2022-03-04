@@ -18,6 +18,7 @@ import (
 	modelpluginv2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
 	modelsv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
 	modelpluginv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/modelplugin"
+	"github.com/onosproject/sdcore-adapter/internal/pkg/version"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration/steps"
@@ -44,6 +45,9 @@ var log = logging.GetLogger("sdcore-migrate")
 
 func main() {
 	flag.Parse()
+
+	log.Infof("sdcore-migrate")
+	version.LogVersion("  ")
 
 	gnmiClient, err := gnmiclient.NewGnmi(*aetherConfigAddr, time.Second*5)
 	if err != nil {

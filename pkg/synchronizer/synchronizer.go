@@ -91,10 +91,12 @@ func (s *Synchronizer) GetModels() *gnmi.Model {
 
 // Start the synchronizer by launching the synchronizer loop inside a thread.
 func (s *Synchronizer) Start() {
-	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%s, postTimeout=%d)",
+	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%v, postTimeout=%d, retryInterval=%s, partialUpdateEnable=%v)",
 		s.outputFileName,
 		s.postEnable,
-		s.postTimeout)
+		s.postTimeout,
+		s.retryInterval,
+		s.partialUpdateEnable)
 
 	// TODO: Eventually we'll create a thread here that waits for config changes
 	go s.Loop()

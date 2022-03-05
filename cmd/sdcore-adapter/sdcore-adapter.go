@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/gnxi/utils/credentials"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/sdcore-adapter/internal/pkg/version"
 	"github.com/onosproject/sdcore-adapter/pkg/diagapi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
@@ -74,6 +75,9 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	log.Infof("sdcore-adapter")
+	version.LogVersion("  ")
 
 	// Initialize the synchronizer's service-specific code.
 	log.Infof("Initializing synchronizer")

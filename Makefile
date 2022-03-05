@@ -10,10 +10,29 @@ export GO111MODULE=on
 
 .PHONY: build
 
+VERSION                     ?= $(shell cat ./VERSION)
+
 KIND_CLUSTER_NAME           ?= kind
 DOCKER_REPOSITORY           ?= onosproject/
 ONOS_SDCORE_ADAPTER_VERSION ?= latest
 LOCAL_AETHER_MODELS         ?=
+
+## Docker labels. Only set ref and commit date if committed
+DOCKER_LABEL_VCS_URL        ?= $(shell git remote get-url $(shell git remote))
+DOCKER_LABEL_VCS_REF        = $(shell git rev-parse HEAD)
+DOCKER_LABEL_BUILD_DATE     ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
+DOCKER_LABEL_COMMIT_DATE    = $(shell git show -s --format=%cd --date=iso-strict HEAD)
+
+DOCKER_EXTRA_ARGS           ?=
+DOCKER_BUILD_ARGS ?= \
+        ${DOCKER_EXTRA_ARGS} \
+        --build-arg org_label_schema_version="${VERSION}" \
+        --build-arg org_label_schema_vcs_url="${DOCKER_LABEL_VCS_URL}" \
+        --build-arg org_label_schema_vcs_ref="${DOCKER_LABEL_VCS_REF}" \
+        --build-arg org_label_schema_build_date="${DOCKER_LABEL_BUILD_DATE}" \
+        --build-arg org_opencord_vcs_commit_date="${DOCKER_LABEL_COMMIT_DATE}" \
+        --build-arg org_opencord_vcs_dirty="${DOCKER_LABEL_VCS_DIRTY}" \
+		--build-arg LOCAL_AETHER_MODELS=${LOCAL_AETHER_MODELS}
 
 all: build images
 
@@ -67,7 +86,7 @@ jenkins-test: build deps license_check linters images jenkins-tools
 
 sdcore-adapter-docker: local-aether-models
 	docker build . -f Dockerfile \
-	--build-arg LOCAL_AETHER_MODELS=${LOCAL_AETHER_MODELS} \
+	$(DOCKER_BUILD_ARGS) \
 	-t ${DOCKER_REPOSITORY}sdcore-adapter:${ONOS_SDCORE_ADAPTER_VERSION}
 
 kind: # @HELP build Docker images and add them to the currently configured kind cluster

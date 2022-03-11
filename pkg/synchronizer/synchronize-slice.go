@@ -141,10 +141,6 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 				Name: fmt.Sprintf("%s-%s", *app.ApplicationId, epName),
 			}
 
-			err = validateAppEndpoint(endpoint)
-			if err != nil {
-				log.Warnf("App %s invalid endpoint: %s", *app.ApplicationId, err)
-			}
 			if strings.Contains(*app.Address, "/") {
 				appCore.Endpoint = *app.Address
 			} else {

@@ -35,18 +35,6 @@ func TestValidateSlice(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestValidateAppEndpoint(t *testing.T) {
-	e := &ApplicationEndpoint{
-		PortStart: aUint16(123),
-	}
-	err := validateAppEndpoint(e)
-	assert.Nil(t, err)
-
-	e = &ApplicationEndpoint{}
-	err = validateAppEndpoint(e)
-	assert.EqualError(t, err, "PortStart is nil")
-}
-
 func TestValidateIPDomain(t *testing.T) {
 	i := &IpDomain{
 		Subnet: aStr("1.2.3.4/24"),

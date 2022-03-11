@@ -28,14 +28,6 @@ func validateSlice(slice *Slice) error {
 }
 
 // return error if IpDomain cannot be synchronized due to missing data
-func validateAppEndpoint(ep *ApplicationEndpoint) error {
-	if ep.PortStart == nil {
-		return fmt.Errorf("PortStart is nil")
-	}
-	return nil
-}
-
-// return error if IpDomain cannot be synchronized due to missing data
 func validateIPDomain(ipd *IpDomain) error {
 	if ipd.Subnet == nil {
 		return fmt.Errorf("Subnet is nil")

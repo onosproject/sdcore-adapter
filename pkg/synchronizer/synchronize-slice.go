@@ -31,7 +31,7 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 	}
 
 	if scope.Site.ImsiDefinition == nil {
-		return 0, fmt.Errorf("Slice %s has nnil Site.ImsiDefinition", *slice.SliceId)
+		return 0, fmt.Errorf("Slice %s Site %s has nil Site.ImsiDefinition", *slice.SliceId, *scope.Site.SiteId)
 	}
 	err = validateImsiDefinition(scope.Site.ImsiDefinition)
 	if err != nil {

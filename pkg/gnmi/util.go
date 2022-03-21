@@ -185,6 +185,9 @@ func gnmiFullPath(prefix, path *pb.Path) *pb.Path {
 
 // PathToString converts a gnmi path to a human-readable string
 func PathToString(path *pb.Path) string {
+	if path == nil {
+		return "(nil)"
+	}
 	parts := []string{}
 	for _, elem := range path.Elem {
 		keys := []string{}
@@ -198,6 +201,19 @@ func PathToString(path *pb.Path) string {
 		}
 	}
 	return strings.Join(parts, "/")
+}
+
+// PrefixAndPathToString converts a gnmi prefix and path to a human-readable string
+func PrefixAndPathToString(prefix, path *pb.Path) string {
+	if prefix == nil && path == nil {
+		return "(nil)"
+	} else if prefix == nil {
+		return PathToString(path)
+	} else if path == nil {
+		return PathToString(prefix)
+	} else {
+		return fmt.Sprintf("%s/%s", PathToString(prefix), PathToString(path))
+	}
 }
 
 // isNIl checks if an interface is nil or its value is nil.
@@ -346,7 +362,7 @@ func setPathWithoutAttribute(op pb.UpdateResult_Operation, curNode map[string]in
 
 // sendResponse sends an SubscribeResponse to a gNMI client.
 func (s *Server) sendResponse(response *pb.SubscribeResponse, stream pb.GNMI_SubscribeServer) {
-	log.Info("Sending SubscribeResponse out to gNMI client: ", response)
+	log.Debugf("Sending SubscribeResponse out to gNMI client: %s", response)
 	err := stream.Send(response)
 	if err != nil {
 		//TODO remove channel registrations
@@ -458,7 +474,7 @@ func (s *Server) collector(c *streamClient, request *pb.SubscriptionList) {
 		update, err := s.getUpdate(c, request, path)
 
 		if err != nil {
-			log.Info("Error while collecting data for subscribe once or poll", err)
+			log.Warnf("Error while collecting data for subscribe once or poll: %s", err)
 			update = &pb.Update{
 				Path: path,
 			}
@@ -675,25 +691,20 @@ func convertTypedValueToJSONValue(val *pb.TypedValue, intAsString bool) (interfa
 		u := val.GetUintVal()
 		if intAsString {
 			nodeVal = strconv.FormatUint(u, 10)
-			log.Infof("Converted to string: %v", nodeVal)
 		} else {
 			nodeVal = u
-			log.Infof("Converted to uint: %v", nodeVal)
 		}
 	case *pb.TypedValue_IntVal:
 		i := val.GetIntVal()
 		if intAsString {
 			nodeVal = strconv.FormatInt(i, 10)
-			log.Infof("Converted to string: %v", nodeVal)
 		} else {
 			nodeVal = i
-			log.Infof("Converted to uint: %v", nodeVal)
 		}
 	default:
 		if nodeVal, err = value.ToScalar(val); err != nil {
 			return nil, status.Errorf(codes.Internal, "cannot convert leaf node to scalar type: %v", err)
 		}
-		log.Infof("Converted to scalar: %v", nodeVal)
 	}
 
 	return nodeVal, nil

@@ -23,6 +23,9 @@ package diagapi
  *   # pull state from onos-config and populate the cache, with auth token
  *   AUTH=<...stuff...>
  *   curl --header "Content-Type: application/json" --header "Authorization: Bearer $AUTH" -X POST "http://localhost:8080/pull?target=connectivity-service-v2&aetherConfigAddr=onos-config:5150"
+ *
+ *   # change the synchronizer log level
+ *   curl -v -X POST http://localhost:8080/loglevel/root --data "DEBUG"
  */
 
 import (
@@ -31,6 +34,7 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -141,6 +145,73 @@ func (m *DiagnosticAPI) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 	fmt.Fprintf(w, "SUCCESS")
 }
 
+// this method is not exported in onos logger
+func splitLoggerName(name string) []string {
+	names := strings.Split(name, "/")
+	return names
+}
+
+// this method is not exported in onos logger
+func levelStringToLevel(l string) (logging.Level, error) {
+	switch strings.ToUpper(l) {
+	case logging.DebugLevel.String():
+		return logging.DebugLevel, nil
+	case logging.InfoLevel.String():
+		return logging.InfoLevel, nil
+	case logging.WarnLevel.String():
+		return logging.WarnLevel, nil
+	case logging.ErrorLevel.String():
+		return logging.ErrorLevel, nil
+	case logging.FatalLevel.String():
+		return logging.FatalLevel, nil
+	case logging.PanicLevel.String():
+		return logging.PanicLevel, nil
+	case logging.DPanicLevel.String():
+		return logging.DPanicLevel, nil
+	}
+	return logging.ErrorLevel, fmt.Errorf("Unknown level %s", l)
+}
+
+func (m *DiagnosticAPI) getLogLevel(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["logger"]
+	names := splitLoggerName(name)
+	logger := logging.GetLogger(names...)
+
+	_, err := w.Write([]byte(logger.GetLevel().String()))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (m *DiagnosticAPI) setLogLevel(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["logger"]
+	names := splitLoggerName(name)
+	logger := logging.GetLogger(names...)
+
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	level, err := levelStringToLevel(string(reqBody))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	logger.SetLevel(level)
+
+	_, err = w.Write([]byte(logger.GetLevel().String()))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func (m *DiagnosticAPI) handleRequests(port uint) {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/synchronize", m.reSync).Methods("POST")
@@ -148,6 +219,8 @@ func (m *DiagnosticAPI) handleRequests(port uint) {
 	myRouter.HandleFunc("/cache", m.postCache).Methods("POST")
 	myRouter.HandleFunc("/cache", m.deleteCache).Methods("DELETE")
 	myRouter.HandleFunc("/pull", m.pullFromOnosConfig).Methods("POST")
+	myRouter.HandleFunc("/loglevel/{logger}", m.getLogLevel).Methods("GET")
+	myRouter.HandleFunc("/loglevel/{logger}", m.setLogLevel).Methods("POST")
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), myRouter))
 }
 

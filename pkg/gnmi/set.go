@@ -64,7 +64,7 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 			// Note that s.config has not received the changes yet, so it still contains
 			// the object being deleted, and can be used to lookup information about
 			// it inside the callback.
-			log.Infof("Calling delete callback on: %s", PathToString(fullPath))
+			log.Debugf("Calling delete callback on: %s", PathToString(fullPath))
 			err := s.callback(s.config, Deleted, fullPath)
 			if err != nil {
 				return nil, false, err
@@ -111,13 +111,14 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 		// If the Yang entry is a uint64, then we need to store it as a string in the JSON Tree
 		// instead of as a uint.
 		intAsString := (entry.Type != nil) && ((entry.Type.Kind == yang.Yuint64) || (entry.Type.Kind == yang.Yint64))
-		if intAsString {
-			log.Infof("IntAsString %s %s", entry.Name, entry.Type.Name)
-		}
 		nodeVal, err = convertTypedValueToJSONValue(val, intAsString)
 		if err != nil {
 			return nil, err
 		}
+		log.Debugf("Update/replace: %s = %v (%T)",
+			PrefixAndPathToString(prefix, path),
+			nodeVal,
+			nodeVal)
 	}
 
 	// Update json tree of the device config.
@@ -214,7 +215,6 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 		log.Debugf("Handling update %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_UPDATE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
-			log.Info("Handle update %v returned error %v", upd, grpcStatusError)
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
 			log.Warnf("Update returning with error %v", grpcStatusError)
 			return nil, grpcStatusError

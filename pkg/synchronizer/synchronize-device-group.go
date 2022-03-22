@@ -79,7 +79,7 @@ func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGrou
 
 	err = validateIPDomain(ipd)
 	if err != nil {
-		return 0, fmt.Errorf("DeviceGroup %s invalid: %s", *dg.DeviceGroupId, err)
+		return 0, fmt.Errorf("DeviceGroup %s IPDomain %s is invalid: %s", *dg.DeviceGroupId, *ipd.IpDomainId, err)
 	}
 
 	dgCore.IPDomainName = *ipd.IpDomainId

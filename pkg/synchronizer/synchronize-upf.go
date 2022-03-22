@@ -40,13 +40,17 @@ func (s *Synchronizer) SynchronizeSliceUPF(scope *AetherScope, slice *Slice) (in
 	if err != nil {
 		return 0, fmt.Errorf("Slice %s unable to determine upf: %s", *slice.SliceId, err)
 	}
+
 	err = validateUpf(aUpf)
 	if err != nil {
 		return 0, fmt.Errorf("Slice %s Upf is invalid: %s", *slice.SliceId, err)
 	}
 
 	if aUpf.ConfigEndpoint == nil {
-		return 0, fmt.Errorf("Slice %s UPF has no configuration endpoint", *slice.SliceId)
+		// This is not an error; UPFs can be configured with no config endpoint if slice
+		// QoS features are not used.
+		log.Infof("Slice %s UPF %s has no configuration endpoint", *slice.SliceId, *aUpf.UpfId)
+		return 0, nil
 	}
 
 	sc := &upfSliceConfig{

@@ -115,7 +115,7 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 		if err != nil {
 			return nil, err
 		}
-		log.Debugf("Update/replace: %s = %v (%T)",
+		log.Infof("Update/replace: %s = %v (%T)",
 			PrefixAndPathToString(prefix, path),
 			nodeVal,
 			nodeVal)
@@ -192,7 +192,7 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	var results []*pb.UpdateResult
 
 	for _, path := range req.GetDelete() {
-		log.Debugf("Handling delete %v", path)
+		log.Debugf("Handling delete: %v", path)
 		res, _, grpcStatusError := s.doDelete(jsonTree, prefix, path)
 		if grpcStatusError != nil {
 			log.Warnf("Delete returning with error %v", grpcStatusError)
@@ -202,7 +202,7 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 		results = append(results, res)
 	}
 	for _, upd := range req.GetReplace() {
-		log.Debugf("Handling replace %v", upd)
+		log.Debugf("Handling replace: %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_REPLACE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
@@ -212,7 +212,7 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 		results = append(results, res)
 	}
 	for _, upd := range req.GetUpdate() {
-		log.Debugf("Handling update %v", upd)
+		log.Debugf("Handling update: %v", upd)
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_UPDATE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()

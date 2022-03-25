@@ -29,3 +29,6 @@ build/_output/*
 
 sdcore-exporter
 
+build/build-tools
+
+

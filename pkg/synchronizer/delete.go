@@ -20,7 +20,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-// GetEnterpriseObjectID return the object id for a path.
+// GetEnterpriseObjectID returns the object id for a path.
 // If the path is a top-level model, then return the id of the object. If
 // the object is not a top-level model then return nil.
 func (s *Synchronizer) GetEnterpriseObjectID(scope *AetherScope, modelName string, path *pb.Path, keyName string) (*AetherScope, *string, error) {
@@ -33,22 +33,27 @@ func (s *Synchronizer) GetEnterpriseObjectID(scope *AetherScope, modelName strin
 
 	// The first element better be "enterprises"
 	if path.Elem[0].Name != "enterprises" {
-		return nil, nil, nil
+		return nil, nil, fmt.Errorf("Not an enterprise: %s", path.Elem[0].Name)
 	}
 
 	// Extract and lookup the enterprise
 	if path.Elem[1].Name != "enterprise" {
-		return nil, nil, nil
+		return nil, nil, fmt.Errorf("Not an enterprise: %s", path.Elem[1].Name)
 	}
-	entID, okay := path.Elem[1].Key["ent-id"]
+	entID, okay := path.Elem[1].Key["enterprise-id"]
 	if !okay {
-		return nil, nil, fmt.Errorf("Delete of %s does not have an ent-id key", modelName)
+		return nil, nil, fmt.Errorf("Delete of %s does not have an enterprise-id key", modelName)
 	}
 	enterprise, err := s.GetEnterprise(scope, &entID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Delete of %s failed to find enterprise %s", modelName, entID)
 	}
 	scope.Enterprise = enterprise
+
+	if modelName == "enterprise" {
+		// caller is asking for the enterprise. We can stop now.
+		return scope, &entID, nil
+	}
 
 	// extract and lookup the site
 	if path.Elem[2].Name != "site" {
@@ -64,6 +69,11 @@ func (s *Synchronizer) GetEnterpriseObjectID(scope *AetherScope, modelName strin
 	}
 	scope.Site = site
 
+	if modelName == "site" {
+		// caller is asking for the site. We can stop now.
+		return scope, &siteID, nil
+	}
+
 	if path.Elem[3].Name != modelName {
 		// It's hard to imagine what else this could be. Future-proof by ignoring it.
 		return nil, nil, nil
@@ -76,18 +86,11 @@ func (s *Synchronizer) GetEnterpriseObjectID(scope *AetherScope, modelName strin
 	return scope, &id, nil
 }
 
-// DeleteSlice deletes a Slice from the core
-func (s *Synchronizer) DeleteSlice(scope *AetherScope, path *pb.Path) error {
-	scope, id, err := s.GetEnterpriseObjectID(scope, "slice", path, "slice-id")
-	if err != nil {
-		return err
-	}
-	if id == nil {
-		return nil
-	}
+// deleteSlice deletes a Slice from the core
+func (s *Synchronizer) deleteSliceByID(scope *AetherScope, id *string) error {
 	log.Infof("Delete slice %s", *id)
 
-	_, err = s.GetSlice(scope, id)
+	_, err := s.GetSlice(scope, id)
 	if err != nil {
 		return err
 	}
@@ -120,18 +123,23 @@ csLoop:
 	return nil
 }
 
-// DeleteDeviceGroup deletes a devicegroup from the core
-func (s *Synchronizer) DeleteDeviceGroup(scope *AetherScope, path *pb.Path) error {
-	scope, id, err := s.GetEnterpriseObjectID(scope, "device-group", path, "dg-id")
+// deleteSlice deletes a Slice from the core, given a gNMI path
+func (s *Synchronizer) deleteSliceByPath(scope *AetherScope, path *pb.Path) error {
+	scope, id, err := s.GetEnterpriseObjectID(scope, "slice", path, "slice-id")
 	if err != nil {
 		return err
 	}
 	if id == nil {
 		return nil
 	}
+	return s.deleteSliceByID(scope, id)
+}
+
+// deleteDeviceGroupByID deletes a devicegroup from the core, given an ID
+func (s *Synchronizer) deleteDeviceGroupByID(scope *AetherScope, id *string) error {
 	log.Infof("Delete device-group %s", *id)
 
-	_, err = s.GetDeviceGroup(scope, id)
+	_, err := s.GetDeviceGroup(scope, id)
 	if err != nil {
 		return err
 	}
@@ -161,6 +169,74 @@ csLoop:
 	return nil
 }
 
+// deleteDeviceGroupByPath deletes a devicegroup from the core, given a gNMI path
+func (s *Synchronizer) deleteDeviceGroupByPath(scope *AetherScope, path *pb.Path) error {
+	scope, id, err := s.GetEnterpriseObjectID(scope, "device-group", path, "dg-id")
+	if err != nil {
+		return err
+	}
+	if id == nil {
+		return nil
+	}
+	return s.deleteDeviceGroupByID(scope, id)
+}
+
+// deleteSiteByPath deletes a site, the one that is part of the scope
+func (s *Synchronizer) deleteSiteByScope(scope *AetherScope) error {
+	log.Infof("Delete site %s", *scope.Site.SiteId)
+
+	for dgID := range scope.Site.DeviceGroup {
+		err := s.deleteDeviceGroupByID(scope, &dgID)
+		if err != nil {
+			return err
+		}
+	}
+
+	for sliceID := range scope.Site.Slice {
+		err := s.deleteSliceByID(scope, &sliceID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// deleteSiteByPath deletes a site from the core, given a gNMI path
+func (s *Synchronizer) deleteSiteByPath(scope *AetherScope, path *pb.Path) error {
+	scope, _, err := s.GetEnterpriseObjectID(scope, "site", path, "site-id")
+	if err != nil {
+		return err
+	}
+
+	return s.deleteSiteByScope(scope)
+}
+
+// deleteSiteByPath deletes a site, the one that is part of the scope
+func (s *Synchronizer) deleteEnterpriseByPath(scope *AetherScope, path *pb.Path) error {
+
+	scope, _, err := s.GetEnterpriseObjectID(scope, "enterprise", path, "enterprise-id")
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Delete enterprise %s", *scope.Enterprise.EnterpriseId)
+
+	for siteID := range scope.Enterprise.Site {
+		site, err := s.GetSite(scope, &siteID)
+		if err != nil {
+			return fmt.Errorf("Delete of enterprise %s failed to find site %s", *scope.Enterprise.EnterpriseId, siteID)
+		}
+		scope.Site = site
+		err = s.deleteSiteByScope(scope)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // HandleDelete synchronously performs a delete
 func (s *Synchronizer) HandleDelete(config ygot.ValidatedGoStruct, path *pb.Path) error {
 	rootDevice := config.(*RootDevice)
@@ -170,19 +246,40 @@ func (s *Synchronizer) HandleDelete(config ygot.ValidatedGoStruct, path *pb.Path
 	if path == nil || len(path.Elem) == 0 {
 		return nil
 	}
-	if len(path.Elem) < 4 {
-		// Deleting a path of length < 4 could delete an entire class of objects (i.e. all Device-Groups)
-		// at once. The user probably doesn't want to do that.
+
+	log.Infof("HandleDelete: %s", gnmi.PathToString(path))
+
+	if len(path.Elem) < 2 {
+		// To delete an enterprise requires a 2-element path.
+		// Less than 2 elements would be a delete of the whole tree. Refuse that.
 		return fmt.Errorf("Refusing to delete path %s because it is too broad", gnmi.PathToString(path))
 	}
-	switch path.Elem[3].Name {
-	case "slice":
-		return s.DeleteSlice(scope, path)
-	case "device-group":
-		return s.DeleteDeviceGroup(scope, path)
+
+	if (path.Elem[0].Name != "enterprises") || (path.Elem[1].Name != "enterprise") {
+		// not in the Enterprise hierarchy. Ignore it.
+		return nil
 	}
 
-	// It for something else.
+	if len(path.Elem) == 2 {
+		// It must be the delete of an entire site
+		return s.deleteEnterpriseByPath(scope, path)
+	}
+
+	if len(path.Elem) == 3 {
+		// It must be the delete of an entire site
+		return s.deleteSiteByPath(scope, path)
+	}
+
+	// At this point, length must be 4, it's some object inside of a site.
+
+	switch path.Elem[3].Name {
+	case "slice":
+		return s.deleteSliceByPath(scope, path)
+	case "device-group":
+		return s.deleteDeviceGroupByPath(scope, path)
+	}
+
+	// It's for something else.
 	// We don't care.
 
 	return nil

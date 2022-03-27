@@ -12,8 +12,8 @@ package steps
 
 import (
 	"fmt"
-	modelsv2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
-	modelsv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
+	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/api"
+	modelsv4 "github.com/onosproject/aether-models/models/aether-4.x/api"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"

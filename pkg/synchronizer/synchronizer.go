@@ -6,8 +6,7 @@
 package synchronizer
 
 import (
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
-	modelplugin "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
+	models "github.com/onosproject/aether-models/models/aether-2.0.x/api"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
@@ -78,7 +77,7 @@ func (s *Synchronizer) Loop() {
 
 // GetModels gets the list of models.
 func (s *Synchronizer) GetModels() *gnmi.Model {
-	model := gnmi.NewModel(modelplugin.ModelData,
+	model := gnmi.NewModel(models.ModelData(),
 		reflect.TypeOf((*models.Device)(nil)),
 		models.SchemaTree["Device"],
 		models.Unmarshal,

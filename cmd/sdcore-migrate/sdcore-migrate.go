@@ -14,10 +14,8 @@ package main
 
 import (
 	"flag"
-	modelsv2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
-	modelpluginv2 "github.com/onosproject/config-models/modelplugin/aether-2.0.0/modelplugin"
-	modelsv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/aether_4_0_0"
-	modelpluginv4 "github.com/onosproject/config-models/modelplugin/aether-4.0.0/modelplugin"
+	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/api"
+	modelsv4 "github.com/onosproject/aether-models/models/aether-4.x/api"
 	"github.com/onosproject/sdcore-adapter/internal/pkg/version"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
@@ -55,7 +53,7 @@ func main() {
 	}
 	defer gnmiClient.CloseClient()
 
-	v4Models := gnmi.NewModel(modelpluginv4.ModelData,
+	v4Models := gnmi.NewModel(modelsv4.ModelData(),
 		reflect.TypeOf((*modelsv4.Device)(nil)),
 		modelsv4.SchemaTree["Device"],
 		modelsv4.Unmarshal,
@@ -63,7 +61,7 @@ func main() {
 		map[string]map[int64]ygot.EnumDefinition{},
 	)
 
-	v2Models := gnmi.NewModel(modelpluginv2.ModelData,
+	v2Models := gnmi.NewModel(modelsv2.ModelData(),
 		reflect.TypeOf((*modelsv2.Device)(nil)),
 		modelsv2.SchemaTree["Device"],
 		modelsv2.Unmarshal,

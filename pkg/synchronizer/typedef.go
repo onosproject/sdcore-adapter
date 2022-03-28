@@ -6,7 +6,7 @@
 package synchronizer
 
 import (
-	models "github.com/onosproject/config-models/modelplugin/aether-2.0.0/aether_2_0_0"
+	models "github.com/onosproject/aether-models/models/aether-2.0.x/api"
 )
 
 // Various typedefs to make modeling types more convenient throughout the synchronizer.

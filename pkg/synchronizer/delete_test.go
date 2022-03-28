@@ -15,7 +15,7 @@ import (
 
 // BuildRootPath builds a root path to a slice or dg
 func BuildRootPath(entID string, siteID string, modelKey string, model string, key string) *pb.Path {
-	entKeyMap := map[string]string{"ent-id": entID}
+	entKeyMap := map[string]string{"enterprise-id": entID}
 	siteKeyMap := map[string]string{"site-id": siteID}
 	keyMap := map[string]string{modelKey: key}
 	path := &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKeyMap}, {Name: "site", Key: siteKeyMap}, {Name: model, Key: keyMap}}}
@@ -26,7 +26,7 @@ func BuildRootPath(entID string, siteID string, modelKey string, model string, k
 func TestHandleDeleteNotApplicable(t *testing.T) {
 	s := NewSynchronizer()
 
-	entKey := map[string]string{"ent-id": "sample-ent"}
+	entKey := map[string]string{"enterprise-id": "sample-ent"}
 	siteKey := map[string]string{"site-id": "sample-site"}
 
 	device := BuildSampleDevice()
@@ -53,7 +53,7 @@ func TestHandleDeleteNotApplicable(t *testing.T) {
 	// Path is for a slice but lacks an enterprise key
 	path = &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise"}, {Name: "site"}, {Name: "slice"}}}
 	err = s.HandleDelete(device, path)
-	assert.EqualError(t, err, "Delete of slice does not have an ent-id key")
+	assert.EqualError(t, err, "Delete of slice does not have an enterprise-id key")
 
 	// Path is for a slice but lacks a site key
 	path = &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKey}, {Name: "site"}, {Name: "slice"}}}
@@ -289,4 +289,43 @@ func TestHandleDeleteDeviceGroupMissingDeps(t *testing.T) {
 	path = BuildRootPath("sample-ent", "sample-site", "dg-id", "device-group", "sample-dg")
 	err = s.HandleDelete(device, path)
 	assert.EqualError(t, err, "No connectivity services")
+}
+
+func TestHandleDeleteSlite(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
+	s := NewSynchronizer(WithPusher(mockPusher))
+
+	device := BuildSampleDevice()
+
+	entKeyMap := map[string]string{"enterprise-id": "sample-ent"}
+	siteKeyMap := map[string]string{"site-id": "sample-site"}
+	path := &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKeyMap}, {Name: "site", Key: siteKeyMap}}}
+	mockPusher.EXPECT().PushDelete("http://5gcore/v1/device-group/sample-dg").DoAndReturn(func(endpoint string) error {
+		return nil
+	}).AnyTimes()
+	mockPusher.EXPECT().PushDelete("http://5gcore/v1/network-slice/sample-slice").DoAndReturn(func(endpoint string) error {
+		return nil
+	}).AnyTimes()
+	err := s.HandleDelete(device, path)
+	assert.Nil(t, err)
+}
+
+func TestHandleDeleteEnterprise(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockPusher := mocks.NewMockPusherInterface(ctrl)
+	s := NewSynchronizer(WithPusher(mockPusher))
+
+	device := BuildSampleDevice()
+
+	entKeyMap := map[string]string{"enterprise-id": "sample-ent"}
+	path := &pb.Path{Elem: []*pb.PathElem{{Name: "enterprises"}, {Name: "enterprise", Key: entKeyMap}}}
+	mockPusher.EXPECT().PushDelete("http://5gcore/v1/device-group/sample-dg").DoAndReturn(func(endpoint string) error {
+		return nil
+	}).AnyTimes()
+	mockPusher.EXPECT().PushDelete("http://5gcore/v1/network-slice/sample-slice").DoAndReturn(func(endpoint string) error {
+		return nil
+	}).AnyTimes()
+	err := s.HandleDelete(device, path)
+	assert.Nil(t, err)
 }

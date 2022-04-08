@@ -21,7 +21,7 @@ import (
 
 // doDelete deletes the path from the json tree if the path exists. If success,
 // it calls the callback function to apply the change to the device hardware.
-func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path) (*pb.UpdateResult, bool, error) {
+func (s *Server) doDelete(jsonTree map[string]interface{}, target string, prefix, path *pb.Path) (*pb.UpdateResult, bool, error) {
 	// Update json tree of the device config
 	var curNode interface{} = jsonTree
 	pathDeleted := false
@@ -65,7 +65,7 @@ func (s *Server) doDelete(jsonTree map[string]interface{}, prefix, path *pb.Path
 			// the object being deleted, and can be used to lookup information about
 			// it inside the callback.
 			log.Debugf("Calling delete callback on: %s", PathToString(fullPath))
-			err := s.callback(s.config, Deleted, fullPath)
+			err := s.callback(s.config, Deleted, target, fullPath)
 			if err != nil {
 				return nil, false, err
 			}
@@ -172,6 +172,54 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 	}, nil
 }
 
+// jsonTreeFromPath extracts the target from 'prefix' and 'path'. If that target already
+// exists in allJSONTree, then the existing copy is used. Otherwise, the target config is extracted
+// from s.config, the appropriate JSON Tree is created, and added to allJSONTree. If the
+// target does not already exist, then it is added.
+func (s *Server) jsonTreeFromPath(allJSONTree map[string]map[string]interface{}, prefix *pb.Path, path *pb.Path) (map[string]interface{}, string, error) {
+	target := ""
+	if (prefix != nil) && (prefix.Target != "") {
+		target = prefix.Target
+	}
+	if (path != nil) && (path.Target != "") {
+		target = path.Target
+	}
+
+	if target == "" {
+		return nil, "", status.Errorf(codes.InvalidArgument, "get request with empty target is not allowed")
+	}
+
+	var err error
+
+	jsonTree, okay := allJSONTree[target]
+	if okay {
+		// We've already computed the json tree, use that one
+		return jsonTree, target, nil
+	}
+
+	config, okay := s.config[target]
+	if !okay {
+		// This config has never been seen before. Make a new one.
+		config, err = s.model.NewConfigStruct([]byte("{}"))
+		if err != nil {
+			msg := fmt.Sprintf("failed to encode new config struct %v", err)
+			log.Error(msg)
+			return nil, "", status.Errorf(codes.Internal, msg)
+		}
+	}
+
+	jsonTree, err = ygot.ConstructIETFJSON(config, &ygot.RFC7951JSONConfig{})
+	if err != nil {
+		msg := fmt.Sprintf("error in constructing IETF JSON tree from config struct: %v", err)
+		log.Error(msg)
+		return nil, "", status.Error(codes.Internal, msg)
+	}
+
+	allJSONTree[target] = jsonTree
+
+	return jsonTree, target, nil
+}
+
 // Set implements the Set RPC in gNMI spec.
 func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	tStart := time.Now()
@@ -180,20 +228,19 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	jsonTree, err := ygot.ConstructIETFJSON(s.config, &ygot.RFC7951JSONConfig{})
-	if err != nil {
-		msg := fmt.Sprintf("error in constructing IETF JSON tree from config struct: %v", err)
-		log.Error(msg)
-		gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
-		return nil, status.Error(codes.Internal, msg)
-	}
+	allJSONTree := map[string]map[string]interface{}{}
 
 	prefix := req.GetPrefix()
 	var results []*pb.UpdateResult
 
 	for _, path := range req.GetDelete() {
 		log.Debugf("Handling delete: %v", path)
-		res, _, grpcStatusError := s.doDelete(jsonTree, prefix, path)
+		jsonTree, target, err := s.jsonTreeFromPath(allJSONTree, prefix, path)
+		if err != nil {
+			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
+			return nil, err
+		}
+		res, _, grpcStatusError := s.doDelete(jsonTree, target, prefix, path)
 		if grpcStatusError != nil {
 			log.Warnf("Delete returning with error %v", grpcStatusError)
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
@@ -203,6 +250,11 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	}
 	for _, upd := range req.GetReplace() {
 		log.Debugf("Handling replace: %v", upd)
+		jsonTree, _, err := s.jsonTreeFromPath(allJSONTree, prefix, upd.GetPath())
+		if err != nil {
+			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
+			return nil, err
+		}
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_REPLACE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
@@ -213,6 +265,11 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	}
 	for _, upd := range req.GetUpdate() {
 		log.Debugf("Handling update: %v", upd)
+		jsonTree, _, err := s.jsonTreeFromPath(allJSONTree, prefix, upd.GetPath())
+		if err != nil {
+			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
+			return nil, err
+		}
 		res, grpcStatusError := s.doReplaceOrUpdate(jsonTree, pb.UpdateResult_UPDATE, prefix, upd.GetPath(), upd.GetVal())
 		if grpcStatusError != nil {
 			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
@@ -222,36 +279,42 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 		results = append(results, res)
 	}
 
-	jsonDump, err := json.Marshal(jsonTree)
-	if err != nil {
-		msg := fmt.Sprintf("error in marshaling IETF JSON tree to bytes: %v", err)
-		log.Error(msg)
-		gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
-		return nil, status.Error(codes.Internal, msg)
-	}
-
-	rootStruct, err := s.model.NewConfigStruct(jsonDump)
-	if err != nil {
-		msg := fmt.Sprintf("error in creating config struct from IETF JSON data: %v", err)
-		log.Error(msg)
-		gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
-		return nil, status.Error(codes.Internal, msg)
-	}
-
-	// Apply the validated operation to the device.
-	// Note: We apply this after all operations have been applied to the config tree, because it is
-	// more performant to the json.Marshal and NewConfigStruct once per gnmi operation than it is to
-	// do it for each individual path set or delete.
-	if s.callback != nil {
-		if applyErr := s.callback(rootStruct, Apply, nil); applyErr != nil {
-			if rollbackErr := s.callback(s.config, Rollback, nil); rollbackErr != nil {
-				return nil, status.Errorf(codes.Internal, "error in rollback the failed operation (%v): %v", applyErr, rollbackErr)
-			}
-			return nil, status.Errorf(codes.Aborted, "error in applying operation to device: %v", applyErr)
+	for target, jsonTree := range allJSONTree {
+		jsonDump, err := json.Marshal(jsonTree)
+		if err != nil {
+			msg := fmt.Sprintf("error in marshaling IETF JSON tree to bytes: %v", err)
+			log.Error(msg)
+			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
+			return nil, status.Error(codes.Internal, msg)
 		}
-	}
 
-	s.config = rootStruct
+		rootStruct, err := s.model.NewConfigStruct(jsonDump)
+		if err != nil {
+			msg := fmt.Sprintf("error in creating config struct from IETF JSON data: %v", err)
+			log.Error(msg)
+			gnmiRequestsFailedTotal.WithLabelValues("SET").Inc()
+			return nil, status.Error(codes.Internal, msg)
+		}
+
+		// TODO smbaker: verify this is working as expected
+		newConfig := s.config
+		newConfig[target] = rootStruct
+
+		// Apply the validated operation to the device.
+		// Note: We apply this after all operations have been applied to the config tree, because it is
+		// more performant to the json.Marshal and NewConfigStruct once per gnmi operation than it is to
+		// do it for each individual path set or delete.
+		if s.callback != nil {
+			if applyErr := s.callback(newConfig, Apply, target, nil); applyErr != nil {
+				if rollbackErr := s.callback(newConfig, Rollback, target, nil); rollbackErr != nil {
+					return nil, status.Errorf(codes.Internal, "error in rollback the failed operation (%v): %v", applyErr, rollbackErr)
+				}
+				return nil, status.Errorf(codes.Aborted, "error in applying operation to device: %v", applyErr)
+			}
+		}
+
+		s.config = newConfig
+	}
 
 	setResponse := &pb.SetResponse{
 		Prefix:   req.GetPrefix(),

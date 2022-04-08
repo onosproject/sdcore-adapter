@@ -5,11 +5,8 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
-	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -24,7 +21,6 @@ import (
 	synchronizer "github.com/onosproject/sdcore-adapter/pkg/synchronizer"
 	"github.com/onosproject/sdcore-adapter/pkg/target"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/ygot/ygot"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -57,8 +53,8 @@ func serveMetrics() {
 // configuration, but leaves us to retry applying it to the southbound device
 // ourselves.
 func synchronizerWrapper(s synchronizer.SynchronizerInterface) gnmi.ConfigCallback {
-	return func(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType, path *pb.Path) error {
-		err := s.Synchronize(config, callbackType, path)
+	return func(config gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error {
+		err := s.Synchronize(config, callbackType, target, path)
 		if err != nil {
 			// Report the error, but do not send the error upstream.
 			log.Warnf("Error during synchronize: %v", err)
@@ -107,36 +103,21 @@ func main() {
 		log.Fatalf("use --configfile or --aetherConfigAddr, but not both")
 	}
 
-	var configData []byte
-
 	// Optional: pull initial config from a local file
 	if *configFile != "" {
-		var err error
-		configData, err = ioutil.ReadFile(*configFile)
-		if err != nil {
-			log.Fatalf("error in reading config file: %v", err)
-		}
+		log.Fatalf("reading config from file is unsupported")
 	}
 
 	// Optional: pull initial config from onos-config
 	if *aetherConfigAddr != "" {
-		log.Infof("Fetching initial state from %s, target %s", *aetherConfigAddr, *aetherConfigTarget)
-		// The migration library has the functions for fetching from onos-config
-		srcVal, err := gnmiclient.GetPath(context.Background(), "", *aetherConfigTarget, *aetherConfigAddr)
-		if err != nil {
-			log.Fatalf("Error fetching initial data from onos-config: %s", err.Error())
-			return
-		}
-
-		configData = srcVal.GetJsonVal()
-
-		log.Infof("Fetched config: %s", string(configData))
+		// TODO smbaker: I hope we don't need this anymore...
+		log.Fatalf("pulling initial config from onos-config is not supported")
 	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c)
 
-	s, err := target.NewTarget(model, configData, synchronizerWrapper(sync))
+	s, err := target.NewTarget(model, synchronizerWrapper(sync))
 	if err != nil {
 		log.Fatalf("error in creating gnmi target: %v", err)
 	}

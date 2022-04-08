@@ -46,9 +46,9 @@ var log = logging.GetLogger("diagapi")
 
 // TargetInterface is an interface to a gNMI Target
 type TargetInterface interface {
-	ExecuteCallbacks(reason gnmi.ConfigCallbackType, path *pb.Path) error
-	GetJSON() ([]byte, error)
-	PutJSON([]byte) error
+	ExecuteCallbacks(reason gnmi.ConfigCallbackType, target string, path *pb.Path) error
+	GetJSON(string) ([]byte, error)
+	PutJSON(string, []byte) error
 }
 
 // DiagnosticAPI is an api for performing diagnostic operations on the synchronizer
@@ -61,7 +61,7 @@ type DiagnosticAPI struct {
 func (m *DiagnosticAPI) reSync(w http.ResponseWriter, r *http.Request) {
 	// TODO: tell the target server to synchronize
 	_ = r
-	err := m.targetServer.ExecuteCallbacks(gnmi.Forced, nil)
+	err := m.targetServer.ExecuteCallbacks(gnmi.Forced, gnmi.AllTargets, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -70,8 +70,14 @@ func (m *DiagnosticAPI) reSync(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *DiagnosticAPI) getCache(w http.ResponseWriter, r *http.Request) {
-	_ = r
-	jsonDump, err := m.targetServer.GetJSON()
+	queryArgs := r.URL.Query()
+
+	target := queryArgs.Get("target")
+	if target == "" {
+		target = m.defaultTarget
+	}
+
+	jsonDump, err := m.targetServer.GetJSON(target)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -85,8 +91,15 @@ func (m *DiagnosticAPI) getCache(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *DiagnosticAPI) deleteCache(w http.ResponseWriter, r *http.Request) {
+	queryArgs := r.URL.Query()
+
+	target := queryArgs.Get("target")
+	if target == "" {
+		target = m.defaultTarget
+	}
+
 	reqBody := []byte("{}")
-	err := m.targetServer.PutJSON(reqBody)
+	err := m.targetServer.PutJSON(target, reqBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -95,13 +108,20 @@ func (m *DiagnosticAPI) deleteCache(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *DiagnosticAPI) postCache(w http.ResponseWriter, r *http.Request) {
+	queryArgs := r.URL.Query()
+
+	target := queryArgs.Get("target")
+	if target == "" {
+		target = m.defaultTarget
+	}
+
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = m.targetServer.PutJSON(reqBody)
+	err = m.targetServer.PutJSON(target, reqBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -137,7 +157,7 @@ func (m *DiagnosticAPI) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 
 	srcJSONBytes := srcVal.GetJsonVal()
 
-	err = m.targetServer.PutJSON(srcJSONBytes)
+	err = m.targetServer.PutJSON(target, srcJSONBytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

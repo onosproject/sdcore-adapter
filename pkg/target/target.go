@@ -10,18 +10,16 @@ import (
 )
 
 // NewTarget creates a new target
-func NewTarget(model *gnmi.Model, config []byte, callback gnmi.ConfigCallback) (*target, error) { //nolint
-	s, err := gnmi.NewServer(model, config, callback)
+func NewTarget(model *gnmi.Model, callback gnmi.ConfigCallback) (*target, error) { //nolint
+	s, err := gnmi.NewServer(model, callback)
 	if err != nil {
 		return nil, err
 	}
 
-	newconfig, _ := model.NewConfigStruct(config)
 	channelUpdate := make(chan *pb.Update)
 	target := target{Server: s,
-		Model:        model,
-		configStruct: newconfig,
-		UpdateChann:  channelUpdate,
+		Model:       model,
+		UpdateChann: channelUpdate,
 	}
 
 	return &target, nil

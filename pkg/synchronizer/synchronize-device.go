@@ -6,79 +6,125 @@
 package synchronizer
 
 import (
-	"github.com/openconfig/ygot/ygot"
+	"fmt"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"time"
 )
+
+// updateScopeFromSlice uses a slice object to determine the Generation (4G|5G) and the
+// CoreEndpoint.
+func (s *Synchronizer) updateScopeFromSlice(scope *AetherScope, slice *Slice) error {
+	if scope.Site.ConnectivityService == nil {
+		return fmt.Errorf("Site %s has no ConnectivityServices", *scope.Site.SiteId)
+	}
+	if slice.ConnectivityService == ConnectivityService4G {
+		if scope.Site.ConnectivityService.Core_4G == nil {
+			return fmt.Errorf("Site %s has no 4G ConnectivityServices", *scope.Site.SiteId)
+		}
+		if scope.Site.ConnectivityService.Core_4G.Endpoint == nil || *scope.Site.ConnectivityService.Core_4G.Endpoint == "" {
+			return fmt.Errorf("Site %s 4G ConnectivityService has no endpoint", *scope.Site.SiteId)
+		}
+		scope.Generation = aStr("4G")
+		scope.CoreEndpoint = scope.Site.ConnectivityService.Core_4G.Endpoint
+		return nil
+	} else if slice.ConnectivityService == ConnectivityService5G {
+		if scope.Site.ConnectivityService.Core_5G == nil {
+			return fmt.Errorf("Site %s has no 5G ConnectivityServices", *scope.Site.SiteId)
+		}
+		if scope.Site.ConnectivityService.Core_5G.Endpoint == nil || *scope.Site.ConnectivityService.Core_5G.Endpoint == "" {
+			return fmt.Errorf("Site %s 5G ConnectivityService has no endpoint", *scope.Site.SiteId)
+		}
+		scope.Generation = aStr("5G")
+		scope.CoreEndpoint = scope.Site.ConnectivityService.Core_5G.Endpoint
+		return nil
+	}
+	return fmt.Errorf("Slice %s has unknown or undefined ConnectivityService", *slice.SliceId)
+}
+
+// updateScopeFromDeviceGroup uses a DeviceGroup object to determine the Generation (4G|5G) and the
+// CoreEndpoint. It does this by finding some slice that uses the DeviceGroup.
+func (s *Synchronizer) updateScopeFromDeviceGroup(scope *AetherScope, dg *DeviceGroup) error {
+	for _, slice := range scope.Site.Slice {
+		for dgID := range slice.DeviceGroup {
+			if dgID == *dg.DeviceGroupId {
+				// Each DG can only participate in one Slice, so as soon as we've found a slice
+				// we're done.
+				return s.updateScopeFromSlice(scope, slice)
+			}
+		}
+	}
+	// Not finding the a Slice that contains the DG is not an error. The caller will notice
+	// that no CoreEndpoint was found, and react accordingly.
+	// TODO smbaker: Consider optimizing out the return value if it's always nil.
+	return nil
+}
 
 // SynchronizeDevice synchronizes a device. Two sets of error state are returned:
 //   1) pushFailures -- a count of pushes that failed to the core. Synchronizer should retry again later.
 //   2) error -- a fatal error that occurred during synchronization.
-func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, error) {
-	device := config.(*RootDevice)
-
+func (s *Synchronizer) SynchronizeDevice(allConfig gnmi.ConfigForest) (int, error) {
 	pushFailures := 0
+	for _, enterpriseConfig := range allConfig {
+		device := enterpriseConfig.(*RootDevice)
 
-	if device.Enterprises == nil {
-		log.Info("No enteprises")
-		return 0, nil
-	}
-
-	if device.ConnectivityServices == nil {
-		log.Info("No connectivity services")
-		return 0, nil
-	}
-
-	for _, cs := range device.ConnectivityServices.ConnectivityService {
 		tStart := time.Now()
-		KpiSynchronizationTotal.WithLabelValues(*cs.ConnectivityServiceId).Inc()
+		// TODO smbaker: add support back in for prometheus metrics
+		//KpiSynchronizationTotal.WithLabelValues(*cs.ConnectivityServiceId).Inc()
 
 		scope := &AetherScope{
-			ConnectivityService: cs,
-			RootDevice:          device}
-		for _, enterprise := range device.Enterprises.Enterprise {
-			// Does this enterprise use the current ConnectivityService?
-			// If not, skip it
-			hasConnectivityService := false
-			for csID := range enterprise.ConnectivityService {
-				if csID == *cs.ConnectivityServiceId {
-					hasConnectivityService = true
-				}
-			}
-			if !hasConnectivityService {
-				continue
-			}
+			Enterprise: device}
 
-			scope.Enterprise = enterprise
-			for _, site := range enterprise.Site {
-				scope.Site = site
-				for _, dg := range site.DeviceGroup {
-					dgPushErrors, err := s.SynchronizeDeviceGroup(scope, dg)
-					if err != nil {
-						log.Warnf("DG %s failed to synchronize Core: %s", *dg.DeviceGroupId, err)
-					}
-					pushFailures += dgPushErrors
+		for _, site := range device.Site {
+			scope.Site = site
+		dgLoop:
+			for _, dg := range site.DeviceGroup {
+				err := s.updateScopeFromDeviceGroup(scope, dg)
+				if err != nil {
+					log.Warnf("DG %s error while resolving core endpoint: %s", *dg.DeviceGroupId, err)
+					continue dgLoop
 				}
-			sliceLoop:
-				for _, slice := range site.Slice {
-					slicePushFailures, err := s.SynchronizeSlice(scope, slice)
-					pushFailures += slicePushFailures
-					if err != nil {
-						log.Warnf("VCS %s failed to synchronize Core: %s", *slice.SliceId, err)
-						// Do not try to synchronize the UPF, if we've already failed
-						continue sliceLoop
-					}
+				if scope.CoreEndpoint == nil {
+					// This is not necessarily a problem; the DG might simply not be in use.
+					log.Infof("DG %s is not related to any core: %s", *dg.DeviceGroupId, err)
+					continue dgLoop
+				}
+				dgPushErrors, err := s.SynchronizeDeviceGroup(scope, dg)
+				if err != nil {
+					log.Warnf("DG %s failed to synchronize Core: %s", *dg.DeviceGroupId, err)
+				}
+				pushFailures += dgPushErrors
+			}
+		sliceLoop:
+			for _, slice := range site.Slice {
+				err := s.updateScopeFromSlice(scope, slice)
+				if err != nil {
+					log.Warnf("DG %s error while resolving core endpoint: %s", *slice.SliceId, err)
+					continue sliceLoop
+				}
+				if scope.CoreEndpoint == nil {
+					// Slice should always be related to a connectivity service
+					log.Warnf("Slice %s is not related to any core: %s", *slice.SliceId, err)
+					continue sliceLoop
+				}
+				slicePushFailures, err := s.SynchronizeSlice(scope, slice)
+				pushFailures += slicePushFailures
+				if err != nil {
+					log.Warnf("VCS %s failed to synchronize Core: %s", *slice.SliceId, err)
+					// Do not try to synchronize the UPF, if we've already failed
+					continue sliceLoop
+				}
 
-					upfPushFailures, err := s.SynchronizeSliceUPF(scope, slice)
-					pushFailures += upfPushFailures
-					if err != nil {
-						log.Warnf("Slice %s failed to synchronize UPF: %s", *slice.SliceId, err)
-						continue sliceLoop
-					}
+				upfPushFailures, err := s.SynchronizeSliceUPF(scope, slice)
+				pushFailures += upfPushFailures
+				if err != nil {
+					log.Warnf("Slice %s failed to synchronize UPF: %s", *slice.SliceId, err)
+					continue sliceLoop
 				}
 			}
 		}
 
-		KpiSynchronizationDuration.WithLabelValues(*cs.ConnectivityServiceId).Observe(time.Since(tStart).Seconds())
+		// TODO smbaker: add support back in for prometheus metrics
+		_ = tStart //KpiSynchronizationDuration.WithLabelValues(*cs.ConnectivityServiceId).Observe(time.Since(tStart).Seconds())
 	}
 
 	return pushFailures, nil

@@ -35,19 +35,26 @@ L:
 }
 
 // Queue an update request for future processing
-func (s *Synchronizer) enqueue(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType) error {
-	// Make a copy of the gostruct; we don't want it to change out from under us
-	// if the gnmi server is updating it.
-	configCopy, err := ygot.DeepCopy(config)
-	if err != nil {
-		return err
+func (s *Synchronizer) enqueue(config gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string) error {
+	configCopy := gnmi.ConfigForest{}
+
+	for target, targetConfig := range config {
+		// Make a copy of the gostruct; we don't want it to change out from under us
+		// if the gnmi server is updating it.
+		targetConfigCopy, err := ygot.DeepCopy(targetConfig)
+		if err != nil {
+			return err
+		}
+
+		configCopy[target] = targetConfigCopy.(ygot.ValidatedGoStruct)
 	}
 
 	// This conversion is safe as DeepCopy will use the same underlying type as
 	// `config`, which is a ValidatedGoStruct.
 	update := ConfigUpdate{
-		config:       configCopy.(ygot.ValidatedGoStruct),
+		config:       configCopy,
 		callbackType: callbackType,
+		target:       target,
 	}
 
 	// Increment our busy count

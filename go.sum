@@ -912,10 +912,13 @@ github.com/olekukonko/tablewriter v0.0.4/go.mod h1:zq6QwlOf5SlnkVbMSr5EoBv3636FW
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/onosproject/aether-models/models/aether-2.0.x v0.0.0-20220327085226-9d2854b74665 h1:9nYdPBszLh05MdaAQB5+h1jVPXN7UJFrnpzkeyhqtKg=
 github.com/onosproject/aether-models/models/aether-2.0.x v0.0.0-20220327085226-9d2854b74665/go.mod h1:MAVUnEWFvpSQnmbDGjRn8NQs+dQUMtq+E9uEYNVyqBE=
+github.com/onosproject/aether-models/models/aether-2.1.x v0.0.0-20220404214232-148c0e4da437 h1:vX7E0w+ot1i/HJNFxYXpfZq6P68ngtgb45sog/G/gN0=
+github.com/onosproject/aether-models/models/aether-2.1.x v0.0.0-20220404214232-148c0e4da437/go.mod h1:zkuTTUN2NsIQ+jJCMihgk10afKA0EJjokkfU79Gu7oc=
 github.com/onosproject/aether-models/models/aether-4.x v0.0.0-20220327085226-9d2854b74665 h1:rLJocVAA1p97forJSBy8wiBCu+pwH7nBCY3uAm2KZkI=
 github.com/onosproject/aether-models/models/aether-4.x v0.0.0-20220327085226-9d2854b74665/go.mod h1:P9ZkavCgzGETxvOl5kQzbdwLAOOMcEpSrMPStMp1xM4=
-github.com/onosproject/config-models v0.9.20 h1:I9adPm7aNDb9Jziw2BhLe3g7TdClF4O9c+7BPi5YHHE=
 github.com/onosproject/config-models v0.9.20/go.mod h1:7SwH/WcftMZ6FLEmf4B1BDdx7xJH6DA/OZcBb9J31XE=
+github.com/onosproject/config-models v0.9.24 h1:zCFcSSKqz+wV36dAvfwTqgybjVE0roj9QasedCubq7A=
+github.com/onosproject/config-models v0.9.24/go.mod h1:7SwH/WcftMZ6FLEmf4B1BDdx7xJH6DA/OZcBb9J31XE=
 github.com/onosproject/config-models/modelplugin/testdevice-2.0.0 v0.8.8 h1:sPeOWnYPDK0nIC7QnjOdJS/U+OAtxc5ulDW0ZbCJVMs=
 github.com/onosproject/config-models/modelplugin/testdevice-2.0.0 v0.8.8/go.mod h1:znr5lX3YnyyNstMb0D1fHH0yjMpJ3tu9LP9+qr6puMI=
 github.com/onosproject/helmit v0.6.8/go.mod h1:EorNGSNGWojXGxBEuiNmPScae+R2C5WYfg/13gKEPLw=

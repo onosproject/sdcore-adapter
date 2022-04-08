@@ -257,8 +257,12 @@ func (s *Server) checkEncodingAndModel(encoding pb.Encoding, models []*pb.ModelD
 }
 
 // GetConfig returns the config store
-func (s *Server) GetConfig() (ygot.ValidatedGoStruct, error) {
-	return s.config, nil
+func (s *Server) GetConfig(target string) (ygot.ValidatedGoStruct, error) {
+	config, okay := s.config[target]
+	if !okay {
+		return nil, fmt.Errorf("Failed to find config %s", target) // SMBAKER: do we want to create it here instead
+	}
+	return config, nil
 }
 
 // deleteKeyedListEntry deletes the keyed list entry from node that matches the

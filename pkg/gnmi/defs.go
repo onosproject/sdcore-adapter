@@ -36,14 +36,20 @@ const (
 	// configCallbackTypeLimit denotes the end of valid enums.
 	// Create additional ConfigCallbackType enums above this line
 	configCallbackTypeLimit
+
+	// AllTargets indicates that callback function should apply to all targets
+	AllTargets = "*"
 )
 
 func (c ConfigCallbackType) String() string {
 	return [...]string{"Initial", "Apply", "Rollback", "Forced", "Deleted"}[c]
 }
 
+// ConfigForest is a forest of configuration trees, one per target
+type ConfigForest map[string]ygot.ValidatedGoStruct
+
 // ConfigCallback is the signature of the function to apply a validated config to the physical device.
-type ConfigCallback func(ygot.ValidatedGoStruct, ConfigCallbackType, *pb.Path) error
+type ConfigCallback func(ConfigForest, ConfigCallbackType, string, *pb.Path) error
 
 var (
 	pbRootPath         = &pb.Path{}
@@ -71,7 +77,7 @@ var (
 type Server struct {
 	model        *Model
 	callback     ConfigCallback
-	config       ygot.ValidatedGoStruct
+	config       ConfigForest
 	ConfigUpdate *channels.RingChannel
 	mu           sync.RWMutex // mu is the RW lock to protect the access to config
 	subscribed   map[string][]*streamClient

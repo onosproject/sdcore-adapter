@@ -6,31 +6,34 @@
 package synchronizer
 
 import (
-	models "github.com/onosproject/aether-models/models/aether-2.0.x/api"
+	models "github.com/onosproject/aether-models/models/aether-2.1.x/api"
 )
+
+const ConnectivityService4G = models.OnfSite_Site_Slice_ConnectivityService_4g //nolint
+const ConnectivityService5G = models.OnfSite_Site_Slice_ConnectivityService_5g //nolint
 
 // Various typedefs to make modeling types more convenient throughout the synchronizer.
 
-type Application = models.OnfEnterprise_Enterprises_Enterprise_Application                           //nolint
-type ApplicationEndpoint = models.OnfEnterprise_Enterprises_Enterprise_Application_Endpoint          //nolint
-type ApplicationEndpointMbr = models.OnfEnterprise_Enterprises_Enterprise_Application_Endpoint_Mbr   //nolint
-type ConnectivityService = models.OnfConnectivityService_ConnectivityServices_ConnectivityService    //nolint
-type RootDevice = models.Device                                                                      //nolint
-type Device = models.OnfEnterprise_Enterprises_Enterprise_Site_Device                                //nolint
-type DeviceGroup = models.OnfEnterprise_Enterprises_Enterprise_Site_DeviceGroup                      //nolint
-type DeviceGroupMbr = models.OnfEnterprise_Enterprises_Enterprise_Site_DeviceGroup_Mbr               //nolint
-type DeviceGroupDevice = models.OnfEnterprise_Enterprises_Enterprise_Site_DeviceGroup_Device         //nolint
-type Enterprise = models.OnfEnterprise_Enterprises_Enterprise                                        //nolint
-type EnterpriseConnectivityService = models.OnfEnterprise_Enterprises_Enterprise_ConnectivityService //nolint
-type ImsiDefinition = models.OnfEnterprise_Enterprises_Enterprise_Site_ImsiDefinition                //nolint
-type IpDomain = models.OnfEnterprise_Enterprises_Enterprise_Site_IpDomain                            //nolint
-type SimCard = models.OnfEnterprise_Enterprises_Enterprise_Site_SimCard                              //nolint
-type SmallCell = models.OnfEnterprise_Enterprises_Enterprise_Site_SmallCell                          //nolint
-type Site = models.OnfEnterprise_Enterprises_Enterprise_Site                                         //nolint
-type Template = models.OnfEnterprise_Enterprises_Enterprise_Template                                 //nolint
-type TrafficClass = models.OnfEnterprise_Enterprises_Enterprise_TrafficClass                         //nolint
-type Upf = models.OnfEnterprise_Enterprises_Enterprise_Site_Upf                                      //nolint
-type Slice = models.OnfEnterprise_Enterprises_Enterprise_Site_Slice                                  //nolint
-type SliceDeviceGroup = models.OnfEnterprise_Enterprises_Enterprise_Site_Slice_DeviceGroup           //nolint
-type SliceFilter = models.OnfEnterprise_Enterprises_Enterprise_Site_Slice_Filter                     //nolint
-type SliceMbr = models.OnfEnterprise_Enterprises_Enterprise_Site_Slice_Mbr                           //nolint
+type Application = models.OnfApplication_Application                         //nolint
+type ApplicationEndpoint = models.OnfApplication_Application_Endpoint        //nolint
+type ApplicationEndpointMbr = models.OnfApplication_Application_Endpoint_Mbr //nolint
+type RootDevice = models.Device                                              //nolint
+type ConnectivityService = models.OnfSite_Site_ConnectivityService           //nolint
+type Core4G = models.OnfSite_Site_ConnectivityService_Core_4G                //nolint
+type Core5G = models.OnfSite_Site_ConnectivityService_Core_5G                //nolint
+type Device = models.OnfSite_Site_Device                                     //nolint
+type DeviceGroup = models.OnfSite_Site_DeviceGroup                           //nolint
+type DeviceGroupMbr = models.OnfSite_Site_DeviceGroup_Mbr                    //nolint
+type DeviceGroupDevice = models.OnfSite_Site_DeviceGroup_Device              //nolint
+type ImsiDefinition = models.OnfSite_Site_ImsiDefinition                     //nolint
+type IpDomain = models.OnfSite_Site_IpDomain                                 //nolint
+type SimCard = models.OnfSite_Site_SimCard                                   //nolint
+type SmallCell = models.OnfSite_Site_SmallCell                               //nolint
+type Site = models.OnfSite_Site                                              //nolint
+type Template = models.OnfTemplate_Template                                  //nolint
+type TrafficClass = models.OnfTrafficClass_TrafficClass                      //nolint
+type Upf = models.OnfSite_Site_Upf                                           //nolint
+type Slice = models.OnfSite_Site_Slice                                       //nolint
+type SliceDeviceGroup = models.OnfSite_Site_Slice_DeviceGroup                //nolint
+type SliceFilter = models.OnfSite_Site_Slice_Filter                          //nolint
+type SliceMbr = models.OnfSite_Site_Slice_Mbr                                //nolint

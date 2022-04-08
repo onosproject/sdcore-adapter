@@ -6,7 +6,6 @@ package synchronizer
 
 import (
 	"github.com/golang/mock/gomock"
-	models "github.com/onosproject/aether-models/models/aether-2.0.x/api"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,15 +21,10 @@ func TestSynchronizeSliceUPF(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
+	_, device := BuildSampleConfig()
+	slice := device.Site["sample-site"].Slice["sample-slice"]
 
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
-
-	scope, err := BuildScope(device, "sample-ent", "sample-site", "sample-cs")
+	scope, err := BuildScope(device, "sample-ent", "sample-site")
 	assert.Nil(t, err)
 
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
@@ -55,18 +49,13 @@ func TestSynchronizeSliceUPFWithBurst(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
+	_, device := BuildSampleConfig()
+	slice := device.Site["sample-site"].Slice["sample-slice"]
 
 	slice.Mbr.UplinkBurstSize = aUint32(111222)
 	slice.Mbr.DownlinkBurstSize = aUint32(333444)
 
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
-
-	scope, err := BuildScope(device, "sample-ent", "sample-site", "sample-cs")
+	scope, err := BuildScope(device, "sample-ent", "sample-site")
 	assert.Nil(t, err)
 
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
@@ -91,17 +80,12 @@ func TestSynchronizeSliceUPFNoSliceQos(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
+	_, device := BuildSampleConfig()
+	slice := device.Site["sample-site"].Slice["sample-slice"]
 
 	slice.Mbr = nil // remove the slice QoS
 
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
-
-	scope, err := BuildScope(device, "sample-ent", "sample-site", "sample-cs")
+	scope, err := BuildScope(device, "sample-ent", "sample-site")
 	assert.Nil(t, err)
 
 	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {

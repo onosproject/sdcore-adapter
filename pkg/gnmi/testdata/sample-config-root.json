@@ -1,30 +1,21 @@
 {
-  "enterprises": {
-    "enterprise": [
-      {
-        "description": "ACME Corporation",
-        "display-name": "ACME Corp",
-        "enterprise-id": "acme",
-        "site": [
-          {
-            "description": "ACME Site",
-            "display-name": "acme-site",
-            "site-id": "acme-site",
-            "ip-domain": [
-              {
-                "admin-status": "DISABLE",
-                "description": "Chicago IP Domain",
-                "display-name": "Chicago",
-                "dns-primary": "8.8.8.4",
-                "dns-secondary": "8.8.8.4",
-                "ip-domain-id": "acme-chicago-ip",
-                "mtu": 12690,
-                "subnet": "163.25.44.0/31"
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
+  "site": [
+    {
+      "description": "ACME Site",
+      "display-name": "acme-site",
+      "site-id": "acme-site",
+      "ip-domain": [
+        {
+          "admin-status": "DISABLE",
+          "description": "Chicago IP Domain",
+          "display-name": "Chicago",
+          "dns-primary": "8.8.8.4",
+          "dns-secondary": "8.8.8.4",
+          "ip-domain-id": "acme-chicago-ip",
+          "mtu": 12690,
+          "subnet": "163.25.44.0/31"
+        }
+      ]
+    }
+  ]
 }

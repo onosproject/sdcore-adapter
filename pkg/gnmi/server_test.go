@@ -26,7 +26,7 @@ import (
 	// TODO: It might be better to eventually switch to a service-independent
 	// set of test models, so that this test code can remain independent of
 	// any particular service.
-	models "github.com/onosproject/aether-models/models/aether-2.0.x/api"
+	models "github.com/onosproject/aether-models/models/aether-2.1.x/api"
 )
 
 var ModelData = []*gnmiproto.ModelData{
@@ -45,7 +45,7 @@ var (
 )
 
 func TestCapabilities(t *testing.T) {
-	s, err := NewServer(model, nil, nil)
+	s, err := NewServer(model, nil)
 	if err != nil {
 		t.Fatalf("error in creating server: %v", err)
 	}
@@ -64,10 +64,13 @@ func TestCapabilities(t *testing.T) {
 func TestGet(t *testing.T) {
 	jsonConfigRoot, err := ioutil.ReadFile("./testdata/sample-config-root.json")
 	assert.NoError(t, err)
-	s, err := NewServer(model, jsonConfigRoot, nil)
+	s, err := NewServer(model, nil)
 	if err != nil {
 		t.Fatalf("error in creating server: %v", err)
 	}
+
+	err = s.PutJSON("acme", jsonConfigRoot)
+	assert.NoError(t, err)
 
 	tds := []struct {
 		desc        string
@@ -78,13 +81,7 @@ func TestGet(t *testing.T) {
 	}{{
 		desc: "get ip-domain",
 		textPbPath: `
-		    elem: <name: 'enterprises'>
-			elem: <name: "enterprise"
-			             key: <
-			                 key:'enterprise-id',
-			                 value:'acme'
-			                   >
-						>
+		  target: "acme"
 			elem: <name: "site"
 						key: <
 							key:'site-id',
@@ -101,7 +98,26 @@ func TestGet(t *testing.T) {
 		`,
 		wantRetCode: codes.OK,
 		wantRespVal: "163.25.44.0/31",
-	}}
+	},
+		{
+			desc: "get ip-domain with empty target",
+			textPbPath: `
+			elem: <name: "site"
+						key: <
+							key:'site-id',
+							value:'acme-site'
+							  >
+					   >						
+			elem: <name: "ip-domain" 
+						 key: <
+							 key:'ip-domain-id',
+							 value:'acme-chicago-ip'
+							 >
+						>
+			elem: <name: "subnet">
+		`,
+			wantRetCode: codes.InvalidArgument,
+		}}
 
 	for _, td := range tds {
 		td := td // Linter: make shadow copy of range variable
@@ -171,9 +187,7 @@ func runTestGet(t *testing.T, s *Server, textPbPath string, wantRetCode codes.Co
 }
 
 func TestSet(t *testing.T) {
-	jsonConfigRoot := `{}`
-
-	s, err := NewServer(model, []byte(jsonConfigRoot), nil)
+	s, err := NewServer(model, nil)
 	if err != nil {
 		t.Fatalf("error in creating server: %v", err)
 	}
@@ -189,19 +203,12 @@ func TestSet(t *testing.T) {
 		desc: "set ip-domain",
 		textPbPrefix: `
 		target: 'connectivity-service-v4'
-		elem: <name: 'enterprises'>
-		elem: <name: 'enterprise'
-		    key: <
-			    key:'enterprise-id',
-			    value:'acme'
-			>
-	    >
-        elem: <name: 'site'
-	        key: <
-		       key:'site-id',
-		       value:'acme-site'
-			>
-	    >			
+		elem: <name: 'site'
+				key: <
+					key:'site-id',
+					value:'acme-site'
+		    >
+		>			
 		elem: <
 			name: 'ip-domain'
 			key:<
@@ -221,7 +228,36 @@ func TestSet(t *testing.T) {
 		>
 		`,
 		wantRetCode: codes.OK,
-	}}
+	},
+		{
+			desc: "set ip-domain",
+			textPbPrefix: `
+			elem: <name: 'site'
+					key: <
+						key:'site-id',
+						value:'acme-site'
+					>
+			>			
+			elem: <
+				name: 'ip-domain'
+				key:<
+					key:'ip-domain-id'
+					value:'ip-domain-demo-1'
+				>
+			>
+			`,
+			textPbUpdate: `
+			path: <
+				elem: <
+					name: 'dns-primary'
+				>
+			>
+			val: <
+				string_val: '8.8.8.1'
+			>
+		`,
+			wantRetCode: codes.InvalidArgument,
+		}}
 
 	for _, td := range tds {
 		td := td // Linter: make shadow copy of range variable
@@ -262,19 +298,23 @@ func runTestSet(t *testing.T, s *Server, textPbPrefix string, textPbUpdate strin
 func TestServer_GetJSON(t *testing.T) {
 	jsonConfigRoot, err := ioutil.ReadFile("./testdata/sample-config-root.json")
 	assert.NoError(t, err)
-	s, err := NewServer(model, jsonConfigRoot, nil)
+	s, err := NewServer(model, nil)
 	assert.NoError(t, err)
-	jsonData, err := s.GetJSON()
+	err = s.PutJSON("acme", jsonConfigRoot)
+	assert.NoError(t, err)
+	jsonData, err := s.GetJSON("acme")
 	assert.NoError(t, err)
 	assert.NotNil(t, jsonData)
 	require.JSONEq(t, string(jsonConfigRoot), string(jsonData))
 }
 
 func TestServer_PutJSON(t *testing.T) {
-	s, err := NewServer(model, nil, nil)
+	s, err := NewServer(model, nil)
 	assert.NoError(t, err)
 	data := []byte("{}")
-	err = s.PutJSON(data)
+	err = s.PutJSON("acme", data)
 	assert.NoError(t, err)
-	assert.NotNil(t, s.config)
+	acme, okay := s.config["acme"]
+	assert.True(t, okay)
+	assert.NotNil(t, acme)
 }

@@ -8,12 +8,11 @@ package synchronizer
 import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // SynchronizerInterface defines the interface that all synchronizers should have.
 type SynchronizerInterface interface { //nolint
-	Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType, path *pb.Path) error
+	Synchronize(config gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error
 	GetModels() *gnmi.Model
 	Start()
 }

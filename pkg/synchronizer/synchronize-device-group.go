@@ -114,11 +114,12 @@ func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGrou
 		return 0, fmt.Errorf("DeviceGroup %s failed to Marshal Json: %s", *dg.DeviceGroupId, err)
 	}
 
-	if scope.ConnectivityService.Core_5GEndpoint == nil {
-		return 0, fmt.Errorf("Device Group %s Connectivity Service %s has no Core Endpoint", *dg.DeviceGroupId, *scope.ConnectivityService.ConnectivityServiceId)
+	if scope.CoreEndpoint == nil {
+		return 0, fmt.Errorf("Device Group %s found no Core Endpoint", *dg.DeviceGroupId)
 	}
 
-	url := fmt.Sprintf("%s/v1/device-group/%s", *scope.ConnectivityService.Core_5GEndpoint, *dg.DeviceGroupId)
+	url := fmt.Sprintf("%s/v1/device-group/%s", *scope.CoreEndpoint, *dg.DeviceGroupId)
+	log.Infof("Push Device-Group to %s", url)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {
 		return 1, fmt.Errorf("DeviceGroup %s failed to Push update: %s", *dg.DeviceGroupId, err)

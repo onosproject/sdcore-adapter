@@ -70,21 +70,6 @@ func (s *Synchronizer) GetTrafficClass(scope *AetherScope, id *string) (*Traffic
 	return tc, nil
 }
 
-// GetEnterprise looks up an Enterprise
-func (s *Synchronizer) GetEnterprise(scope *AetherScope, id *string) (*Enterprise, error) {
-	if (id == nil) || (*id == "") {
-		return nil, fmt.Errorf("Enterprise id is blank")
-	}
-	if (scope.RootDevice.Enterprises == nil) || (scope.RootDevice.Enterprises.Enterprise == nil) {
-		return nil, fmt.Errorf("No enterprises")
-	}
-	ent, okay := scope.RootDevice.Enterprises.Enterprise[*id]
-	if !okay {
-		return nil, fmt.Errorf("Enterprise %s not found", *id)
-	}
-	return ent, nil
-}
-
 // GetSite looks up a Site
 func (s *Synchronizer) GetSite(scope *AetherScope, id *string) (*Site, error) {
 	if (id == nil) || (*id == "") {
@@ -133,21 +118,6 @@ func (s *Synchronizer) GetSimCard(scope *AetherScope, id *string) (*SimCard, err
 	return simCard, nil
 }
 
-// GetConnectivityService looks up a Connectivity Service
-func (s *Synchronizer) GetConnectivityService(scope *AetherScope, id *string) (*ConnectivityService, error) {
-	if (id == nil) || (*id == "") {
-		return nil, fmt.Errorf("ConnectivityService id is blank")
-	}
-	if (scope.RootDevice.ConnectivityServices == nil) || (scope.RootDevice.ConnectivityServices.ConnectivityService == nil) {
-		return nil, fmt.Errorf("No connectivity services")
-	}
-	cs, okay := scope.RootDevice.ConnectivityServices.ConnectivityService[*id]
-	if !okay {
-		return nil, fmt.Errorf("ConnectivityService %s not found", *id)
-	}
-	return cs, nil
-}
-
 // GetSliceDG given a Slice, return the set of DeviceGroup attached to it
 func (s *Synchronizer) GetSliceDG(scope *AetherScope, slice *Slice) ([]*DeviceGroup, error) {
 	dgList := []*DeviceGroup{}
@@ -174,21 +144,4 @@ func (s *Synchronizer) GetSliceDG(scope *AetherScope, slice *Slice) ([]*DeviceGr
 	}
 
 	return dgList, nil
-}
-
-// GetConnectivityServicesForEnterprise given a siteName returns a list of connectivity services
-func (s *Synchronizer) GetConnectivityServicesForEnterprise(scope *AetherScope) ([]*ConnectivityService, error) {
-	eligibleCS := []*ConnectivityService{}
-	for csID, cs := range scope.Enterprise.ConnectivityService {
-		if !*cs.Enabled {
-			continue
-		}
-		csModel, err := s.GetConnectivityService(scope, &csID)
-		if err != nil {
-			return nil, err
-		}
-		eligibleCS = append(eligibleCS, csModel)
-	}
-
-	return eligibleCS, nil
 }

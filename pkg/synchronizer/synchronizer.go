@@ -6,7 +6,7 @@
 package synchronizer
 
 import (
-	models "github.com/onosproject/aether-models/models/aether-2.0.x/api"
+	models "github.com/onosproject/aether-models/models/aether-2.1.x/api"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
@@ -18,7 +18,7 @@ import (
 var log = logging.GetLogger("synchronizer")
 
 // Synchronize synchronizes the state to the underlying service.
-func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType gnmi.ConfigCallbackType, path *pb.Path) error {
+func (s *Synchronizer) Synchronize(config gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error {
 	var err error
 	if callbackType == gnmi.Deleted {
 		return s.HandleDelete(config, path)
@@ -28,7 +28,7 @@ func (s *Synchronizer) Synchronize(config ygot.ValidatedGoStruct, callbackType g
 		s.CacheInvalidate() // invalidate the post cache if this resync was forced by Diagnostic API
 	}
 
-	err = s.enqueue(config, callbackType)
+	err = s.enqueue(config, callbackType, target)
 	return err
 }
 

@@ -49,11 +49,6 @@ ifdef LOCAL_AETHER_MODELS
 	cp -a ${LOCAL_AETHER_MODELS} ./local-aether-models
 endif
 
-deps: # @HELP ensure that the required dependencies are in place
-	GOPRIVATE="github.com/onosproject/*" go build -v `go list ./...`
-	bash -c "diff -u <(echo -n) <(git diff go.mod)"
-	bash -c "diff -u <(echo -n) <(git diff go.sum)"
-
 # @HELP build the go binary in the cmd/sdcore-adapter package
 build: local-aether-models
 	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter

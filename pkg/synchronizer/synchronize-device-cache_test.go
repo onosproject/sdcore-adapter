@@ -6,7 +6,6 @@ package synchronizer
 
 import (
 	"github.com/golang/mock/gomock"
-	models "github.com/onosproject/aether-models/models/aether-2.0.x/api"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,12 +19,8 @@ func TestSynchronizeDeviceDeviceGroupCacheTest(t *testing.T) {
 	pushes := []string{}
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, ipd, _, _ := BuildSampleDeviceGroup() // nolint dogsled
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	config, device := BuildSampleConfig()
+	ipd := device.Site["sample-site"].IpDomain["sample-ipd"]
 
 	jsonData := `{
 			"imsis": [
@@ -57,14 +52,22 @@ func TestSynchronizeDeviceDeviceGroupCacheTest(t *testing.T) {
 		return nil
 	}).AnyTimes()
 
-	pushErrors, err := s.SynchronizeDevice(device)
+	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-slice", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		return nil
+	}).AnyTimes()
+
+	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		return nil
+	}).AnyTimes()
+
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 	assert.Equal(t, len(pushes), 1)
 	require.JSONEq(t, jsonData, pushes[0])
 
 	// push it again, should not be any new pushes
-	pushErrors, err = s.SynchronizeDevice(device)
+	pushErrors, err = s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 	assert.Equal(t, len(pushes), 1)
@@ -100,7 +103,7 @@ func TestSynchronizeDeviceDeviceGroupCacheTest(t *testing.T) {
 		}`
 
 	// push it again, this time we should get a new push
-	pushErrors, err = s.SynchronizeDevice(device)
+	pushErrors, err = s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 	assert.Equal(t, len(pushes), 2)

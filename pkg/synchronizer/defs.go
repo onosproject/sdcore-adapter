@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
-	"github.com/openconfig/ygot/ygot"
 )
 
 const (
@@ -39,7 +38,7 @@ type Synchronizer struct {
 	busy int32
 
 	// used for ease of mocking
-	synchronizeDeviceFunc func(config ygot.ValidatedGoStruct) (int, error)
+	synchronizeDeviceFunc func(config gnmi.ConfigForest) (int, error)
 
 	// cache of previously synchronized updates
 	cache map[string]interface{}
@@ -47,8 +46,9 @@ type Synchronizer struct {
 
 // ConfigUpdate holds the configuration for a particular synchronization request
 type ConfigUpdate struct {
-	config       ygot.ValidatedGoStruct
+	config       gnmi.ConfigForest
 	callbackType gnmi.ConfigCallbackType
+	target       string
 }
 
 // SynchronizerOption is for options passed when creating a new synchronizer
@@ -58,9 +58,9 @@ type SynchronizerOption func(c *Synchronizer) // nolint
 // tree. Contexts were considered for this implementation, but rejected due to the lack of
 // static checking.
 type AetherScope struct {
-	RootDevice          *RootDevice
-	ConnectivityService *ConnectivityService
-	Enterprise          *Enterprise
-	Site                *Site
-	Slice               *Slice
+	Enterprise   *RootDevice // Each enterprise is a configuration tree
+	Generation   *string     // "4G" or "5G"
+	CoreEndpoint *string
+	Site         *Site
+	Slice        *Slice
 }

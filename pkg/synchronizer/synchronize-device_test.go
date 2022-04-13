@@ -6,7 +6,7 @@ package synchronizer
 
 import (
 	"github.com/golang/mock/gomock"
-	models "github.com/onosproject/aether-models/models/aether-2.0.x/api"
+	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,33 +26,15 @@ func TestSynchronizeDeviceEmpty(t *testing.T) {
 	}()
 
 	s := NewSynchronizer(WithOutputFileName(tempFileName))
-	device := models.Device{}
-	pushErrors, err := s.SynchronizeDevice(&device)
+	config := gnmi.ConfigForest{}
+	//device := map[string]models.Device{}
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
 	content, err := ioutil.ReadFile(tempFileName)
 	assert.Nil(t, err)
 	assert.Equal(t, "", string(content))
-}
-
-func TestSynchronizeDeviceCSEnt(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockPusher := mocks.NewMockPusherInterface(ctrl)
-	ent := MakeEnterprise("sample-ent-desc", "sample-ent-dn", "sample-ent", []string{"sample-cs"})
-	cs := MakeCs("sample-cs-desc", "sample-cs-dn", "sample-cs")
-
-	s := NewSynchronizer(WithPusher(mockPusher))
-
-	// TODO: This is supposed to have all other objects empty, but in 2.0 they got embedded into Enterprises
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
-
-	pushErrors, err := s.SynchronizeDevice(device)
-	assert.Equal(t, 0, pushErrors)
-	assert.Nil(t, err)
 }
 
 func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
@@ -64,18 +46,22 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, _, _ := BuildSampleDeviceGroup() // nolint dogsled
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	config, _ := BuildSampleConfig()
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
-	pushErrors, err := s.SynchronizeDevice(device)
+
+	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-slice", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		return nil
+	}).AnyTimes()
+
+	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		return nil
+	}).AnyTimes()
+
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
@@ -95,22 +81,24 @@ func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, tcList, _, _, _ := BuildSampleDeviceGroup() // nolint dogsled
-
-	tcList["sample-traffic-class"].Pelr = aInt8(3)
-	tcList["sample-traffic-class"].Pdb = aUint16(400)
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	config, device := BuildSampleConfig()
+	device.TrafficClass["sample-traffic-class"].Pelr = aInt8(3)
+	device.TrafficClass["sample-traffic-class"].Pdb = aUint16(400)
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
 
-	pushErrors, err := s.SynchronizeDevice(device)
+	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/network-slice/sample-slice", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		return nil
+	}).AnyTimes()
+
+	mockPusher.EXPECT().PushUpdate("http://upf/v1/config/network-slices", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
+		return nil
+	}).AnyTimes()
+
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
@@ -128,15 +116,10 @@ func TestSynchronizeDeviceDeviceGroupWithQosButNoTC(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, _, dg := BuildSampleDeviceGroup() // nolint dogsled
+	config, device := BuildSampleConfig()
+	device.TrafficClass = nil
 
-	dg.TrafficClass = nil
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
@@ -211,13 +194,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, _ = BuildSampleSlice(ent, site)           // nolint dogsled
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	config, _ := BuildSampleConfig()
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
@@ -232,7 +209,7 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 		return nil
 	}).AnyTimes()
 
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
@@ -266,13 +243,7 @@ func TestSynchronizeVCS(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, _ = BuildSampleSlice(ent, site)           // nolint dogsled
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	config, _ := BuildSampleConfig()
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
@@ -286,7 +257,7 @@ func TestSynchronizeVCS(t *testing.T) {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
@@ -319,15 +290,8 @@ func TestSynchronizeVCSAllowAll(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
-
-	slice.DefaultBehavior = aStr("ALLOW-ALL")
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	config, device := BuildSampleConfig()
+	device.Site["sample-site"].Slice["sample-slice"].DefaultBehavior = aStr("ALLOW-ALL")
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
@@ -341,7 +305,7 @@ func TestSynchronizeVCSAllowAll(t *testing.T) {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
@@ -374,15 +338,9 @@ func TestSynchronizeVCSAllowPublic(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
+	config, device := BuildSampleConfig()
 
-	slice.DefaultBehavior = aStr("ALLOW-PUBLIC")
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	device.Site["sample-site"].Slice["sample-slice"].DefaultBehavior = aStr("ALLOW-PUBLIC")
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
@@ -396,7 +354,7 @@ func TestSynchronizeVCSAllowPublic(t *testing.T) {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
@@ -429,8 +387,7 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	apps, _, _, _ := BuildSampleSlice(ent, site)       // nolint dogsled
+	config, device := BuildSampleConfig()
 
 	mbr3 := &ApplicationEndpointMbr{
 		Uplink:   aUint64(44332211),
@@ -446,12 +403,7 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 		TrafficClass: aStr("sample-traffic-class"),
 	}
 
-	apps["sample-app2"].Endpoint["zep3"] = ep3
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	device.Application["sample-app2"].Endpoint["zep3"] = ep3
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
@@ -465,7 +417,7 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
@@ -498,16 +450,10 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
+	config, device := BuildSampleConfig()
 
 	// Set the SD to nil.
-	slice.Sd = nil
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	device.Site["sample-site"].Slice["sample-slice"].Sd = nil
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
@@ -521,7 +467,7 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
@@ -553,16 +499,10 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, dg := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, slice := BuildSampleSlice(ent, site)       // nolint dogsled
+	config, device := BuildSampleConfig()
 
 	// Disable the one and only DeviceGroup
-	slice.DeviceGroup[*dg.DeviceGroupId].Enable = aBool(false)
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	device.Site["sample-site"].Slice["sample-slice"].DeviceGroup["sample-dg"].Enable = aBool(false)
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
@@ -576,7 +516,7 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 	json, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
@@ -606,16 +546,10 @@ func TestSynchronizeVCSMissingDG(t *testing.T) {
 	pushes := make(map[string]string)
 	s := NewSynchronizer(WithPusher(mockPusher))
 
-	ent, cs, _, _, site, _ := BuildSampleDeviceGroup() // nolint dogsled
-	_, _, _, slice := BuildSampleSlice(ent, site)      // nolint dogsled
+	config, device := BuildSampleConfig()
 
 	// Delete the one and only DeviceGroup
-	slice.DeviceGroup = nil
-
-	device := &RootDevice{
-		Enterprises:          &models.OnfEnterprise_Enterprises{Enterprise: map[string]*Enterprise{"sample-ent": ent}},
-		ConnectivityServices: &models.OnfConnectivityService_ConnectivityServices{ConnectivityService: map[string]*ConnectivityService{"sample-cs": cs}},
-	}
+	device.Site["sample-site"].Slice["sample-slice"].DeviceGroup = nil
 
 	mockPusher.EXPECT().PushUpdate("http://5gcore/v1/device-group/sample-dg", gomock.Any()).DoAndReturn(func(endpoint string, data []byte) error {
 		pushes[endpoint] = string(data)
@@ -629,14 +563,14 @@ func TestSynchronizeVCSMissingDG(t *testing.T) {
 		pushes[endpoint] = string(data)
 		return nil
 	}).AnyTimes()
-	pushErrors, err := s.SynchronizeDevice(device)
+	pushErrors, err := s.SynchronizeDevice(config)
 	assert.Equal(t, 0, pushErrors)
 	assert.Nil(t, err)
 
-	// TODO(smbaker): Behavior has changed between Aether-1.6 and Aether-2.0. We now push a
-	// DG even when it is not related to a VCS. Is this a problem?
+	// Because the DG is not in a slice, we have no way to determine the Core. Therefore,
+	// we cannot push the DG
 	_, okay := pushes["http://5gcore/v1/device-group/sample-dg"]
-	assert.True(t, okay)
+	assert.False(t, okay)
 
 	json, okay := pushes["http://5gcore/v1/network-slice/sample-slice"]
 	assert.True(t, okay)

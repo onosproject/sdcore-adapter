@@ -13,20 +13,11 @@ import (
 )
 
 // NewServer creates an instance of Server with given json config.
-func NewServer(model *Model, config []byte, callback ConfigCallback) (*Server, error) {
-	rootStruct, err := model.NewConfigStruct(config)
-	if err != nil {
-		return nil, err
-	}
+func NewServer(model *Model, callback ConfigCallback) (*Server, error) {
 	s := &Server{
 		model:    model,
-		config:   rootStruct,
+		config:   ConfigForest{},
 		callback: callback,
-	}
-	if config != nil && s.callback != nil {
-		if err := s.callback(rootStruct, Initial, nil); err != nil {
-			return nil, err
-		}
 	}
 
 	s.subscribed = make(map[string][]*streamClient)
@@ -64,9 +55,9 @@ func (s *Server) Close() {
 }
 
 // ExecuteCallbacks executes the callbacks for the synchronizer
-func (s *Server) ExecuteCallbacks(reason ConfigCallbackType, path *pb.Path) error {
+func (s *Server) ExecuteCallbacks(reason ConfigCallbackType, target string, path *pb.Path) error {
 	if s.callback != nil {
-		if err := s.callback(s.config, reason, path); err != nil {
+		if err := s.callback(s.config, reason, target, path); err != nil {
 			return err
 		}
 	}
@@ -74,11 +65,11 @@ func (s *Server) ExecuteCallbacks(reason ConfigCallbackType, path *pb.Path) erro
 }
 
 // GetJSON returns the JSON value of the config tree
-func (s *Server) GetJSON() ([]byte, error) {
+func (s *Server) GetJSON(target string) ([]byte, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	jsonTree, err := ygot.ConstructIETFJSON(s.config, &ygot.RFC7951JSONConfig{})
+	jsonTree, err := ygot.ConstructIETFJSON(s.config[target], &ygot.RFC7951JSONConfig{})
 	if err != nil {
 		return []byte{}, err
 	}
@@ -90,7 +81,7 @@ func (s *Server) GetJSON() ([]byte, error) {
 }
 
 // PutJSON sets the config tree from a json value
-func (s *Server) PutJSON(b []byte) error {
+func (s *Server) PutJSON(target string, b []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -98,6 +89,6 @@ func (s *Server) PutJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	s.config = rootStruct
+	s.config[target] = rootStruct
 	return nil
 }

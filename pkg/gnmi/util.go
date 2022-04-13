@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"reflect"
@@ -28,6 +29,10 @@ import (
 	"github.com/openconfig/gnmi/proto/gnmi"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/gnmi/value"
+)
+
+var (
+	defaultTarget = flag.String("default_target", "", "Default target if no target is specified in gNMI request")
 )
 
 // getGNMIServiceVersion returns a pointer to the gNMI service version string.
@@ -712,4 +717,91 @@ func convertTypedValueToJSONValue(val *pb.TypedValue, intAsString bool) (interfa
 	}
 
 	return nodeVal, nil
+}
+
+// configFromPath given a prefix and a path, find the right configuration in `config` for that
+// target. If it doesn't exist, create blank one.
+func (s *Server) configFromPath(prefix *pb.Path, path *pb.Path) (ygot.ValidatedGoStruct, string, error) {
+	target := ""
+	if defaultTarget != nil {
+		target = *defaultTarget
+	}
+	if (prefix != nil) && (prefix.Target != "") {
+		target = prefix.Target
+	}
+	if (path != nil) && (path.Target != "") {
+		target = path.Target
+	}
+
+	if target == "" {
+		msg := fmt.Sprintf("get request with empty target is not allowed for %s", PrefixAndPathToString(prefix, path))
+		log.Error(msg)
+		return nil, "", status.Errorf(codes.InvalidArgument, msg)
+	}
+
+	var err error
+
+	config, okay := s.config[target]
+	if !okay {
+		// This config has never been seen before. Make a new one.
+		config, err = s.model.NewConfigStruct([]byte("{}"))
+		if err != nil {
+			msg := "failed to encode new config struct"
+			log.Error(msg)
+			return nil, "", status.Errorf(codes.Internal, msg)
+		}
+	}
+
+	return config, target, nil
+}
+
+// jsonTreeFromPath extracts the target from 'prefix' and 'path'. If that target already
+// exists in allJSONTree, then the existing copy is used. Otherwise, the target config is extracted
+// from s.config, the appropriate JSON Tree is created, and added to allJSONTree. If the
+// target does not already exist, then it is added.
+func (s *Server) jsonTreeFromPath(allJSONTree map[string]map[string]interface{}, prefix *pb.Path, path *pb.Path) (map[string]interface{}, string, error) {
+	target := ""
+	if defaultTarget != nil {
+		target = *defaultTarget
+	}
+	if (prefix != nil) && (prefix.Target != "") {
+		target = prefix.Target
+	}
+	if (path != nil) && (path.Target != "") {
+		target = path.Target
+	}
+
+	if target == "" {
+		return nil, "", status.Errorf(codes.InvalidArgument, "set request with empty target is not allowed for %s", PrefixAndPathToString(prefix, path))
+	}
+
+	var err error
+
+	jsonTree, okay := allJSONTree[target]
+	if okay {
+		// We've already computed the json tree, use that one
+		return jsonTree, target, nil
+	}
+
+	config, okay := s.config[target]
+	if !okay {
+		// This config has never been seen before. Make a new one.
+		config, err = s.model.NewConfigStruct([]byte("{}"))
+		if err != nil {
+			msg := fmt.Sprintf("failed to encode new config struct %v", err)
+			log.Error(msg)
+			return nil, "", status.Errorf(codes.Internal, msg)
+		}
+	}
+
+	jsonTree, err = ygot.ConstructIETFJSON(config, &ygot.RFC7951JSONConfig{})
+	if err != nil {
+		msg := fmt.Sprintf("error in constructing IETF JSON tree from config struct: %v", err)
+		log.Error(msg)
+		return nil, "", status.Error(codes.Internal, msg)
+	}
+
+	allJSONTree[target] = jsonTree
+
+	return jsonTree, target, nil
 }

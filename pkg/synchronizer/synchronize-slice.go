@@ -240,7 +240,6 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 	}
 
 	url := fmt.Sprintf("%s/v1/network-slice/%s", *scope.CoreEndpoint, *slice.SliceId)
-	log.Infof("Push Slice to %s", url)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {
 		return 1, fmt.Errorf("Slice %s failed to push update: %s", *slice.SliceId, err)

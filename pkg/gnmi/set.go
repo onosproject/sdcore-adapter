@@ -172,54 +172,6 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 	}, nil
 }
 
-// jsonTreeFromPath extracts the target from 'prefix' and 'path'. If that target already
-// exists in allJSONTree, then the existing copy is used. Otherwise, the target config is extracted
-// from s.config, the appropriate JSON Tree is created, and added to allJSONTree. If the
-// target does not already exist, then it is added.
-func (s *Server) jsonTreeFromPath(allJSONTree map[string]map[string]interface{}, prefix *pb.Path, path *pb.Path) (map[string]interface{}, string, error) {
-	target := ""
-	if (prefix != nil) && (prefix.Target != "") {
-		target = prefix.Target
-	}
-	if (path != nil) && (path.Target != "") {
-		target = path.Target
-	}
-
-	if target == "" {
-		return nil, "", status.Errorf(codes.InvalidArgument, "get request with empty target is not allowed")
-	}
-
-	var err error
-
-	jsonTree, okay := allJSONTree[target]
-	if okay {
-		// We've already computed the json tree, use that one
-		return jsonTree, target, nil
-	}
-
-	config, okay := s.config[target]
-	if !okay {
-		// This config has never been seen before. Make a new one.
-		config, err = s.model.NewConfigStruct([]byte("{}"))
-		if err != nil {
-			msg := fmt.Sprintf("failed to encode new config struct %v", err)
-			log.Error(msg)
-			return nil, "", status.Errorf(codes.Internal, msg)
-		}
-	}
-
-	jsonTree, err = ygot.ConstructIETFJSON(config, &ygot.RFC7951JSONConfig{})
-	if err != nil {
-		msg := fmt.Sprintf("error in constructing IETF JSON tree from config struct: %v", err)
-		log.Error(msg)
-		return nil, "", status.Error(codes.Internal, msg)
-	}
-
-	allJSONTree[target] = jsonTree
-
-	return jsonTree, target, nil
-}
-
 // Set implements the Set RPC in gNMI spec.
 func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	tStart := time.Now()

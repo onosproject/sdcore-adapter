@@ -21,39 +21,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// configFromPath given a prefix and a path, find the right configuration in `config` for that
-// target. If it doesn't exist, create blank one.
-func (s *Server) configFromPath(prefix *pb.Path, path *pb.Path) (ygot.ValidatedGoStruct, string, error) {
-	target := ""
-	if (prefix != nil) && (prefix.Target != "") {
-		target = prefix.Target
-	}
-	if (path != nil) && (path.Target != "") {
-		target = path.Target
-	}
-
-	if target == "" {
-		msg := "get request with empty target is not allowed"
-		log.Error(msg)
-		return nil, "", status.Errorf(codes.InvalidArgument, msg)
-	}
-
-	var err error
-
-	config, okay := s.config[target]
-	if !okay {
-		// This config has never been seen before. Make a new one.
-		config, err = s.model.NewConfigStruct([]byte("{}"))
-		if err != nil {
-			msg := "failed to encode new config struct"
-			log.Error(msg)
-			return nil, "", status.Errorf(codes.Internal, msg)
-		}
-	}
-
-	return config, target, nil
-}
-
 // Get implements the Get RPC in gNMI spec.
 func (s *Server) Get(req *pb.GetRequest) (*pb.GetResponse, error) {
 
@@ -75,6 +42,7 @@ func (s *Server) Get(req *pb.GetRequest) (*pb.GetResponse, error) {
 	defer s.mu.RUnlock()
 
 	if paths == nil && dataType.String() != "" {
+		log.Infof("Get request with no path")
 
 		jsonType := "IETF"
 		if req.GetEncoding() == pb.Encoding_JSON {

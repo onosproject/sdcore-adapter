@@ -119,7 +119,6 @@ func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGrou
 	}
 
 	url := fmt.Sprintf("%s/v1/device-group/%s", *scope.CoreEndpoint, *dg.DeviceGroupId)
-	log.Infof("Push Device-Group to %s", url)
 	err = s.pusher.PushUpdate(url, data)
 	if err != nil {
 		return 1, fmt.Errorf("DeviceGroup %s failed to Push update: %s", *dg.DeviceGroupId, err)

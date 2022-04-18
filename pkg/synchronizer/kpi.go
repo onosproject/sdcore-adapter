@@ -15,7 +15,7 @@ var (
 		Name: "synchronization_total",
 		Help: "The total number of synchronizations",
 	},
-		[]string{"cs"},
+		[]string{"enterprise"},
 	)
 
 	// KpiSynchronizationDuration is a histogram of duration of synchronizations
@@ -23,7 +23,23 @@ var (
 		Name: "synchronization_duration",
 		Help: "The duration of synchronizations",
 	},
-		[]string{"cs"},
+		[]string{"enterprise"},
+	)
+
+	// Note: Prometheus best practice is to track "total requests" and "total failures" as
+	// separate metrics, rather than "total successes" and "total failures", or a
+	// combined metric with a "status" label.
+	//
+	// For that reason, we first ResourceTotal, which is our total requests. Then we track
+	// FailedTotal, which represents the errors.
+
+	// KpiSynchronizationResourceTotal is the total number of resources that were
+	// attempted to be synchronized.
+	KpiSynchronizationResourceTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "synchronization_resource_total",
+		Help: "The total number of resources synchronized",
+	},
+		[]string{"enterprise", "kind"},
 	)
 
 	// KpiSynchronizationFailedTotal is a count of failed synchronizations
@@ -31,14 +47,6 @@ var (
 		Name: "synchronization_failed_total",
 		Help: "The total number of failed synchronizations",
 	},
-		[]string{"cs"},
-	)
-
-	// KpiSynchronizationResourceTotal is the total number of resources synchronized.
-	KpiSynchronizationResourceTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "synchronization_resource_total",
-		Help: "The total number of resources synchronized",
-	},
-		[]string{"cs", "kind"},
+		[]string{"enterprise", "kind", "destination"},
 	)
 )

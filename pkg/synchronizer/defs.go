@@ -24,7 +24,6 @@ const (
 
 // Synchronizer is a Version 3 synchronizer.
 type Synchronizer struct {
-	outputFileName      string
 	postEnable          bool
 	postTimeout         time.Duration
 	pusher              PusherInterface

@@ -90,8 +90,7 @@ func (s *Synchronizer) GetModels() *gnmi.Model {
 
 // Start the synchronizer by launching the synchronizer loop inside a thread.
 func (s *Synchronizer) Start() {
-	log.Infof("Synchronizer starting (outputFileName=%s, postEnable=%v, postTimeout=%d, retryInterval=%s, partialUpdateEnable=%v)",
-		s.outputFileName,
+	log.Infof("Synchronizer starting (postEnable=%v, postTimeout=%d, retryInterval=%s, partialUpdateEnable=%v)",
 		s.postEnable,
 		s.postTimeout,
 		s.retryInterval,
@@ -119,13 +118,6 @@ func WithPostTimeout(postTimeout time.Duration) SynchronizerOption {
 func WithPartialUpdateEnable(partialUpdateEnable bool) SynchronizerOption {
 	return func(s *Synchronizer) {
 		s.partialUpdateEnable = partialUpdateEnable
-	}
-}
-
-// WithOutputFileName sets the outputFileName option
-func WithOutputFileName(outputFileName string) SynchronizerOption {
-	return func(s *Synchronizer) {
-		s.outputFileName = outputFileName
 	}
 }
 

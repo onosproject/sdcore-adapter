@@ -64,12 +64,11 @@ func (s *Synchronizer) updateScopeFromDeviceGroup(scope *AetherScope, dg *Device
 //   2) error -- a fatal error that occurred during synchronization.
 func (s *Synchronizer) SynchronizeDevice(allConfig gnmi.ConfigForest) (int, error) {
 	pushFailures := 0
-	for _, enterpriseConfig := range allConfig {
+	for entID, enterpriseConfig := range allConfig {
 		device := enterpriseConfig.(*RootDevice)
 
 		tStart := time.Now()
-		// TODO smbaker: add support back in for prometheus metrics
-		//KpiSynchronizationTotal.WithLabelValues(*cs.ConnectivityServiceId).Inc()
+		KpiSynchronizationTotal.WithLabelValues(entID).Inc()
 
 		scope := &AetherScope{
 			Enterprise: device}
@@ -88,11 +87,13 @@ func (s *Synchronizer) SynchronizeDevice(allConfig gnmi.ConfigForest) (int, erro
 					log.Infof("DG %s is not related to any core: %s", *dg.DeviceGroupId, err)
 					continue dgLoop
 				}
+				KpiSynchronizationResourceTotal.WithLabelValues(entID, "device-group").Inc()
 				dgPushErrors, err := s.SynchronizeDeviceGroup(scope, dg)
+				pushFailures += dgPushErrors
 				if err != nil {
 					log.Warnf("DG %s failed to synchronize Core: %s", *dg.DeviceGroupId, err)
+					KpiSynchronizationFailedTotal.WithLabelValues(entID, "device-group", "core").Inc()
 				}
-				pushFailures += dgPushErrors
 			}
 		sliceLoop:
 			for _, slice := range site.Slice {
@@ -106,10 +107,12 @@ func (s *Synchronizer) SynchronizeDevice(allConfig gnmi.ConfigForest) (int, erro
 					log.Warnf("Slice %s is not related to any core: %s", *slice.SliceId, err)
 					continue sliceLoop
 				}
+				KpiSynchronizationResourceTotal.WithLabelValues(entID, "slice").Inc()
 				slicePushFailures, err := s.SynchronizeSlice(scope, slice)
 				pushFailures += slicePushFailures
 				if err != nil {
 					log.Warnf("VCS %s failed to synchronize Core: %s", *slice.SliceId, err)
+					KpiSynchronizationFailedTotal.WithLabelValues(entID, "slice", "core").Inc()
 					// Do not try to synchronize the UPF, if we've already failed
 					continue sliceLoop
 				}
@@ -118,13 +121,12 @@ func (s *Synchronizer) SynchronizeDevice(allConfig gnmi.ConfigForest) (int, erro
 				pushFailures += upfPushFailures
 				if err != nil {
 					log.Warnf("Slice %s failed to synchronize UPF: %s", *slice.SliceId, err)
-					continue sliceLoop
+					KpiSynchronizationFailedTotal.WithLabelValues(entID, "slice", "upf").Inc()
 				}
 			}
 		}
 
-		// TODO smbaker: add support back in for prometheus metrics
-		_ = tStart //KpiSynchronizationDuration.WithLabelValues(*cs.ConnectivityServiceId).Observe(time.Since(tStart).Seconds())
+		KpiSynchronizationDuration.WithLabelValues(entID).Observe(time.Since(tStart).Seconds())
 	}
 
 	return pushFailures, nil

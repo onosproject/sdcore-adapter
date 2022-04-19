@@ -29,8 +29,6 @@ import (
 var (
 	bindAddr             = flag.String("bind_address", ":10161", "Bind to address:port or just :port")
 	metricAddr           = flag.String("metric_address", ":9851", "Prometheus metric endpoint bind to address:port or just :port")
-	configFile           = flag.String("config", "", "IETF JSON file for target startup config")
-	outputFileName       = flag.String("output", "", "JSON file to save output to")
 	partialUpdateDisable = flag.Bool("partial_update_disable", false, "Disable partial update; send full updates to core on every change")
 	postDisable          = flag.Bool("post_disable", false, "Disable posting to connectivity service endpoints")
 	postTimeout          = flag.Duration("post_timeout", time.Second*10, "Timeout duration when making post requests")
@@ -78,7 +76,6 @@ func main() {
 	// Initialize the synchronizer's service-specific code.
 	log.Infof("Initializing synchronizer")
 	sync = synchronizer.NewSynchronizer(
-		synchronizer.WithOutputFileName(*outputFileName),
 		synchronizer.WithPostEnable(!*postDisable),
 		synchronizer.WithPartialUpdateEnable(!*partialUpdateDisable),
 		synchronizer.WithPostTimeout(*postTimeout))
@@ -98,21 +95,6 @@ func main() {
 	g := grpc.NewServer(opts...)
 
 	sync.Start()
-
-	if (*configFile != "") && (*aetherConfigAddr != "") {
-		log.Fatalf("use --configfile or --aetherConfigAddr, but not both")
-	}
-
-	// Optional: pull initial config from a local file
-	if *configFile != "" {
-		log.Fatalf("reading config from file is unsupported")
-	}
-
-	// Optional: pull initial config from onos-config
-	if *aetherConfigAddr != "" {
-		// TODO smbaker: I hope we don't need this anymore...
-		log.Fatalf("pulling initial config from onos-config is not supported")
-	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c)

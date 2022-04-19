@@ -15,19 +15,16 @@ func TestNewSynchronizer(t *testing.T) {
 	sync := NewSynchronizer()
 	assert.NotNil(t, sync)
 
-	assert.Equal(t, "", sync.outputFileName)
 	assert.Equal(t, true, sync.postEnable)
 	assert.Equal(t, 10*time.Second, sync.postTimeout)
 	assert.Equal(t, true, sync.partialUpdateEnable)
 
 	sync = NewSynchronizer(
-		WithOutputFileName("/tmp/somefile.json"),
 		WithPostEnable(false),
 		WithPostTimeout(7*time.Second),
 		WithPartialUpdateEnable(false),
 	)
 
-	assert.Equal(t, "/tmp/somefile.json", sync.outputFileName)
 	assert.Equal(t, false, sync.postEnable)
 	assert.Equal(t, 7*time.Second, sync.postTimeout)
 	assert.Equal(t, false, sync.partialUpdateEnable)

@@ -6,36 +6,12 @@ package synchronizer
 
 import (
 	"github.com/golang/mock/gomock"
-	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
-	"os"
 	"testing"
 )
-
-// an empty device should yield empty json
-func TestSynchronizeDeviceEmpty(t *testing.T) {
-	// Get a temporary file name and defer deletion of the file
-	f, err := ioutil.TempFile("", "synchronizer-json")
-	assert.Nil(t, err)
-	tempFileName := f.Name()
-	defer func() {
-		assert.Nil(t, os.Remove(tempFileName))
-	}()
-
-	s := NewSynchronizer(WithOutputFileName(tempFileName))
-	config := gnmi.ConfigForest{}
-	//device := map[string]models.Device{}
-	pushErrors, err := s.SynchronizeDevice(config)
-	assert.Equal(t, 0, pushErrors)
-	assert.Nil(t, err)
-
-	content, err := ioutil.ReadFile(tempFileName)
-	assert.Nil(t, err)
-	assert.Equal(t, "", string(content))
-}
 
 func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 

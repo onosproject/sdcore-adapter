@@ -63,6 +63,12 @@ func (s *Synchronizer) updateScopeFromDeviceGroup(scope *AetherScope, dg *Device
 //   1) pushFailures -- a count of pushes that failed to the core. Synchronizer should retry again later.
 //   2) error -- a fatal error that occurred during synchronization.
 func (s *Synchronizer) SynchronizeDevice(allConfig gnmi.ConfigForest) (int, error) {
+
+	// Forget all current metrics. We'll compute and report them inside the sync loop.
+	KpiSliceBitrate.Reset()
+	KpiApplicationBitrate.Reset()
+	KpiDeviceGroupBitrate.Reset()
+
 	pushFailures := 0
 	for entID, enterpriseConfig := range allConfig {
 		device := enterpriseConfig.(*RootDevice)
@@ -71,7 +77,8 @@ func (s *Synchronizer) SynchronizeDevice(allConfig gnmi.ConfigForest) (int, erro
 		KpiSynchronizationTotal.WithLabelValues(entID).Inc()
 
 		scope := &AetherScope{
-			Enterprise: device}
+			EnterpriseId: &entID,
+			Enterprise:   device}
 
 		for _, site := range device.Site {
 			scope.Site = site

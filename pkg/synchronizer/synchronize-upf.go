@@ -63,11 +63,13 @@ func (s *Synchronizer) SynchronizeSliceUPF(scope *AetherScope, slice *Slice) (in
 			sc.SliceQos.Uplink = *slice.Mbr.Uplink
 			sc.SliceQos.UplinkBurst = DerefUint32Ptr(slice.Mbr.UplinkBurstSize, DefaultUplinkBurst)
 			hasQos = true
+			s.reportSliceBitrate(scope, slice, "up", *slice.Mbr.Uplink)
 		}
 		if slice.Mbr.Downlink != nil {
 			sc.SliceQos.Downlink = *slice.Mbr.Downlink
 			sc.SliceQos.DownlinkBurst = DerefUint32Ptr(slice.Mbr.DownlinkBurstSize, DefaultDownlinkBurst)
 			hasQos = true
+			s.reportSliceBitrate(scope, slice, "down", *slice.Mbr.Downlink)
 		}
 	}
 	if hasQos {

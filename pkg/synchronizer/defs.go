@@ -57,6 +57,7 @@ type SynchronizerOption func(c *Synchronizer) // nolint
 // tree. Contexts were considered for this implementation, but rejected due to the lack of
 // static checking.
 type AetherScope struct {
+	EnterpriseId *string     // nolint - use EnterpriseId to match the ygot naming convention
 	Enterprise   *RootDevice // Each enterprise is a configuration tree
 	Generation   *string     // "4G" or "5G"
 	CoreEndpoint *string

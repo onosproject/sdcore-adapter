@@ -284,8 +284,9 @@ func BuildScope(device *RootDevice, entID string, siteID string) (*AetherScope, 
 	}
 
 	return &AetherScope{
-		Enterprise: device,
-		Site:       site,
+		EnterpriseId: &entID,
+		Enterprise:   device,
+		Site:         site,
 	}, nil
 
 }

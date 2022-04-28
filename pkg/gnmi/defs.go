@@ -46,10 +46,13 @@ func (c ConfigCallbackType) String() string {
 }
 
 // ConfigForest is a forest of configuration trees, one per target
-type ConfigForest map[string]ygot.ValidatedGoStruct
+type ConfigForest struct {
+	Configs map[string]ygot.ValidatedGoStruct
+	Mu      sync.RWMutex // mu is the RW lock to protect the access to config
+}
 
 // ConfigCallback is the signature of the function to apply a validated config to the physical device.
-type ConfigCallback func(ConfigForest, ConfigCallbackType, string, *pb.Path) error
+type ConfigCallback func(*ConfigForest, ConfigCallbackType, string, *pb.Path) error
 
 var (
 	pbRootPath         = &pb.Path{}
@@ -77,9 +80,8 @@ var (
 type Server struct {
 	model        *Model
 	callback     ConfigCallback
-	config       ConfigForest
+	config       *ConfigForest
 	ConfigUpdate *channels.RingChannel
-	mu           sync.RWMutex // mu is the RW lock to protect the access to config
 	subscribed   map[string][]*streamClient
 }
 

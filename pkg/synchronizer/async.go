@@ -35,10 +35,10 @@ L:
 }
 
 // Queue an update request for future processing
-func (s *Synchronizer) enqueue(config gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string) error {
-	configCopy := gnmi.ConfigForest{}
+func (s *Synchronizer) enqueue(config *gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string) error {
+	configCopy := gnmi.NewConfigForest()
 
-	for target, targetConfig := range config {
+	for target, targetConfig := range config.Configs {
 		// Make a copy of the gostruct; we don't want it to change out from under us
 		// if the gnmi server is updating it.
 		targetConfigCopy, err := ygot.DeepCopy(targetConfig)
@@ -46,7 +46,7 @@ func (s *Synchronizer) enqueue(config gnmi.ConfigForest, callbackType gnmi.Confi
 			return err
 		}
 
-		configCopy[target] = targetConfigCopy.(ygot.ValidatedGoStruct)
+		configCopy.Configs[target] = targetConfigCopy.(ygot.ValidatedGoStruct)
 	}
 
 	// This conversion is safe as DeepCopy will use the same underlying type as

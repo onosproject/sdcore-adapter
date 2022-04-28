@@ -263,7 +263,7 @@ func (s *Server) checkEncodingAndModel(encoding pb.Encoding, models []*pb.ModelD
 
 // GetConfig returns the config store
 func (s *Server) GetConfig(target string) (ygot.ValidatedGoStruct, error) {
-	config, okay := s.config[target]
+	config, okay := s.config.Configs[target]
 	if !okay {
 		return nil, fmt.Errorf("Failed to find config %s", target) // SMBAKER: do we want to create it here instead
 	}
@@ -741,7 +741,7 @@ func (s *Server) configFromPath(prefix *pb.Path, path *pb.Path) (ygot.ValidatedG
 
 	var err error
 
-	config, okay := s.config[target]
+	config, okay := s.config.Configs[target]
 	if !okay {
 		// This config has never been seen before. Make a new one.
 		config, err = s.model.NewConfigStruct([]byte("{}"))
@@ -783,7 +783,7 @@ func (s *Server) jsonTreeFromPath(allJSONTree map[string]map[string]interface{},
 		return jsonTree, target, nil
 	}
 
-	config, okay := s.config[target]
+	config, okay := s.config.Configs[target]
 	if !okay {
 		// This config has never been seen before. Make a new one.
 		config, err = s.model.NewConfigStruct([]byte("{}"))

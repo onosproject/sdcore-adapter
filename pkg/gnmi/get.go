@@ -31,6 +31,7 @@ func (s *Server) Get(req *pb.GetRequest) (*pb.GetResponse, error) {
 
 	if err := s.checkEncodingAndModel(req.GetEncoding(), req.GetUseModels()); err != nil {
 		gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
+		log.Warnf("Get: Returning Unimplemented: %v", err)
 		return nil, status.Error(codes.Unimplemented, err.Error())
 	}
 
@@ -38,8 +39,8 @@ func (s *Server) Get(req *pb.GetRequest) (*pb.GetResponse, error) {
 	paths := req.GetPath()
 	notifications := make([]*pb.Notification, len(paths))
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.config.Mu.RLock()
+	defer s.config.Mu.RUnlock()
 
 	if paths == nil && dataType.String() != "" {
 		log.Infof("Get request with no path")
@@ -54,6 +55,7 @@ func (s *Server) Get(req *pb.GetRequest) (*pb.GetResponse, error) {
 		node, err := ytypes.GetNode(s.model.schemaTreeRoot, s.config, &path)
 		if isNil(node) || err != nil {
 			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
+			log.Warnf("Get: Returning PathNotFound: %v", err)
 			return nil, status.Errorf(codes.NotFound, "path %s not found", path.String())
 		}
 
@@ -101,33 +103,16 @@ func (s *Server) Get(req *pb.GetRequest) (*pb.GetResponse, error) {
 		nodes, err := ytypes.GetNode(s.model.schemaTreeRoot, config, fullPath)
 		if len(nodes) == 0 || err != nil || util.IsValueNil(nodes[0].Data) {
 			gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
-			return nil, status.Errorf(codes.NotFound, "path %v not found: %v", fullPath, err)
+			log.Warnf("Get: Returning PathNotFound %s: %v", PathToString(fullPath), err)
+			return nil, status.Errorf(codes.NotFound, "path %v not found: %v", PathToString(fullPath), err)
 		}
 		node := nodes[0].Data
 
 		ts := time.Now().UnixNano()
 
 		nodeStruct, ok := node.(ygot.GoStruct)
-		dataTypeFlag := false
 		// Return leaf node.
 		if !ok {
-			elements := fullPath.GetElem()
-			dataTypeString := strings.ToLower(dataType.String())
-			if strings.Compare(dataTypeString, "all") == 0 {
-				dataTypeFlag = true
-			} else {
-				for _, elem := range elements {
-					if strings.Compare(dataTypeString, elem.GetName()) == 0 {
-						dataTypeFlag = true
-						break
-					}
-
-				}
-			}
-			if !dataTypeFlag {
-				gnmiRequestsFailedTotal.WithLabelValues("GET").Inc()
-				return nil, status.Error(codes.Internal, "The requested dataType is not valid")
-			}
 			var val *pb.TypedValue
 			switch kind := reflect.ValueOf(node).Kind(); kind {
 			case reflect.Ptr, reflect.Interface:

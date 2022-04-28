@@ -9,6 +9,7 @@ import (
 	models "github.com/onosproject/aether-models/models/aether-2.1.x/api"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/metrics"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 	"reflect"
@@ -18,7 +19,7 @@ import (
 var log = logging.GetLogger("synchronizer")
 
 // Synchronize synchronizes the state to the underlying service.
-func (s *Synchronizer) Synchronize(config gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error {
+func (s *Synchronizer) Synchronize(config *gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error {
 	var err error
 	if callbackType == gnmi.Deleted {
 		return s.HandleDelete(config, path)
@@ -26,6 +27,11 @@ func (s *Synchronizer) Synchronize(config gnmi.ConfigForest, callbackType gnmi.C
 
 	if callbackType == gnmi.Forced {
 		s.CacheInvalidate() // invalidate the post cache if this resync was forced by Diagnostic API
+	}
+
+	// we start opstate processing on the first configuration callback. Until then, we can't handle any opstate anyway
+	if !s.opstateStarted {
+		s.startOpstate(config)
 	}
 
 	err = s.enqueue(config, callbackType, target)
@@ -141,6 +147,7 @@ func NewSynchronizer(opts ...SynchronizerOption) *Synchronizer {
 		updateChannel:       make(chan *ConfigUpdate, 1),
 		retryInterval:       5 * time.Second,
 		cache:               map[string]interface{}{},
+		prometheus:          map[string]*metrics.Fetcher{},
 	}
 
 	for _, opt := range opts {

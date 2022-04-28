@@ -177,8 +177,8 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 	tStart := time.Now()
 	gnmiRequestsTotal.WithLabelValues("SET").Inc()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.config.Mu.Lock()
+	defer s.config.Mu.Unlock()
 
 	allJSONTree := map[string]map[string]interface{}{}
 
@@ -248,24 +248,27 @@ func (s *Server) Set(req *pb.SetRequest) (*pb.SetResponse, error) {
 			return nil, status.Error(codes.Internal, msg)
 		}
 
-		// TODO smbaker: verify this is working as expected
-		newConfig := s.config
-		newConfig[target] = rootStruct
+		// Make a copy of the previous config tree, so we can restore it if the synchronizer failes.
+		oldConfig, haveOldConfig := s.config.Configs[target]
+		s.config.Configs[target] = rootStruct
 
 		// Apply the validated operation to the device.
 		// Note: We apply this after all operations have been applied to the config tree, because it is
 		// more performant to the json.Marshal and NewConfigStruct once per gnmi operation than it is to
 		// do it for each individual path set or delete.
 		if s.callback != nil {
-			if applyErr := s.callback(newConfig, Apply, target, nil); applyErr != nil {
-				if rollbackErr := s.callback(newConfig, Rollback, target, nil); rollbackErr != nil {
+			if applyErr := s.callback(s.config, Apply, target, nil); applyErr != nil {
+				rollbackErr := s.callback(s.config, Rollback, target, nil)
+				if haveOldConfig {
+					// restore previous config tree before returning
+					s.config.Configs[target] = oldConfig
+				}
+				if rollbackErr != nil {
 					return nil, status.Errorf(codes.Internal, "error in rollback the failed operation (%v): %v", applyErr, rollbackErr)
 				}
 				return nil, status.Errorf(codes.Aborted, "error in applying operation to device: %v", applyErr)
 			}
 		}
-
-		s.config = newConfig
 	}
 
 	setResponse := &pb.SetResponse{

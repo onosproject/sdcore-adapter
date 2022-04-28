@@ -22,6 +22,7 @@ type ConnectivityService = models.OnfSite_Site_ConnectivityService           //n
 type Core4G = models.OnfSite_Site_ConnectivityService_Core_4G                //nolint
 type Core5G = models.OnfSite_Site_ConnectivityService_Core_5G                //nolint
 type Device = models.OnfSite_Site_Device                                     //nolint
+type DeviceState = models.OnfSite_Site_Device_State                          //nolint
 type DeviceGroup = models.OnfSite_Site_DeviceGroup                           //nolint
 type DeviceGroupMbr = models.OnfSite_Site_DeviceGroup_Mbr                    //nolint
 type DeviceGroupDevice = models.OnfSite_Site_DeviceGroup_Device              //nolint

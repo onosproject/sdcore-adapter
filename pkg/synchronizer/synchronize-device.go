@@ -14,6 +14,12 @@ import (
 //   1) pushFailures -- a count of pushes that failed to the core. Synchronizer should retry again later.
 //   2) error -- a fatal error that occurred during synchronization.
 func (s *Synchronizer) SynchronizeDevice(config ygot.ValidatedGoStruct) (int, error) {
+
+	// Forget all current metrics. We'll compute and report them inside the sync loop.
+	KpiSliceBitrate.Reset()
+	KpiApplicationBitrate.Reset()
+	KpiDeviceGroupBitrate.Reset()
+
 	device := config.(*RootDevice)
 
 	pushFailures := 0

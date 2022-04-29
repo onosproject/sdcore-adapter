@@ -176,10 +176,12 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 				if endpoint.Mbr.Uplink != nil {
 					appCore.Uplink = *endpoint.Mbr.Uplink
 					hasQos = true
+					s.reportApplicationBitrate(scope, slice, app, endpoint, "up", *endpoint.Mbr.Uplink)
 				}
 				if endpoint.Mbr.Downlink != nil {
 					appCore.Downlink = *endpoint.Mbr.Downlink
 					hasQos = true
+					s.reportApplicationBitrate(scope, slice, app, endpoint, "down", *endpoint.Mbr.Downlink)
 				}
 			}
 

@@ -93,6 +93,9 @@ func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGrou
 	}
 	dgCore.IPDomain = ipdCore
 
+	s.reportDeviceGroupBitrate(scope, dg, "up", *dg.Mbr.Uplink)
+	s.reportDeviceGroupBitrate(scope, dg, "down", *dg.Mbr.Downlink)
+
 	rocTrafficClass, err := s.GetTrafficClass(scope, dg.TrafficClass)
 	if err != nil {
 		return 0, fmt.Errorf("DG %s unable to determine traffic class: %s", *dg.DeviceGroupId, err)

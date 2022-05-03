@@ -12,7 +12,7 @@ import (
 
 // SynchronizerInterface defines the interface that all synchronizers should have.
 type SynchronizerInterface interface { //nolint
-	Synchronize(config gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error
+	Synchronize(config *gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error
 	GetModels() *gnmi.Model
 	Start()
 }

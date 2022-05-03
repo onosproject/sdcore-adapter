@@ -314,7 +314,7 @@ func TestServer_PutJSON(t *testing.T) {
 	data := []byte("{}")
 	err = s.PutJSON("acme", data)
 	assert.NoError(t, err)
-	acme, okay := s.config["acme"]
+	acme, okay := s.config.Configs["acme"]
 	assert.True(t, okay)
 	assert.NotNil(t, acme)
 }

@@ -51,7 +51,7 @@ func serveMetrics() {
 // configuration, but leaves us to retry applying it to the southbound device
 // ourselves.
 func synchronizerWrapper(s synchronizer.SynchronizerInterface) gnmi.ConfigCallback {
-	return func(config gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error {
+	return func(config *gnmi.ConfigForest, callbackType gnmi.ConfigCallbackType, target string, path *pb.Path) error {
 		err := s.Synchronize(config, callbackType, target, path)
 		if err != nil {
 			// Report the error, but do not send the error upstream.
@@ -94,8 +94,6 @@ func main() {
 	opts := credentials.ServerCredentials()
 	g := grpc.NewServer(opts...)
 
-	sync.Start()
-
 	c := make(chan os.Signal, 1)
 	signal.Notify(c)
 
@@ -103,6 +101,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("error in creating gnmi target: %v", err)
 	}
+
+	sync.Start()
+
 	go func() {
 		for {
 			oscall := <-c

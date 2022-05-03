@@ -12,11 +12,17 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// NewConfigForest creates an instance of ConfigForst that is empty
+func NewConfigForest() *ConfigForest {
+	configs := map[string]ygot.ValidatedGoStruct{}
+	return &ConfigForest{Configs: configs}
+}
+
 // NewServer creates an instance of Server with given json config.
 func NewServer(model *Model, callback ConfigCallback) (*Server, error) {
 	s := &Server{
 		model:    model,
-		config:   ConfigForest{},
+		config:   NewConfigForest(),
 		callback: callback,
 	}
 
@@ -66,10 +72,10 @@ func (s *Server) ExecuteCallbacks(reason ConfigCallbackType, target string, path
 
 // GetJSON returns the JSON value of the config tree
 func (s *Server) GetJSON(target string) ([]byte, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.config.Mu.Lock()
+	defer s.config.Mu.Unlock()
 
-	jsonTree, err := ygot.ConstructIETFJSON(s.config[target], &ygot.RFC7951JSONConfig{})
+	jsonTree, err := ygot.ConstructIETFJSON(s.config.Configs[target], &ygot.RFC7951JSONConfig{})
 	if err != nil {
 		return []byte{}, err
 	}
@@ -82,13 +88,13 @@ func (s *Server) GetJSON(target string) ([]byte, error) {
 
 // PutJSON sets the config tree from a json value
 func (s *Server) PutJSON(target string, b []byte) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.config.Mu.Lock()
+	defer s.config.Mu.Unlock()
 
 	rootStruct, err := s.model.NewConfigStruct(b)
 	if err != nil {
 		return err
 	}
-	s.config[target] = rootStruct
+	s.config.Configs[target] = rootStruct
 	return nil
 }

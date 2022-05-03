@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // GetEnterpriseObjectID returns the object id for a path.
@@ -196,7 +195,7 @@ func (s *Synchronizer) deleteSiteByPath(scope *AetherScope, path *pb.Path) error
 }
 
 // HandleDelete synchronously performs a delete
-func (s *Synchronizer) HandleDelete(config map[string]ygot.ValidatedGoStruct, path *pb.Path) error {
+func (s *Synchronizer) HandleDelete(config *gnmi.ConfigForest, path *pb.Path) error {
 	if path == nil || len(path.Elem) == 0 {
 		return errors.New("Delete of whole enterprise is not currently supported")
 	}
@@ -206,7 +205,7 @@ func (s *Synchronizer) HandleDelete(config map[string]ygot.ValidatedGoStruct, pa
 		return errors.New("Refusing to handle delete without target specified")
 	}
 
-	rootDeviceInterface, okay := config[target]
+	rootDeviceInterface, okay := config.Configs[target]
 	if !okay {
 		log.Infof("Delete on target %s is for an empty tree", target)
 		return nil

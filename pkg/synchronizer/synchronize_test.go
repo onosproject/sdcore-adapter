@@ -34,7 +34,7 @@ func TestSynchronizerLoop(t *testing.T) {
 	sync := NewSynchronizer()
 	assert.NotNil(t, sync)
 
-	config := gnmi.ConfigForest{} //&mockConfig{}
+	config := gnmi.NewConfigForest()
 
 	sync.retryInterval = 100 * time.Millisecond
 	sync.synchronizeDeviceFunc = mockSynchronizeDevice
@@ -60,11 +60,11 @@ func TestSynchronizerLoop(t *testing.T) {
 
 	// several queued changes should only get the last one
 	mockSynchronizeDeviceReset(0, 1, 100*time.Millisecond)
-	err = sync.Synchronize(gnmi.ConfigForest{}, gnmi.Apply, "sample-ent", nil) // this one will fail...
+	err = sync.Synchronize(gnmi.NewConfigForest(), gnmi.Apply, "sample-ent", nil) // this one will fail...
 	assert.Nil(t, err)
-	err = sync.Synchronize(gnmi.ConfigForest{}, gnmi.Apply, "sample-ent", nil) // this one will be ignored...
+	err = sync.Synchronize(gnmi.NewConfigForest(), gnmi.Apply, "sample-ent", nil) // this one will be ignored...
 	assert.Nil(t, err)
-	err = sync.Synchronize(gnmi.ConfigForest{}, gnmi.Apply, "sample-ent", nil) // this one will also be ignored...
+	err = sync.Synchronize(gnmi.NewConfigForest(), gnmi.Apply, "sample-ent", nil) // this one will also be ignored...
 	assert.Nil(t, err)
 	err = sync.Synchronize(config, gnmi.Apply, "sample-ent", nil) // this one will succeed!
 	assert.Nil(t, err)

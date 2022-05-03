@@ -15,15 +15,15 @@ import (
 )
 
 var (
-	mockSynchronizeDeviceCalls         []gnmi.ConfigForest // list of calls to MockSynchronizeDevice that succeeded
-	mockSynchronizeDeviceFails         []gnmi.ConfigForest // list of calls to MockSynchronizeDevice that failed
-	mockSynchronizeDevicePushFails     []gnmi.ConfigForest // list of calls to MockSynchronizeDevice that had a push failure
-	mockSynchronizeDeviceFailCount     int                 // Cause MockSynchronizeDevice to fail the specified number of times
-	mockSynchronizeDevicePushFailCount int                 // Cause MockSynchronizeDevice to fail to push the specified number of times
-	mockSynchronizeDeviceDelay         time.Duration       // Cause MockSynchronizeDevice to take some time
+	mockSynchronizeDeviceCalls         []*gnmi.ConfigForest // list of calls to MockSynchronizeDevice that succeeded
+	mockSynchronizeDeviceFails         []*gnmi.ConfigForest // list of calls to MockSynchronizeDevice that failed
+	mockSynchronizeDevicePushFails     []*gnmi.ConfigForest // list of calls to MockSynchronizeDevice that had a push failure
+	mockSynchronizeDeviceFailCount     int                  // Cause MockSynchronizeDevice to fail the specified number of times
+	mockSynchronizeDevicePushFailCount int                  // Cause MockSynchronizeDevice to fail to push the specified number of times
+	mockSynchronizeDeviceDelay         time.Duration        // Cause MockSynchronizeDevice to take some time
 )
 
-func mockSynchronizeDevice(config gnmi.ConfigForest) (int, error) {
+func mockSynchronizeDevice(config *gnmi.ConfigForest) (int, error) {
 	time.Sleep(mockSynchronizeDeviceDelay)
 	if mockSynchronizeDeviceFailCount > 0 {
 		mockSynchronizeDeviceFailCount--
@@ -271,9 +271,11 @@ func BuildSampleDevice() *RootDevice {
 	return device
 }
 
-func BuildSampleConfig() (gnmi.ConfigForest, *RootDevice) {
+func BuildSampleConfig() (*gnmi.ConfigForest, *RootDevice) {
 	device := BuildSampleDevice()
-	return gnmi.ConfigForest{"sample-ent": device}, device
+	config := gnmi.NewConfigForest()
+	config.Configs["sample-ent"] = device
+	return config, device
 }
 
 // BuildScope creates a scope for the sample device

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
+	"github.com/onosproject/sdcore-adapter/pkg/metrics"
 )
 
 const (
@@ -31,21 +32,27 @@ type Synchronizer struct {
 	retryInterval       time.Duration
 	partialUpdateEnable bool
 
+	// True if the opstate processor has started
+	opstateStarted bool
+
 	// Busy indicator, primarily used for unit testing. The channel length in and of itself
 	// is not sufficient, as it does not include the potential update that is currently syncing.
 	// >0 if the synchronizer has operations pending and/or in-progress
 	busy int32
 
 	// used for ease of mocking
-	synchronizeDeviceFunc func(config gnmi.ConfigForest) (int, error)
+	synchronizeDeviceFunc func(config *gnmi.ConfigForest) (int, error)
 
 	// cache of previously synchronized updates
 	cache map[string]interface{}
+
+	// Promehtues fetchers for each endpoint
+	prometheus map[string]*metrics.Fetcher
 }
 
 // ConfigUpdate holds the configuration for a particular synchronization request
 type ConfigUpdate struct {
-	config       gnmi.ConfigForest
+	config       *gnmi.ConfigForest
 	callbackType gnmi.ConfigCallbackType
 	target       string
 }

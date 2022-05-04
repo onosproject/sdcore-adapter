@@ -148,6 +148,9 @@ func NewSynchronizer(opts ...SynchronizerOption) *Synchronizer {
 		retryInterval:       5 * time.Second,
 		cache:               map[string]interface{}{},
 		prometheus:          map[string]*metrics.Fetcher{},
+
+		kafkaMsgChannel:   make(chan string, 10),
+		kafkaErrorChannel: make(chan error, 10),
 	}
 
 	for _, opt := range opts {

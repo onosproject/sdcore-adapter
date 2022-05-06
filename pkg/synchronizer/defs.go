@@ -48,6 +48,9 @@ type Synchronizer struct {
 
 	// Promehtues fetchers for each endpoint
 	prometheus map[string]*metrics.Fetcher
+
+	kafkaMsgChannel   chan string
+	kafkaErrorChannel chan error
 }
 
 // ConfigUpdate holds the configuration for a particular synchronization request

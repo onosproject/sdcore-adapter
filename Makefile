@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2022-present Intel Corporation
 # SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 #
 # SPDX-License-Identifier: Apache-2.0
@@ -53,6 +54,7 @@ endif
 build: local-aether-models
 	go build -o build/_output/sdcore-adapter ./cmd/sdcore-adapter
 	go build -o build/_output/sdcore-migrate ./cmd/sdcore-migrate
+	go build -o build/_output/sdcore-kafka ./cmd/sdcore-kafka
 
 # @HELP run various tests
 test: build unit-test deps license linters images

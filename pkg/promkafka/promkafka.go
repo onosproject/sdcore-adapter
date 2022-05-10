@@ -48,6 +48,7 @@ func (s *PromKafka) updateDeviceIPAddress(imsi uint64, mobileIP string, connecte
 
 	cached, okay := s.ipCache[imsi]
 	if okay && cached.Connected == ev.Connected && cached.IPAddress == ev.IPAddress {
+		log.Debugf("No change for IMSI %v", imsi)
 		return nil
 	}
 
@@ -55,6 +56,8 @@ func (s *PromKafka) updateDeviceIPAddress(imsi uint64, mobileIP string, connecte
 	if err != nil {
 		return err
 	}
+
+	// Note: No need to log here; the kafkaWriter will emit a Debugf log message
 
 	err = s.kafkaWriter.SendMessage(b)
 

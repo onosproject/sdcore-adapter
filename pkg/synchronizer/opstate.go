@@ -72,13 +72,12 @@ func (s *Synchronizer) handleKafkaIPAddress(config *gnmi.ConfigForest, event *pr
 		return
 	}
 
+	log.Debugf("Handling kafka update %s: ip=%s, connected=%v", *device.DeviceId, event.IPAddress, event.Connected)
+
 	if device.State == nil {
 		device.State = &DeviceState{}
 	}
 	device.State.IpAddress = &event.IPAddress
-
-	// too mucn noise, disabled for now.
-	//log.Debugf("Set device %s: ip=%s, connected=%v", device.DeviceId, event.IPAddress, event.Connected)
 
 	if event.Connected {
 		device.State.Connected = aStr("Yes")

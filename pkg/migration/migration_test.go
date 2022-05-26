@@ -249,36 +249,66 @@ func TestNewMigrator(t *testing.T) {
 }
 
 func Test_outputActions(t *testing.T) {
+	actions := make([]*MigrationActions, 0)
+	val1 := uint32(12345)
+	val2 := uint64(1234567890)
+	val3 := true
+	val4 := "test string"
+	val5 := "test new list instance with 2 keys"
+	val6 := "test existing list instance with 2 keys"
+	val7 := "test new list instance with 1 new 1 old key"
+	val8 := "test new list instance with 2 new keys"
+	val10 := "test list within an existing list"
+	val11 := "test existing list within an existing list"
+	valIDa := uint32(20)
+
 	updatePrefix := gnmiclient.StringToPath("/root/list0[name=zero]", "v2-device")
 	var updates []*gpb.Update
-	val1 := uint32(12345)
 	updates = append(updates, gnmiclient.UpdateUInt32("/leaf1", "v2-device", &val1))
-	val2 := uint64(1234567890)
 	updates = append(updates, gnmiclient.UpdateUInt64("/path/leaf2", "v2-device", &val2))
-	val3 := true
 	updates = append(updates, gnmiclient.UpdateBool("/path/to/leaf3", "v2-device", &val3))
-	val4 := "test string"
 	updates = append(updates, gnmiclient.UpdateString("/path/to/leaf4", "v2-device", &val4))
-	val5 := "test new list instance with 2 keys"
 	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/leaf5", "v2-device", &val5))
-	valIDa := uint32(20)
 	updates = append(updates, gnmiclient.UpdateUInt32("/path/listA[idA=1][idB=20]/idA", "v2-device", &valIDa))
-	val6 := "test existing list instance with 2 keys"
 	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/leaf6", "v2-device", &val6))
-	val7 := "test new list instance with 1 new 1 old key"
 	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=21]/leaf5", "v2-device", &val7))
-	val8 := "test new list instance with 2 new keys"
 	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=2][idB=22]/leaf5", "v2-device", &val8))
-	val10 := "test list within an existing list"
 	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/acont/listB[idC=one]/leaf10", "v2-device", &val10))
-	val11 := "test existing list within an existing list"
 	updates = append(updates, gnmiclient.UpdateString("/path/listA[idA=1][idB=20]/acont/listB[idC=one]/leaf11", "v2-device", &val11))
 
 	deletePath := gnmiclient.StringToPath("/root/list[a=b]", "v1-device")
 	deletePath.Origin = "u1,u2" // Used to pass unchanged attribs
 
 	action := &MigrationActions{UpdatePrefix: updatePrefix, Updates: updates, Deletes: []*gpb.Path{deletePath}}
-	actions := []*MigrationActions{action}
+	actions = append(actions, action)
+
+	updatePrefix2 := gnmiclient.StringToPath("/list2[name=two]", "test-ent")
+	var updates2 []*gpb.Update
+	updates2 = append(updates2, gnmiclient.UpdateUInt32("/leaf1", "test-ent", &val1))
+	updates2 = append(updates2, gnmiclient.UpdateUInt64("/path/leaf2", "test-ent", &val2))
+	updates2 = append(updates2, gnmiclient.UpdateBool("/path/to/leaf3", "test-ent", &val3))
+
+	action2 := &MigrationActions{UpdatePrefix: updatePrefix2, Updates: updates2, Deletes: []*gpb.Path{}}
+	actions = append(actions, action2)
+
+	updatePrefix3 := gnmiclient.StringToPath("/list2[name=three]", "test-ent")
+	var updates3 []*gpb.Update
+	updates3 = append(updates3, gnmiclient.UpdateUInt32("/leaf1", "test-ent", &val1))
+	updates3 = append(updates3, gnmiclient.UpdateUInt64("/path/leaf2", "test-ent", &val2))
+	updates3 = append(updates3, gnmiclient.UpdateBool("/path/to/leaf3", "test-ent", &val3))
+
+	action3 := &MigrationActions{UpdatePrefix: updatePrefix3, Updates: updates3, Deletes: []*gpb.Path{}}
+	actions = append(actions, action3)
+
+	// Now try it with same name, but in another enterprise
+	updatePrefix4 := gnmiclient.StringToPath("/list2[name=three]", "other-ent")
+	var updates4 []*gpb.Update
+	updates4 = append(updates4, gnmiclient.UpdateUInt32("/leaf1", "other-ent", &val1))
+	updates4 = append(updates4, gnmiclient.UpdateUInt64("/path/leaf2", "other-ent", &val2))
+	updates4 = append(updates4, gnmiclient.UpdateBool("/path/to/leaf3", "other-ent", &val3))
+
+	action4 := &MigrationActions{UpdatePrefix: updatePrefix4, Updates: updates4, Deletes: []*gpb.Path{}}
+	actions = append(actions, action4)
 
 	m := NewMigrator(nil)
 	jsonBytes, err := m.outputActions(actions,

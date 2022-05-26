@@ -10,8 +10,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/onosproject/aether-models/models/aether-2.0.x v0.0.0-20220327085226-9d2854b74665
 	github.com/onosproject/aether-models/models/aether-2.1.x v0.0.0-20220404214232-148c0e4da437
-	github.com/onosproject/aether-models/models/aether-4.x v0.0.0-20220327085226-9d2854b74665
-	github.com/onosproject/analytics/pkg/kafkaClient v0.0.0-20220503194729-1cd33b3a8dc8 // indirect
+	github.com/onosproject/analytics/pkg/kafkaClient v0.0.0-20220503194729-1cd33b3a8dc8
 	github.com/onosproject/analytics/pkg/messages v0.0.0-20220503194729-1cd33b3a8dc8
 	github.com/onosproject/config-models/modelplugin/testdevice-2.0.0 v0.8.8
 	github.com/onosproject/onos-lib-go v0.8.15

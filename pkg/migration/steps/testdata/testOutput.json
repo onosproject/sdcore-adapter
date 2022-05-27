@@ -2,7 +2,7 @@
   "Deletes": {
     "root-2.1.0": {
       "additionalProperties": {
-        "target": "connectivity-service-v2"
+        "enterprise-id": "connectivity-service-v2"
       },
       "list": [
         {
@@ -15,11 +15,54 @@
     }
   },
   "Extensions": {
-    "model-type-102": "Aether",
-    "model-version-101": "2.0.0"
+    "model-type-102": "Aether"
   },
   "Updates": {
+    "list2-3.0.0": [
+      {
+        "additionalProperties": {
+          "enterprise-id": "test-ent"
+        },
+        "leaf1": 12345,
+        "name": "two",
+        "path": {
+          "leaf2": 1234567890,
+          "to": {
+            "leaf3": true
+          }
+        }
+      },
+      {
+        "additionalProperties": {
+          "enterprise-id": "test-ent"
+        },
+        "leaf1": 12345,
+        "name": "three",
+        "path": {
+          "leaf2": 1234567890,
+          "to": {
+            "leaf3": true
+          }
+        }
+      },
+      {
+        "additionalProperties": {
+          "enterprise-id": "other-ent"
+        },
+        "leaf1": 12345,
+        "name": "three",
+        "path": {
+          "leaf2": 1234567890,
+          "to": {
+            "leaf3": true
+          }
+        }
+      }
+    ],
     "root-3.0.0": {
+      "additionalProperties": {
+        "enterprise-id": "v2-device"
+      },
       "list0": [
         {
           "leaf1": 12345,

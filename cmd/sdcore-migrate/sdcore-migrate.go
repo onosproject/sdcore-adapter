@@ -15,7 +15,7 @@ package main
 import (
 	"flag"
 	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/api"
-	modelsv4 "github.com/onosproject/aether-models/models/aether-4.x/api"
+	modelsv2_1 "github.com/onosproject/aether-models/models/aether-2.1.x/api"
 	"github.com/onosproject/sdcore-adapter/internal/pkg/version"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
@@ -53,14 +53,6 @@ func main() {
 	}
 	defer gnmiClient.CloseClient()
 
-	v4Models := gnmi.NewModel(modelsv4.ModelData(),
-		reflect.TypeOf((*modelsv4.Device)(nil)),
-		modelsv4.SchemaTree["Device"],
-		modelsv4.Unmarshal,
-		//models.ΛEnum  // NOTE: There is no Enum in the aether models? So use a blank map.
-		map[string]map[int64]ygot.EnumDefinition{},
-	)
-
 	v2Models := gnmi.NewModel(modelsv2.ModelData(),
 		reflect.TypeOf((*modelsv2.Device)(nil)),
 		modelsv2.SchemaTree["Device"],
@@ -69,9 +61,17 @@ func main() {
 		map[string]map[int64]ygot.EnumDefinition{},
 	)
 
+	v21Models := gnmi.NewModel(modelsv2_1.ModelData(),
+		reflect.TypeOf((*modelsv2_1.Device)(nil)),
+		modelsv2_1.SchemaTree["Device"],
+		modelsv2_1.Unmarshal,
+		//models.ΛEnum  // NOTE: There is no Enum in the aether models? So use a blank map.
+		map[string]map[int64]ygot.EnumDefinition{},
+	)
+
 	// Initialize the migration engine and register migration steps.
 	mig := migration.NewMigrator(gnmiClient)
-	mig.AddMigrationStep("4.0.0", v4Models, "2.0.0", v2Models, steps.MigrateV4V2)
+	mig.AddMigrationStep("2.0.0", v2Models, "2.1.0", v21Models, steps.MigrateV2V21)
 
 	if *fromVersion == "" {
 		log.Fatalf("--from-version not specified. Supports: %s", strings.Join(mig.SupportedVersions(), ", "))
@@ -87,6 +87,6 @@ func main() {
 
 	// Perform the migration
 	if err = mig.Migrate(*fromTarget, *fromVersion, *toTarget, *toVersion, outputToGnmi, output); err != nil {
-		log.Fatal("Migration failed. %s", err.Error())
+		log.Fatalf("Migration failed. %s", err.Error())
 	}
 }

@@ -136,18 +136,17 @@ func (m *Migrator) outputActions(actions []*MigrationActions,
 	deleteModel := make(map[string]interface{})
 	topLevel["Deletes"] = deleteModel
 	topLevel["Extensions"] = map[string]string{
-		"model-version-101": "2.0.0",
-		"model-type-102":    "Aether",
+		"model-type-102": "Aether",
 	}
 
 	for _, action := range actions {
 		updateModelIf := interface{}(updateModel)
-		updatePrefix, err := addObject(&updateModelIf, action.UpdatePrefix.GetElem(), true, nil, "", toVersion, "")
+		updatePrefix, err := addObject(&updateModelIf, action.UpdatePrefix.GetElem(), true, nil, action.UpdatePrefix.GetTarget(), toVersion, "")
 		if err != nil {
 			return nil, err
 		}
 		for _, u := range action.Updates {
-			if _, err = addObject(updatePrefix, u.GetPath().GetElem(), false, u.GetVal(), "",
+			if _, err = addObject(updatePrefix, u.GetPath().GetElem(), false, u.GetVal(), u.Path.GetTarget(),
 				keepSuffix(len(action.UpdatePrefix.GetElem()), toVersion), ""); err != nil {
 				return nil, err
 			}
@@ -179,7 +178,7 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 	// Convert to its real type
 	nodemap, ok := (*nodeif).(map[string]interface{})
 	if !ok {
-		// Might be a slice
+		// Might be aan array
 		nodeslice, ok := (*nodeif).([]interface{})
 		if !ok {
 			return nil, errors.NewInternal("could not convert nodeif %v for %v", *nodeif, elems)
@@ -222,9 +221,9 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 			childMap = make(map[string]interface{})
 			nodemap[name] = childMap
 		}
-		if target != "" {
+		if suffix != "" {
 			childMap["additionalProperties"] = map[string]string{
-				"target": target,
+				"enterprise-id": target,
 			}
 		}
 		childMapIf := interface{}(childMap)
@@ -261,6 +260,15 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 					}
 				}
 			}
+			if addProps, ok := childMap["additionalProperties"]; ok {
+				if addPropsMap, ok := (addProps).(map[string]string); ok {
+					if entID, ok := addPropsMap["enterprise-id"]; ok {
+						if entID != target {
+							matchingKeys = 0
+						}
+					}
+				}
+			}
 			if matchingKeys == len(elems[0].Key) {
 				childInstance = childMap
 				break
@@ -283,10 +291,15 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 				childInstance[k] = vInt
 			}
 		}
+		addProps := make(map[string]string)
 		if unchanged != "" {
-			childInstance["additionalProperties"] = map[string]string{
-				"unchanged": unchanged,
-			}
+			addProps["unchanged"] = unchanged
+		}
+		if suffix != "" {
+			addProps["enterprise-id"] = target
+		}
+		if len(addProps) > 0 {
+			childInstance["additionalProperties"] = addProps
 		}
 	}
 	if len(elems) > 1 {

@@ -221,7 +221,7 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 			childMap = make(map[string]interface{})
 			nodemap[name] = childMap
 		}
-		if target != "" {
+		if suffix != "" {
 			childMap["additionalProperties"] = map[string]string{
 				"enterprise-id": target,
 			}

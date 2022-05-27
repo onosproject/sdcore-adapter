@@ -216,9 +216,7 @@ func migrateV2V21Application(fromTarget string, toTarget string, app *modelsv2.O
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("description", toTarget, app.Description))
 	updates = gnmiclient.AddUpdate(updates, gnmiclient.UpdateString("display-name", toTarget, app.DisplayName))
 
-	matched, err := regexp.Match(`(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}'
-       +  '([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])'
-       + '/(([0-9])|([1-2][0-9])|(3[0-2]))`, []byte(*app.Address))
+	matched, err := regexp.Match(`^\d*\.\d*\.\d*\.\d*/\d*`, []byte(*app.Address))
 	if err != nil {
 		return nil, err
 	}

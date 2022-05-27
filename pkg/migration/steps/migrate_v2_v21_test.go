@@ -177,7 +177,7 @@ func Test_MigrateV2V21(t *testing.T) {
 				case `elem:{name:"display-name"} target:"acme"`:
 					assert.Equal(t, `DA`, upd.GetVal().GetStringVal())
 				case `elem:{name:"address"} target:"acme"`:
-					assert.Equal(t, `da.acme.com`, upd.GetVal().GetStringVal())
+					assert.Equal(t, `10.10.10.20/24`, upd.GetVal().GetStringVal())
 				case `elem:{name:"endpoint" key:{key:"endpoint-id" value:"da"}} elem:{name:"display-name"} target:"acme"`:
 					assert.Equal(t, `data acquisition endpoint`, upd.GetVal().GetStringVal())
 				case `elem:{name:"endpoint" key:{key:"endpoint-id" value:"da"}} elem:{name:"protocol"} target:"acme"`:
@@ -205,7 +205,7 @@ func Test_MigrateV2V21(t *testing.T) {
 				case `elem:{name:"display-name"} target:"starbucks"`:
 					assert.Equal(t, `NVR`, upd.GetVal().GetStringVal())
 				case `elem:{name:"address"} target:"starbucks"`:
-					assert.Equal(t, `nvr.starbucks.com`, upd.GetVal().GetStringVal())
+					assert.Equal(t, `10.20.30.40/32`, upd.GetVal().GetStringVal())
 				case `elem:{name:"endpoint" key:{key:"endpoint-id" value:"rtsp"}} elem:{name:"display-name"} target:"starbucks"`:
 					assert.Equal(t, `rtsp port`, upd.GetVal().GetStringVal())
 				case `elem:{name:"endpoint" key:{key:"endpoint-id" value:"rtsp"}} elem:{name:"protocol"} target:"starbucks"`:

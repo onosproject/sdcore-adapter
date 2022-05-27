@@ -86,7 +86,7 @@
             "application-id": "acme-dataacquisition",
             "description": "Data Acquisition",
             "display-name": "DA",
-            "address": "da.acme.com",
+            "address": "10.10.10.20/24",
             "endpoint": [
               {
                 "endpoint-id": "da",
@@ -349,7 +349,7 @@
           {
             "description": "Network Video Recorder",
             "display-name": "NVR",
-            "address": "nvr.starbucks.com",
+            "address": "10.20.30.40/32",
             "endpoint": [
               {
                 "endpoint-id": "rtsp",
@@ -370,7 +370,7 @@
             "application-id": "starbucks-fidelio",
             "description": "Fidelio POS",
             "display-name": "Fidelio",
-            "address": "fidelio.starbucks.com",
+            "address": "10.30.30.40/32",
             "endpoint": [
               {
                 "endpoint-id": "fidelio",

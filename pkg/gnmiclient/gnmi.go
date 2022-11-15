@@ -16,6 +16,7 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"os"
 	"strings"
@@ -30,6 +31,7 @@ const (
 )
 
 // GnmiInterface - abstract definition of the Gnmi interface
+//
 //go:generate mockgen -destination=../test/mocks/mock_gnmi.go -package=mocks github.com/onosproject/sdcore-adapter/pkg/gnmiclient GnmiInterface
 type GnmiInterface interface {
 	// GetPath - gNMI Get
@@ -77,7 +79,7 @@ func NewGnmi(addr string, timeout time.Duration) (GnmiInterface, error) {
 	return gnmi, nil
 }
 
-//NewGnmiWithInterceptor - create one gNMI client and keep it open with retry mechanism
+// NewGnmiWithInterceptor - create one gNMI client and keep it open with retry mechanism
 func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, string, error) {
 	gnmi := new(Gnmi)
 	gnmi.address = addr
@@ -117,7 +119,7 @@ func NewGnmiWithInterceptor(addr string, timeout time.Duration) (GnmiInterface, 
 
 	switch d.TLS {
 	case nil:
-		opts = append(opts, grpc.WithInsecure())
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	default:
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(d.TLS)))
 	}

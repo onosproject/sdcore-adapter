@@ -9,12 +9,12 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
+	"os"
 	"testing"
 )
 
 func TestSynchronizeSliceUPF(t *testing.T) {
-	jsonData, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
+	jsonData, err := os.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -42,7 +42,7 @@ func TestSynchronizeSliceUPF(t *testing.T) {
 }
 
 func TestSynchronizeSliceUPFWithBurst(t *testing.T) {
-	jsonData, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
+	jsonData, err := os.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -73,7 +73,7 @@ func TestSynchronizeSliceUPFWithBurst(t *testing.T) {
 }
 
 func TestSynchronizeSliceUPFNoSliceQos(t *testing.T) {
-	jsonData, err := ioutil.ReadFile("./testdata/sample-upfslice1.json")
+	jsonData, err := os.ReadFile("./testdata/sample-upfslice1.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)

@@ -60,8 +60,8 @@ func (s *Synchronizer) updateScopeFromDeviceGroup(scope *AetherScope, dg *Device
 }
 
 // SynchronizeDevice synchronizes a device. Two sets of error state are returned:
-//   1) pushFailures -- a count of pushes that failed to the core. Synchronizer should retry again later.
-//   2) error -- a fatal error that occurred during synchronization.
+//  1. pushFailures -- a count of pushes that failed to the core. Synchronizer should retry again later.
+//  2. error -- a fatal error that occurred during synchronization.
 func (s *Synchronizer) SynchronizeDevice(allConfig *gnmi.ConfigForest) (int, error) {
 
 	// Forget all current metrics. We'll compute and report them inside the sync loop.

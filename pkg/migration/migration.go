@@ -18,7 +18,7 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
-	"io/ioutil"
+	"os"
 	"strconv"
 )
 
@@ -336,7 +336,7 @@ func (m *Migrator) Migrate(fromTarget string, fromVersion string, toTarget strin
 			var json []byte
 			json, errStep = m.outputActions(actions, fromTarget, toTarget, fromVersion, toVersion)
 			if output != nil && *output != "" {
-				err = ioutil.WriteFile(*output, json, 0644)
+				err = os.WriteFile(*output, json, 0644)
 				if err != nil {
 					log.Fatalf("error writing generated code to file: %s\n", err)
 				}

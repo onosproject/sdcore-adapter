@@ -9,13 +9,13 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
+	"os"
 	"testing"
 )
 
 func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 
-	jsonData, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	jsonData, err := os.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -50,7 +50,7 @@ func TestSynchronizeDeviceDeviceGroupWithQos(t *testing.T) {
 
 func TestSynchronizeDeviceDeviceGroupWithQosSpecifiedPelrPDB(t *testing.T) {
 
-	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg1.json")
+	jsonDataDg, err := os.ReadFile("./testdata/sample-dg1.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -159,11 +159,11 @@ func TestSynchronizeDeviceDeviceGroupManyIMSIDeterministic(t *testing.T) {
 
 func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 
-	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	jsonDataDg, err := os.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)
-	jsonDataUpfSlice, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
+	jsonDataUpfSlice, err := os.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
-	jsonDataCoreSlice, err := ioutil.ReadFile("./testdata/sample-coreslice.json")
+	jsonDataCoreSlice, err := os.ReadFile("./testdata/sample-coreslice.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -208,11 +208,11 @@ func TestSynchronizeDeviceDeviceGroupLinkedToVCS(t *testing.T) {
 }
 
 func TestSynchronizeVCS(t *testing.T) {
-	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	jsonDataDg, err := os.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)
-	jsonDataUpfSlice, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
+	jsonDataUpfSlice, err := os.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
-	jsonDataCoreSlice, err := ioutil.ReadFile("./testdata/sample-coreslice.json")
+	jsonDataCoreSlice, err := os.ReadFile("./testdata/sample-coreslice.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -255,11 +255,11 @@ func TestSynchronizeVCS(t *testing.T) {
 }
 
 func TestSynchronizeVCSAllowAll(t *testing.T) {
-	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	jsonDataDg, err := os.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)
-	jsonDataCoreSlice, err := ioutil.ReadFile("./testdata/sample-coreslice-allow-all.json")
+	jsonDataCoreSlice, err := os.ReadFile("./testdata/sample-coreslice-allow-all.json")
 	assert.NoError(t, err)
-	jsonDataUpfSlice, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
+	jsonDataUpfSlice, err := os.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -303,11 +303,11 @@ func TestSynchronizeVCSAllowAll(t *testing.T) {
 }
 
 func TestSynchronizeVCSAllowPublic(t *testing.T) {
-	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	jsonDataDg, err := os.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)
-	jsonDataCoreSlice, err := ioutil.ReadFile("./testdata/sample-coreslice-allow-public.json")
+	jsonDataCoreSlice, err := os.ReadFile("./testdata/sample-coreslice-allow-public.json")
 	assert.NoError(t, err)
-	jsonDataUpfSlice, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
+	jsonDataUpfSlice, err := os.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -352,11 +352,11 @@ func TestSynchronizeVCSAllowPublic(t *testing.T) {
 }
 
 func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
-	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	jsonDataDg, err := os.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)
-	jsonDataUpfSlice, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
+	jsonDataUpfSlice, err := os.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
-	jsonDataCoreSlice, err := ioutil.ReadFile("./testdata/sample-coreslice1.json")
+	jsonDataCoreSlice, err := os.ReadFile("./testdata/sample-coreslice1.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -415,11 +415,11 @@ func TestSynchronizeVCSTwoEnpoints(t *testing.T) {
 }
 
 func TestSynchronizeVCSEmptySD(t *testing.T) {
-	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	jsonDataDg, err := os.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)
-	jsonDataUpfSlice, err := ioutil.ReadFile("./testdata/sample-upfslice.json")
+	jsonDataUpfSlice, err := os.ReadFile("./testdata/sample-upfslice.json")
 	assert.NoError(t, err)
-	jsonDataCoreSlice, err := ioutil.ReadFile("./testdata/sample-coreslice2.json")
+	jsonDataCoreSlice, err := os.ReadFile("./testdata/sample-coreslice2.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -464,11 +464,11 @@ func TestSynchronizeVCSEmptySD(t *testing.T) {
 }
 
 func TestSynchronizeVCSDisabledDG(t *testing.T) {
-	jsonDataDg, err := ioutil.ReadFile("./testdata/sample-dg.json")
+	jsonDataDg, err := os.ReadFile("./testdata/sample-dg.json")
 	assert.NoError(t, err)
-	jsonDataUpfSlice, err := ioutil.ReadFile("./testdata/sample-upfslice1.json")
+	jsonDataUpfSlice, err := os.ReadFile("./testdata/sample-upfslice1.json")
 	assert.NoError(t, err)
-	jsonDataCoreSlice, err := ioutil.ReadFile("./testdata/sample-coreslice3.json")
+	jsonDataCoreSlice, err := os.ReadFile("./testdata/sample-coreslice3.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)
@@ -513,9 +513,9 @@ func TestSynchronizeVCSDisabledDG(t *testing.T) {
 }
 
 func TestSynchronizeVCSMissingDG(t *testing.T) {
-	jsonDataUpfSlice, err := ioutil.ReadFile("./testdata/sample-upfslice1.json")
+	jsonDataUpfSlice, err := os.ReadFile("./testdata/sample-upfslice1.json")
 	assert.NoError(t, err)
-	jsonDataCoreSlice, err := ioutil.ReadFile("./testdata/sample-coreslice3.json")
+	jsonDataCoreSlice, err := os.ReadFile("./testdata/sample-coreslice3.json")
 	assert.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockPusher := mocks.NewMockPusherInterface(ctrl)

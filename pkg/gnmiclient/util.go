@@ -14,7 +14,6 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"golang.org/x/oauth2"
-	"io/ioutil"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -89,7 +88,7 @@ func UpdateString(path string, target string, val *string) *gpb.Update {
 	}
 }
 
-//UpdateUInt8 creates a gpb.Update for a uint8 value
+// UpdateUInt8 creates a gpb.Update for a uint8 value
 func UpdateUInt8(path string, target string, val *uint8) *gpb.Update {
 	if val == nil {
 		return nil
@@ -101,7 +100,7 @@ func UpdateUInt8(path string, target string, val *uint8) *gpb.Update {
 	}
 }
 
-//UpdateInt8 creates a gpb.Update for a int8 value
+// UpdateInt8 creates a gpb.Update for a int8 value
 func UpdateInt8(path string, target string, val *int8) *gpb.Update {
 	if val == nil {
 		return nil
@@ -113,7 +112,7 @@ func UpdateInt8(path string, target string, val *int8) *gpb.Update {
 	}
 }
 
-//UpdateUInt16 creates a gpb.Update for a uint16 value
+// UpdateUInt16 creates a gpb.Update for a uint16 value
 func UpdateUInt16(path string, target string, val *uint16) *gpb.Update {
 	if val == nil {
 		return nil
@@ -200,7 +199,7 @@ func StrDeref(s *string) string {
 	return *s
 }
 
-//fetchATokenViaKeyCloak Get the token via keycloak using curl
+// fetchATokenViaKeyCloak Get the token via keycloak using curl
 func fetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (string, error) {
 
 	data := url.Values{}
@@ -238,13 +237,13 @@ func fetchATokenViaKeyCloak(openIDIssuer string, user string, passwd string) (st
 
 }
 
-//getNamespace Get the current namespace
+// getNamespace Get the current namespace
 func getNamespace() string {
 	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {
 		return ns
 	}
 
-	if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+	if data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
 		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
 			return ns
 		}
@@ -253,7 +252,7 @@ func getNamespace() string {
 	return "aether-roc"
 }
 
-//GetAccessToken authenticate and get the access token
+// GetAccessToken authenticate and get the access token
 func GetAccessToken(openIDIssuer string, secretName string) (string, error) {
 
 	// creates the in-cluster config

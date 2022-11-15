@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
@@ -62,7 +62,7 @@ func TestCapabilities(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	jsonConfigRoot, err := ioutil.ReadFile("./testdata/sample-config-root.json")
+	jsonConfigRoot, err := os.ReadFile("./testdata/sample-config-root.json")
 	assert.NoError(t, err)
 	s, err := NewServer(model, nil)
 	if err != nil {
@@ -296,7 +296,7 @@ func runTestSet(t *testing.T, s *Server, textPbPrefix string, textPbUpdate strin
 }
 
 func TestServer_GetJSON(t *testing.T) {
-	jsonConfigRoot, err := ioutil.ReadFile("./testdata/sample-config-root.json")
+	jsonConfigRoot, err := os.ReadFile("./testdata/sample-config-root.json")
 	assert.NoError(t, err)
 	s, err := NewServer(model, nil)
 	assert.NoError(t, err)

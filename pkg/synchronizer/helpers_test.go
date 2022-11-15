@@ -8,7 +8,7 @@ package synchronizer
 import (
 	"errors"
 	"fmt"
-	models "github.com/onosproject/aether-models/models/aether-2.1.x/api"
+	models "github.com/onosproject/aether-models/models/aether-2.1.x/v2/api"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"testing"
 	"time"

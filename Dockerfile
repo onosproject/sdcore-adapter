@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-FROM onosproject/golang-build:v1.0 as build
+FROM onosproject/golang-build:v1.3 as build
 
 ARG LOCAL_AETHER_MODELS
 ARG org_label_schema_version=unknown

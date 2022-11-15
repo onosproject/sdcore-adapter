@@ -14,8 +14,8 @@ package main
 
 import (
 	"flag"
-	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/api"
-	modelsv2_1 "github.com/onosproject/aether-models/models/aether-2.1.x/api"
+	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/v2/api"
+	modelsv2_1 "github.com/onosproject/aether-models/models/aether-2.1.x/v2/api"
 	"github.com/onosproject/sdcore-adapter/internal/pkg/version"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"

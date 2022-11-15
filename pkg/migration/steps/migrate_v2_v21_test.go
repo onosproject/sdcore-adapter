@@ -6,8 +6,8 @@
 package steps
 
 import (
-	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/api"
-	modelsv21 "github.com/onosproject/aether-models/models/aether-2.1.x/api"
+	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/v2/api"
+	modelsv21 "github.com/onosproject/aether-models/models/aether-2.1.x/v2/api"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"

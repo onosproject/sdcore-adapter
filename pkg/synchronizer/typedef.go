@@ -6,7 +6,7 @@
 package synchronizer
 
 import (
-	models "github.com/onosproject/aether-models/models/aether-2.1.x/api"
+	models "github.com/onosproject/aether-models/models/aether-2.1.x/v2/api"
 )
 
 const ConnectivityService4G = models.OnfSite_Site_Slice_ConnectivityService_4g //nolint

@@ -13,8 +13,8 @@ package steps
 
 import (
 	"fmt"
-	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/api"
-	modelsv2_1 "github.com/onosproject/aether-models/models/aether-2.1.x/api"
+	modelsv2 "github.com/onosproject/aether-models/models/aether-2.0.x/v2/api"
+	modelsv2_1 "github.com/onosproject/aether-models/models/aether-2.1.x/v2/api"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
 	"github.com/onosproject/sdcore-adapter/pkg/migration"

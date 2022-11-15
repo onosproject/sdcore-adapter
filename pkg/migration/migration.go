@@ -202,8 +202,6 @@ func addObject(nodeif *interface{}, elems []*gpb.PathElem, isPrefix bool,
 			nodemap[name] = val.GetBoolVal()
 		case "string":
 			nodemap[name] = val.GetStringVal()
-		case "float32", "float64":
-			nodemap[name] = val.GetFloatVal()
 		default:
 			log.Fatal("unhandled type", fieldDescriptor.Kind().String())
 		}

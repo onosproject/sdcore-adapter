@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-FROM onosproject/golang-build:v1.3 as build
+FROM onosproject/golang-build:v1.3.0 as build
 
 ARG LOCAL_AETHER_MODELS
 ARG org_label_schema_version=unknown
@@ -62,7 +62,7 @@ RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sdcore-kafka \
          -X github.com/onosproject/sdcore-adapter/internal/pkg/version.BuildTime=$org_label_schema_build_date" \
          ./cmd/sdcore-kafka
 
-FROM alpine:3.11
+FROM alpine:3.16
 RUN apk add bash openssl curl libc6-compat
 
 ENV HOME=/home/sdcore-adapter

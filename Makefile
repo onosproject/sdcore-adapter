@@ -8,6 +8,7 @@ SHELL = bash -o pipefail
 
 export CGO_ENABLED=1
 export GO111MODULE=on
+PLATFORM ?= --platform linux/x86_64
 
 .PHONY: build
 
@@ -69,7 +70,7 @@ jenkins-test: build deps license linters images jenkins-tools
 	TEST_PACKAGES=`go list github.com/onosproject/sdcore-adapter/...` ./build/build-tools/build/jenkins/make-unit
 
 sdcore-adapter-docker: local-aether-models
-	docker build . -f Dockerfile \
+	docker build ${PLATFORM} . -f Dockerfile \
 	$(DOCKER_BUILD_ARGS) \
 	-t ${DOCKER_REPOSITORY}sdcore-adapter:${ONOS_SDCORE_ADAPTER_VERSION}
 

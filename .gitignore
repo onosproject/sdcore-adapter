@@ -31,4 +31,5 @@ sdcore-exporter
 
 build/build-tools
 
+vendor/
 

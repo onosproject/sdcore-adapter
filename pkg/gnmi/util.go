@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -44,7 +44,7 @@ func getGNMIServiceVersion() (*string, error) {
 		return nil, fmt.Errorf("error in initializing gzip reader: %v", err)
 	}
 	defer r.Close()
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("error in reading gzip data: %v", err)
 	}
@@ -61,8 +61,9 @@ func getGNMIServiceVersion() (*string, error) {
 
 // tryChoices checks to see if elemName is behind a choice.
 // An Example is:
-//    gNMI: slice.mbr
-//    schema: slice.bitrate.mbr-case.mbr
+//
+//	gNMI: slice.mbr
+//	schema: slice.bitrate.mbr-case.mbr
 func tryChoices(schema *yang.Entry, elemName string) *yang.Entry {
 	for _, entry := range schema.Dir {
 		// Check each entry in Schema to see if it's a choice

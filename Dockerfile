@@ -71,6 +71,7 @@ RUN mkdir $HOME
 WORKDIR $HOME
 
 COPY --from=build /go/bin/sdcore-adapter /usr/local/bin/
+RUN cd /usr/local/bin && ln -s sdcore-adapter roc-adapter && cd $HOME
 COPY --from=build /go/bin/sdcore-migrate /usr/local/bin/
 COPY --from=build /go/bin/sdcore-kafka /usr/local/bin/
 

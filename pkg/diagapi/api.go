@@ -32,7 +32,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmiclient"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -115,7 +115,7 @@ func (m *DiagnosticAPI) postCache(w http.ResponseWriter, r *http.Request) {
 		target = m.defaultTarget
 	}
 
-	reqBody, err := ioutil.ReadAll(r.Body)
+	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -211,7 +211,7 @@ func (m *DiagnosticAPI) setLogLevel(w http.ResponseWriter, r *http.Request) {
 	names := splitLoggerName(name)
 	logger := logging.GetLogger(names...)
 
-	reqBody, err := ioutil.ReadAll(r.Body)
+	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

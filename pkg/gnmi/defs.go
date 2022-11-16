@@ -62,6 +62,7 @@ var (
 
 // Server struct maintains the data structure for device config and implements the interface of gnmi server. It supports Capabilities, Get, and Set APIs.
 // Typical usage:
+//
 //	g := grpc.NewServer()
 //	s, err := Server.NewServer(model, config, callback)
 //	pb.NewServer(g, s)
@@ -71,12 +72,14 @@ var (
 //
 // For a real device, apply the config changes to the hardware in the callback function.
 // Arguments:
-//		newConfig: new root config to be applied on the device.
-// func callback(newConfig ygot.ValidatedGoStruct) error {
-//		// Apply the config to your device and return nil if success. return error if fails.
-//		//
-//		// Do something ...
-// }
+//
+//	newConfig: new root config to be applied on the device.
+//
+//	func callback(newConfig ygot.ValidatedGoStruct) error {
+//			// Apply the config to your device and return nil if success. return error if fails.
+//			//
+//			// Do something ...
+//	}
 type Server struct {
 	model        *Model
 	callback     ConfigCallback

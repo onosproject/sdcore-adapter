@@ -13,14 +13,14 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
 )
 
 func Test_MigrateV2V21(t *testing.T) {
-	srcJSON, err := ioutil.ReadFile("./testdata/mega_patch_200_src.json")
+	srcJSON, err := os.ReadFile("./testdata/mega_patch_200_src.json")
 	assert.NoError(t, err)
 	srcValJSON := &gpb.TypedValue{
 		Value: &gpb.TypedValue_JsonVal{

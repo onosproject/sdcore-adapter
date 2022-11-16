@@ -40,9 +40,10 @@ func mockSynchronizeDevice(config *gnmi.ConfigForest) (int, error) {
 }
 
 // Reset mockSynchronizeDevice for a new set of tests
-//    failCount = number of times to fail before returning success
-//    pushFailCount = number of times to fail to push before returning success
-//    delay = amount of time to delay before returning
+//
+//	failCount = number of times to fail before returning success
+//	pushFailCount = number of times to fail to push before returning success
+//	delay = amount of time to delay before returning
 func mockSynchronizeDeviceReset(failCount int, pushFailCount int, delay time.Duration) {
 	mockSynchronizeDeviceCalls = nil
 	mockSynchronizeDeviceFails = nil

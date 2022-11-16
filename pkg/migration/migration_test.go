@@ -12,7 +12,7 @@ import (
 	"github.com/onosproject/sdcore-adapter/pkg/test/mocks"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -315,7 +315,7 @@ func Test_outputActions(t *testing.T) {
 		"connectivity-service-v2", "connectivity-service-v3", "2.1.0", "3.0.0")
 	assert.NoError(t, err)
 	t.Log(string(jsonBytes))
-	expectedJSON, err := ioutil.ReadFile("./steps/testdata/testOutput.json")
+	expectedJSON, err := os.ReadFile("./steps/testdata/testOutput.json")
 	assert.NoError(t, err)
 
 	assert.JSONEq(t, string(expectedJSON), string(jsonBytes))

@@ -17,7 +17,7 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/openconfig/gnmi/client"
 	"google.golang.org/grpc/metadata"
-	"io/ioutil"
+	"os"
 )
 
 var (
@@ -50,7 +50,7 @@ func readCerts(q client.Query) error {
 
 	if *caCert != "" {
 		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(*caCert)
+		ca, err := os.ReadFile(*caCert)
 		if err != nil {
 			return fmt.Errorf("could not read %q: %s", *caCert, err)
 		}

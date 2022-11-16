@@ -7,7 +7,7 @@ package closedloop
 import (
 	"fmt"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"os"
 )
 
 // ClosedLoopConfig structs are all based on yaml configuration. The yaml
@@ -60,7 +60,7 @@ type ClosedLoopConfig struct { //nolint
 
 // LoadFromYamlFile loads a ClosedLoopConfig from a YAML File
 func (c *ClosedLoopConfig) LoadFromYamlFile(fn string) error {
-	yamlFile, err := ioutil.ReadFile(fn)
+	yamlFile, err := os.ReadFile(fn)
 	if err != nil {
 		return fmt.Errorf("Failed to read yaml file: %v", err)
 	}

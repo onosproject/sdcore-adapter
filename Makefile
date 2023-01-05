@@ -56,6 +56,11 @@ build: local-aether-models
 	go build -o build/_output/sdcore-migrate ./cmd/sdcore-migrate
 	go build -o build/_output/sdcore-kafka ./cmd/sdcore-kafka
 
+
+# @HELP format go code using go fmt
+go-format:
+	@go fmt $(shell sh -c "go list ./...")
+
 # @HELP run various tests
 test: build unit-test deps license linters images
 

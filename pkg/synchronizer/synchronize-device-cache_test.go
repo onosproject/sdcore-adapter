@@ -24,7 +24,7 @@ func TestSynchronizeDeviceDeviceGroupCacheTest(t *testing.T) {
 
 	jsonData := `{
 			"imsis": [
-			  "123456789000001"
+			  "123456789012345"
 			],
 			"ip-domain-name": "sample-ipd",
 			"site-info": "sample-site",
@@ -78,7 +78,7 @@ func TestSynchronizeDeviceDeviceGroupCacheTest(t *testing.T) {
 
 	jsonDataUpdated := `{
 		"imsis": [
-			"123456789000001"
+			"123456789012345"
 		],
 		"ip-domain-name": "sample-ipd",
 		"site-info": "sample-site",

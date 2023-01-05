@@ -20,7 +20,7 @@ type PromKafka struct {
 	// Promehtues fetchers for each endpoint
 	prometheus map[string]*metrics.Fetcher
 
-	ipCache map[uint64]*IPAddressEvent
+	ipCache map[string]*IPAddressEvent
 
 	Mu sync.RWMutex // mu is the RW lock to protect the access to config
 

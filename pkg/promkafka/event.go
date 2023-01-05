@@ -14,7 +14,7 @@ import (
 // IPAddressEvent is an event that assigns an IP Address to a UE
 type IPAddressEvent struct {
 	Type      string    `json:"type"`
-	Imsi      uint64    `json:"imsi"`
+	Imsi      string    `json:"imsi"`
 	Connected bool      `json:"connected"`
 	IPAddress string    `json:"ipaddress"`
 	Timestamp time.Time `json:"timestamp,omitempty"`

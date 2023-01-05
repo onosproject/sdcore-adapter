@@ -16,8 +16,8 @@
       "traffic-class": {
         "name": "sample-traffic-class",
         "arp": 3,
-        "pdb": 300,
-        "pelr": 6,
+        "pdb": 400,
+        "pelr": 3,
         "qci": 55
       }
     }

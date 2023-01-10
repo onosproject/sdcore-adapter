@@ -90,13 +90,13 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 	}
 
 	sliceID := sliceIDStruct{
-		Sst: strconv.FormatUint(uint64(*slice.Sst), 10),
+		Sst: *slice.Sst,
 	}
 
 	// If the SD is unset, then do not set SD in the output. If it is set,
 	// then emit it as a string of six hex digits.
 	if slice.Sd != nil {
-		sliceID.Sd = fmt.Sprintf("%06X", *slice.Sd)
+		sliceID.Sd = *slice.Sd
 	}
 
 	coreSlice := coreSlice{

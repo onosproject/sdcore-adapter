@@ -8,7 +8,7 @@ package synchronizer
 import (
 	"errors"
 	"fmt"
-	models "github.com/onosproject/aether-models/models/aether-2.1.x/api"
+	models "github.com/onosproject/aether-models/models/aether-2.1.x/v2/api"
 	"github.com/onosproject/sdcore-adapter/pkg/gnmi"
 	"testing"
 	"time"
@@ -109,7 +109,7 @@ func BuildSampleDeviceGroup() (
 	}
 	simCard := &SimCard{
 		SimId: aStr("sample-sim"),
-		Imsi:  aUint64(1),
+		Imsi:  aStr("123456789012345"),
 	}
 	device := &Device{
 		DeviceId: aStr("sample-device"),
@@ -220,8 +220,8 @@ func BuildSampleSlice(site *Site) (
 		TemplateId:  aStr("sample-template"),
 		Description: aStr("sample-template-desc"),
 		DisplayName: aStr("sample-template-dn"),
-		Sd:          aUint32(111),
-		Sst:         aUint8(222),
+		Sd:          aStr("111"),
+		Sst:         aStr("222"),
 	}
 
 	upf := &Upf{
@@ -241,8 +241,8 @@ func BuildSampleSlice(site *Site) (
 		DeviceGroup:         map[string]*SliceDeviceGroup{"sample-dg": dgLink},
 		DisplayName:         aStr("sample-app-dn"),
 		SliceId:             aStr("sample-slice"),
-		Sd:                  aUint32(111),
-		Sst:                 aUint8(222),
+		Sd:                  aStr("111"),
+		Sst:                 aStr("222"),
 		Mbr:                 sliceMbr,
 		Upf:                 aStr("sample-upf"),
 		DefaultBehavior:     aStr("DENY-ALL"),

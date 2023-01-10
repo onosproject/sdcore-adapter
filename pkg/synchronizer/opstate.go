@@ -21,7 +21,7 @@ var (
 )
 
 // given an IMSI, return the simCard that has that IMSI, or nil if none exists
-func (s *Synchronizer) getSimCardFromSiteByImsi(site *Site, imsi uint64) *SimCard {
+func (s *Synchronizer) getSimCardFromSiteByImsi(site *Site, imsi string) *SimCard {
 	for _, sim := range site.SimCard {
 		if sim.Imsi != nil && *sim.Imsi == imsi {
 			return sim
@@ -31,7 +31,7 @@ func (s *Synchronizer) getSimCardFromSiteByImsi(site *Site, imsi uint64) *SimCar
 }
 
 // given an IMSI, return the device that has a simcart that has that IMSI, or nil if none exists
-func (s *Synchronizer) getDeviceFromSiteByImsi(site *Site, imsi uint64) *Device {
+func (s *Synchronizer) getDeviceFromSiteByImsi(site *Site, imsi string) *Device {
 	sim := s.getSimCardFromSiteByImsi(site, imsi)
 	if sim == nil {
 		return nil
@@ -45,7 +45,7 @@ func (s *Synchronizer) getDeviceFromSiteByImsi(site *Site, imsi uint64) *Device 
 }
 
 // given an IMSI, find the device by searching all enterprises and sites
-func (s *Synchronizer) getDeviceByImsi(config *gnmi.ConfigForest, imsi uint64) *Device {
+func (s *Synchronizer) getDeviceByImsi(config *gnmi.ConfigForest, imsi string) *Device {
 	for _, entRoot := range config.Configs {
 		enterprise := entRoot.(*RootDevice)
 		for _, site := range enterprise.Site {

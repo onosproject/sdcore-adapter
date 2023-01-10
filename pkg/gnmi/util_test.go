@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 
-	testmodels "github.com/onosproject/config-models/modelplugin/testdevice-2.0.0/testdevice_2_0_0"
+	testmodels2 "github.com/onosproject/config-models/models/testdevice-2.0.x/api"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -30,7 +30,7 @@ func TestConvertTypedValueToJSONValue(t *testing.T) {
 
 func TestGetChildNode(t *testing.T) {
 	data := map[string]interface{}{}
-	schema, err := testmodels.UnzipSchema()
+	schema, err := testmodels2.UnzipSchema()
 	assert.Nil(t, err)
 
 	// Check for nonexistent path

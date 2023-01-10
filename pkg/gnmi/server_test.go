@@ -26,7 +26,7 @@ import (
 	// TODO: It might be better to eventually switch to a service-independent
 	// set of test models, so that this test code can remain independent of
 	// any particular service.
-	models "github.com/onosproject/aether-models/models/aether-2.1.x/api"
+	models "github.com/onosproject/aether-models/models/aether-2.1.x/v2/api"
 )
 
 var ModelData = []*gnmiproto.ModelData{

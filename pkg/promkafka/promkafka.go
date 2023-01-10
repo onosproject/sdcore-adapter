@@ -12,7 +12,6 @@ import (
 	"github.com/onosproject/analytics/pkg/messages"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/sdcore-adapter/pkg/metrics"
-	"strconv"
 	"time"
 )
 
@@ -40,7 +39,7 @@ func (s *PromKafka) getFetcher(endpoint string) (*metrics.Fetcher, error) {
 	return mf, nil
 }
 
-func (s *PromKafka) updateDeviceIPAddress(imsi uint64, mobileIP string, connected float64) error {
+func (s *PromKafka) updateDeviceIPAddress(imsi string, mobileIP string, connected float64) error {
 	ev := IPAddressEvent{Type: "ip-assignment",
 		Imsi:      imsi,
 		Connected: connected > 0,
@@ -98,16 +97,10 @@ func (s *PromKafka) pollPrometheus(prom *prometheusInfo) error {
 			continue
 		}
 
-		imsi, err := strconv.ParseUint(string(imsiString), 10, 64)
-		if err != nil {
-			log.Warn("Failed to convert imsi %v from sample", imsiString)
-			continue
-		}
-
 		// do stuff here
-		err = s.updateDeviceIPAddress(imsi, string(mobileIP), float64(sample.Value))
+		err = s.updateDeviceIPAddress(string(imsiString), string(mobileIP), float64(sample.Value))
 		if err != nil {
-			log.Warnf("Failed to update kafka for imsi %v: %v", imsi, err)
+			log.Warnf("Failed to update kafka for imsi %v: %v", imsiString, err)
 		}
 	}
 
@@ -169,7 +162,7 @@ func NewPromKafka(endpoints []string, opts ...PromKafkaOption) *PromKafka {
 		prometheus: map[string]*metrics.Fetcher{},
 		kafkaURI:   "default-kafka-uri",
 		kafkaTopic: "sdcore",
-		ipCache:    map[uint64]*IPAddressEvent{},
+		ipCache:    map[string]*IPAddressEvent{},
 	}
 
 	for _, opt := range opts {

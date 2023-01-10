@@ -1,8 +1,11 @@
 {
   "slice-id": {
-    "sst": "222",
-    "sd": "111"
+    "sst": "002",
+    "sd": "000111"
   },
+  "site-device-group": [
+    "sample-dg"
+  ],
   "site-info": {
     "site-name": "sample-site",
     "plmn": {
@@ -20,38 +23,40 @@
       "upf-port": 66
     }
   },
-  "application-filtering-rules": [{
-    "rule-name": "sample-app-sample-app-ep",
-    "dest-port-start": 123,
-    "dest-port-end": 124,
-    "endpoint": "1.2.3.4/32",
-    "action": "permit",
-    "protocol": 17,
-    "priority": 7
-  },
+  "application-filtering-rules": [
     {
-      "rule-name": "sample-app2-sample-app2-ep",
+      "rule-name": "sample-app-sample-app-ep",
+      "priority": 7,
+      "action": "permit",
+      "endpoint": "1.2.3.4/32",
       "dest-port-start": 123,
       "dest-port-end": 124,
-      "endpoint": "1.2.3.5/32",
-      "action": "deny",
-      "protocol": 17,
+      "protocol": 17
+    },
+    {
+      "rule-name": "sample-app2-sample-app2-ep",
       "priority": 8,
-      "app-mbr-downlink": 55667788,
+      "action": "deny",
+      "endpoint": "1.2.3.5/32",
+      "dest-port-start": 123,
+      "dest-port-end": 124,
+      "protocol": 17,
       "app-mbr-uplink": 11223344,
+      "app-mbr-downlink": 55667788,
       "bitrate-unit": "bps",
       "traffic-class": {
         "name": "sample-traffic-class",
+        "qci": 55,
         "arp": 3,
         "pdb": 300,
-        "pelr": 6,
-        "qci": 55
+        "pelr": 6
       }
     },
     {
       "rule-name": "DENY-ALL",
-      "endpoint": "0.0.0.0/0",
       "priority": 250,
-      "action": "deny"
-    }]
+      "action": "deny",
+      "endpoint": "0.0.0.0/0"
+    }
+  ]
 }

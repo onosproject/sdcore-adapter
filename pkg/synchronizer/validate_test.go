@@ -12,15 +12,15 @@ import (
 
 func TestValidateSlice(t *testing.T) {
 	v := &Slice{
-		Sst:             aUint8(123),
-		Sd:              aUint32(456),
+		Sst:             aStr("123"),
+		Sd:              aStr("456"),
 		DefaultBehavior: aStr("DENY-ALL"),
 	}
 	err := validateSlice(v)
 	assert.Nil(t, err)
 
 	v = &Slice{
-		Sd:              aUint32(456),
+		Sd:              aStr("456"),
 		DefaultBehavior: aStr("DENY-ALL"),
 	}
 	err = validateSlice(v)
@@ -28,7 +28,7 @@ func TestValidateSlice(t *testing.T) {
 
 	// SD is optional
 	v = &Slice{
-		Sst:             aUint8(123),
+		Sst:             aStr("123"),
 		DefaultBehavior: aStr("DENY-ALL"),
 	}
 	err = validateSlice(v)

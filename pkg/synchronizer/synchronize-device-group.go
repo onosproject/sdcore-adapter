@@ -23,14 +23,6 @@ func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGrou
 		SiteInfo:     *scope.Site.SiteId,
 	}
 
-	if scope.Site.ImsiDefinition == nil {
-		return 0, fmt.Errorf("DeviceGroup %s site has nil ImsiDefinition", *dg.DeviceGroupId)
-	}
-	err = validateImsiDefinition(scope.Site.ImsiDefinition)
-	if err != nil {
-		return 0, fmt.Errorf("DeviceGroup %s unable to determine Site.ImsiDefinition: %s", *dg.DeviceGroupId, err)
-	}
-
 	// be deterministic...
 	deviceLinkKeys := []string{}
 	for k := range dg.Device {
@@ -65,11 +57,15 @@ func (s *Synchronizer) SynchronizeDeviceGroup(scope *AetherScope, dg *DeviceGrou
 			return 0, fmt.Errorf("DeviceGroup %s failed to get SimCard: %s", *dg.DeviceGroupId, err)
 		}
 
-		imsi, err := FormatImsiDef(scope.Site.ImsiDefinition, *simCard.Imsi)
-		if err != nil {
-			return 0, fmt.Errorf("Failed to format IMSI in dg %s: %v", *dg.DeviceGroupId, err)
+		if (simCard.Imsi == nil) || (*simCard.Imsi == "") {
+			return 0, fmt.Errorf("Simcard %s does not have imsi", *simCard.SimId)
 		}
-		dgCore.Imsis = append(dgCore.Imsis, fmt.Sprintf("%015d", imsi))
+
+		if (simCard.Enable != nil) && (!*simCard.Enable) {
+			log.Infof("SimCard %s with IMSI %s is disabled", *simCard.SimId, *simCard.Imsi)
+			continue
+		}
+		dgCore.Imsis = append(dgCore.Imsis, *simCard.Imsi)
 	}
 
 	ipd, err := s.GetIPDomain(scope, dg.IpDomain)

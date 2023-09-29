@@ -20,6 +20,9 @@ const (
 
 	// CacheModelDeviceGroup is the modelName to use when caching device-groups to the core
 	CacheModelDeviceGroup = "devicegroup"
+
+	// CacheModelSliceXapp is the modelName to use when caching slices to the XAPP
+	CacheModelSliceXapp = "slice-xapp"
 )
 
 // CacheCheck returns true if (modelName, modelId) exists in the cache and the contents have not

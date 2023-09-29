@@ -38,16 +38,18 @@ func (p *RESTPusher) PushUpdate(endpoint string, data []byte) error {
 
 	log.Infof("Push Update endpoint=%s data=%s", endpoint, string(data))
 
-	resp, err := client.Post(
-		endpoint,
-		"application/json",
-		bytes.NewBuffer(data))
 
-	/* In the future, PUT will be the correct operation
-	resp, err := httpPut(client, endpoint, "application/json", data)
-	*/
-
+	req, err := http.NewRequest(http.MethodPut, endpoint, bytes.NewBuffer(data))
 	if err != nil {
+		log.Infof("NewRequest failed and returned status %s", err)
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Infof("do failed and returned status %s", err)
 		return err
 	}
 

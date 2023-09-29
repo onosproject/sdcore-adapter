@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-FROM onosproject/golang-build:v1.0 as build
+FROM onosproject/golang-build:v1.3.0 as build
 
 ARG LOCAL_AETHER_MODELS
 ARG org_label_schema_version=unknown
@@ -20,46 +20,25 @@ RUN mkdir -p $ADAPTER_ROOT/
 
 COPY . $ADAPTER_ROOT/
 
+WORKDIR $ADAPTER_ROOT
 # If LOCAL_AETHER_MODELS was used, then patch the go.mod file to load
 # the models from the local source.
 RUN if [ -n "$LOCAL_AETHER_MODELS" ] ; then \
     echo "replace github.com/onosproject/aether-models/models/aether-4.x => ./local-aether-models/aether-4.x" >> $ADAPTER_ROOT/go.mod; \
     echo "replace github.com/onosproject/aether-models/models/aether-2.0.x => ./local-aether-models/aether-2.0.x" >> $ADAPTER_ROOT/go.mod; \
+    echo "replace github.com/onosproject/aether-models/models/aether-2.1.x/v2 v2.1.13 => ./local-aether-models/aether-2.1.x" >> $ADAPTER_ROOT/go.mod; \
+    go mod tidy;\
     fi
 
 RUN cat $ADAPTER_ROOT/go.mod
 
 RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sdcore-adapter \
-        -ldflags \
-        "-X github.com/onosproject/sdcore-adapter/internal/pkg/version.Version=$org_label_schema_version \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GitCommit=$org_label_schema_vcs_ref  \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GitDirty=$org_opencord_vcs_dirty \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GoVersion=$(go version 2>&1 | sed -E  's/.*go([0-9]+\.[0-9]+\.[0-9]+).*/\1/g') \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.Os=$(go env GOHOSTOS) \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.Arch=$(go env GOHOSTARCH) \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.BuildTime=$org_label_schema_build_date" \
          ./cmd/sdcore-adapter
 
 RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sdcore-migrate \
-        -ldflags \
-        "-X github.com/onosproject/sdcore-adapter/internal/pkg/version.Version=$org_label_schema_version \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GitCommit=$org_label_schema_vcs_ref  \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GitDirty=$org_opencord_vcs_dirty \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GoVersion=$(go version 2>&1 | sed -E  's/.*go([0-9]+\.[0-9]+\.[0-9]+).*/\1/g') \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.Os=$(go env GOHOSTOS) \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.Arch=$(go env GOHOSTARCH) \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.BuildTime=$org_label_schema_build_date" \
          ./cmd/sdcore-migrate
 
 RUN cd $ADAPTER_ROOT && GO111MODULE=on go build -o /go/bin/sdcore-kafka \
-        -ldflags \
-        "-X github.com/onosproject/sdcore-adapter/internal/pkg/version.Version=$org_label_schema_version \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GitCommit=$org_label_schema_vcs_ref  \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GitDirty=$org_opencord_vcs_dirty \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.GoVersion=$(go version 2>&1 | sed -E  's/.*go([0-9]+\.[0-9]+\.[0-9]+).*/\1/g') \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.Os=$(go env GOHOSTOS) \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.Arch=$(go env GOHOSTARCH) \
-         -X github.com/onosproject/sdcore-adapter/internal/pkg/version.BuildTime=$org_label_schema_build_date" \
          ./cmd/sdcore-kafka
 
 FROM alpine:3.11

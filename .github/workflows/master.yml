@@ -29,7 +29,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
-      - uses: golangci/golangci-lint-action@v4.0.0
+      - uses: golangci/golangci-lint-action@v6.0.1
         with:
           version: latest
           args: -v --config ./.golangci.yml --timeout=15m
@@ -54,14 +54,14 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Build Docker image
-        run: sdcore-adapter-docker
+        run: make sdcore-adapter-docker
 
   license-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: reuse lint
-        uses: fsfe/reuse-action@v2
+        uses: fsfe/reuse-action@v3
 
   fossa-check:
     runs-on: ubuntu-latest

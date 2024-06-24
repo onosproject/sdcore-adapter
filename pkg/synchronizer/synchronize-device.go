@@ -130,6 +130,12 @@ func (s *Synchronizer) SynchronizeDevice(allConfig *gnmi.ConfigForest) (int, err
 					log.Warnf("Slice %s failed to synchronize UPF: %s", *slice.SliceId, err)
 					KpiSynchronizationFailedTotal.WithLabelValues(entID, "slice", "upf").Inc()
 				}
+				xappPushFailures, err := s.SynchronizeSliceXAPP(scope, slice)
+				pushFailures += xappPushFailures
+				if err != nil {
+					log.Warnf("Slice %s failed to synchronize XAPP: %s", *slice.SliceId, err)
+					KpiSynchronizationFailedTotal.WithLabelValues(entID, "slice", "upf").Inc()
+				}
 			}
 		}
 

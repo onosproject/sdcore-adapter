@@ -5,7 +5,7 @@
   },
   "site-device-group": [
     "sample-dg"
-  ],  
+  ],
   "site-info": {
     "site-name": "sample-site",
     "plmn": {
@@ -55,24 +55,52 @@
       "rule-name": "DENY-CLASS-A",
       "endpoint": "10.0.0.0/8",
       "priority": 250,
-      "action": "deny"
+      "action": "deny",
+      "traffic-class": {
+        "name": "",
+        "arp": 6,
+        "pdb": 0,
+        "pelr": 0,
+        "qci": 9
+      }
     },
     {
       "rule-name": "DENY-CLASS-B",
       "endpoint": "172.16.0.0/12",
       "priority": 251,
-      "action": "deny"
+      "action": "deny",
+      "traffic-class": {
+        "name": "",
+        "arp": 6,
+        "pdb": 0,
+        "pelr": 0,
+        "qci": 9
+      }
     },
     {
       "rule-name": "DENY-CLASS-C",
       "endpoint": "192.168.0.0/16",
       "priority": 252,
-      "action": "deny"
-    },    
+      "action": "deny",
+      "traffic-class": {
+        "name": "",
+        "arp": 6,
+        "pdb": 0,
+        "pelr": 0,
+        "qci": 9
+      }
+    },
     {
       "rule-name": "ALLOW-ALL",
       "endpoint": "0.0.0.0/0",
       "priority": 253,
-      "action": "permit"
+      "action": "permit",
+      "traffic-class": {
+        "name": "",
+        "arp": 6,
+        "pdb": 0,
+        "pelr": 0,
+        "qci": 9
+      }
     }]
 }

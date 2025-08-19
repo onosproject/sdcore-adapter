@@ -65,7 +65,10 @@ func main() {
 	var sync synchronizer.SynchronizerInterface
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		_, err := fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		if err != nil {
+			log.Errorf("error: %+v", err)
+		}
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -84,9 +87,16 @@ func main() {
 	model := sync.GetModels()
 
 	if *showModelList {
-		fmt.Fprintf(os.Stdout, "Supported models:\n")
+		_, err := fmt.Fprintf(os.Stdout, "Supported models:\n")
+		if err != nil {
+			log.Errorf("error: %+v", err)
+		}
+
 		for _, m := range model.SupportedModels() {
-			fmt.Fprintf(os.Stdout, "  %s\n", m)
+			_, err := fmt.Fprintf(os.Stdout, "  %s\n", m)
+			if err != nil {
+				log.Errorf("error: %+v", err)
+			}
 		}
 		return
 	}

@@ -66,7 +66,11 @@ func (m *DiagnosticAPI) reSync(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "SUCCESS")
+	_, err = fmt.Fprintf(w, "SUCCESS")
+	if err != nil {
+		log.Errorf("error writing response: %v", err)
+		return
+	}
 }
 
 func (m *DiagnosticAPI) getCache(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +108,11 @@ func (m *DiagnosticAPI) deleteCache(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "SUCCESS")
+	_, err = fmt.Fprintf(w, "SUCCESS")
+	if err != nil {
+		log.Errorf("error writing response: %v", err)
+		return
+	}
 }
 
 func (m *DiagnosticAPI) postCache(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +134,11 @@ func (m *DiagnosticAPI) postCache(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "SUCCESS")
+	_, err = fmt.Fprintf(w, "SUCCESS")
+	if err != nil {
+		log.Errorf("error writing response: %v", err)
+		return
+	}
 }
 
 func (m *DiagnosticAPI) pullFromOnosConfig(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +174,11 @@ func (m *DiagnosticAPI) pullFromOnosConfig(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "SUCCESS")
+	_, err = fmt.Fprintf(w, "SUCCESS")
+	if err != nil {
+		log.Errorf("error writing response: %v", err)
+		return
+	}
 }
 
 // this method is not exported in onos logger

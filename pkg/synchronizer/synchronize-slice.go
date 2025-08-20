@@ -209,16 +209,16 @@ func (s *Synchronizer) SynchronizeSlice(scope *AetherScope, slice *Slice) (int, 
 
 	switch *slice.DefaultBehavior {
 	case "ALLOW-ALL":
-		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: s.mapPriority(250), Endpoint: "0.0.0.0/0"}
+		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: s.mapPriority(250), Endpoint: "0.0.0.0/0", TrafficClass: &trafficClass{ARP: 6, QCI: 9}}
 		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, allowAll)
 	case "DENY-ALL":
-		denyAll := appFilterRule{Name: "DENY-ALL", Action: "deny", Priority: s.mapPriority(250), Endpoint: "0.0.0.0/0"}
+		denyAll := appFilterRule{Name: "DENY-ALL", Action: "deny", Priority: s.mapPriority(250), Endpoint: "0.0.0.0/0", TrafficClass: &trafficClass{ARP: 6, QCI: 9}}
 		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, denyAll)
 	case "ALLOW-PUBLIC":
-		denyClassA := appFilterRule{Name: "DENY-CLASS-A", Action: "deny", Priority: s.mapPriority(250), Endpoint: "10.0.0.0/8"}
-		denyClassB := appFilterRule{Name: "DENY-CLASS-B", Action: "deny", Priority: s.mapPriority(251), Endpoint: "172.16.0.0/12"}
-		denyClassC := appFilterRule{Name: "DENY-CLASS-C", Action: "deny", Priority: s.mapPriority(252), Endpoint: "192.168.0.0/16"}
-		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: s.mapPriority(253), Endpoint: "0.0.0.0/0"}
+		denyClassA := appFilterRule{Name: "DENY-CLASS-A", Action: "deny", Priority: s.mapPriority(250), Endpoint: "10.0.0.0/8", TrafficClass: &trafficClass{ARP: 6, QCI: 9}}
+		denyClassB := appFilterRule{Name: "DENY-CLASS-B", Action: "deny", Priority: s.mapPriority(251), Endpoint: "172.16.0.0/12", TrafficClass: &trafficClass{ARP: 6, QCI: 9}}
+		denyClassC := appFilterRule{Name: "DENY-CLASS-C", Action: "deny", Priority: s.mapPriority(252), Endpoint: "192.168.0.0/16", TrafficClass: &trafficClass{ARP: 6, QCI: 9}}
+		allowAll := appFilterRule{Name: "ALLOW-ALL", Action: "permit", Priority: s.mapPriority(253), Endpoint: "0.0.0.0/0", TrafficClass: &trafficClass{ARP: 6, QCI: 9}}
 		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, denyClassA)
 		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, denyClassB)
 		coreSlice.ApplicationFilteringRules = append(coreSlice.ApplicationFilteringRules, denyClassC)

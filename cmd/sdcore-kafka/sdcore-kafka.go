@@ -56,7 +56,10 @@ var log = logging.GetLogger("sdcore-kafka")
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		_, err := fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		if err != nil {
+			log.Errorf("error: %+v", err)
+		}
 		flag.PrintDefaults()
 	}
 	flag.Var(&endpoints, "endpoint", "prometheus endpoints")

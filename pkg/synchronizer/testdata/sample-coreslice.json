@@ -55,8 +55,15 @@
     {
       "rule-name": "DENY-ALL",
       "priority": 250,
+      "endpoint": "0.0.0.0/0",
       "action": "deny",
-      "endpoint": "0.0.0.0/0"
+      "traffic-class": {
+        "name": "",
+        "arp": 6,
+        "pdb": 0,
+        "pelr": 0,
+        "qci": 9
+      }
     }
   ]
 }

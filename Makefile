@@ -14,9 +14,13 @@ export GO111MODULE=on
 VERSION                     ?= $(shell cat ./VERSION)
 
 KIND_CLUSTER_NAME           ?= kind
-DOCKER_REPOSITORY           ?= onosproject/
 ONOS_SDCORE_ADAPTER_VERSION ?= latest
+DOCKER_TAG                  ?= ${ONOS_SDCORE_ADAPTER_VERSION}
+DOCKER_REPOSITORY           ?= onosproject/
+DOCKER_REGISTRY             ?= ""
+DOCKER_IMAGENAME            := ${DOCKER_REGISTRY}${DOCKER_REPOSITORY}sdcore-adapter:${DOCKER_TAG}
 LOCAL_AETHER_MODELS         ?=
+PLATFORM                    ?= --platform linux/x86_64
 
 ## Docker labels. Only set ref and commit date if committed
 DOCKER_LABEL_VCS_URL        ?= $(shell git remote get-url $(shell git remote))
@@ -39,6 +43,14 @@ all: build images
 
 build-tools:=$(shell if [ ! -d "./build/build-tools" ]; then cd build && git clone https://github.com/onosproject/build-tools.git; fi)
 include ./build/build-tools/make/onf-common.mk
+
+# Docker targets for compatibility with GitHub workflow
+docker-build: # @HELP build Docker image
+docker-build: images
+
+docker-push: # @HELP push Docker image
+docker-push:
+        docker push ${DOCKER_IMAGENAME}
 
 images: # @HELP build simulators image
 images: sdcore-adapter-docker
@@ -74,9 +86,9 @@ jenkins-test: build deps license linters images jenkins-tools
 	TEST_PACKAGES=`go list github.com/onosproject/sdcore-adapter/...` ./build/build-tools/build/jenkins/make-unit
 
 sdcore-adapter-docker: local-aether-models
-	docker build . -f Dockerfile \
+	docker build ${PLATFORM} . -f Dockerfile \
 	$(DOCKER_BUILD_ARGS) \
-	-t ${DOCKER_REPOSITORY}sdcore-adapter:${ONOS_SDCORE_ADAPTER_VERSION}
+	-t ${DOCKER_IMAGENAME}
 
 kind: # @HELP build Docker images and add them to the currently configured kind cluster
 kind: images kind-only
@@ -84,7 +96,7 @@ kind: images kind-only
 kind-only: # @HELP deploy the image without rebuilding first
 kind-only:
 	@if [ "`kind get clusters`" = '' ]; then echo "no kind cluster found" && exit 1; fi
-	kind load docker-image --name ${KIND_CLUSTER_NAME} ${DOCKER_REPOSITORY}sdcore-adapter:${ONOS_SDCORE_ADAPTER_VERSION}
+	kind load docker-image --name ${KIND_CLUSTER_NAME} ${DOCKER_IMAGENAME}
 
 publish: # @HELP publish version on github and dockerhub
 	./build/build-tools/publish-version ${VERSION} onosproject/sdcore-adapter

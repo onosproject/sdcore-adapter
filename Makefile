@@ -50,7 +50,7 @@ docker-build: images
 
 docker-push: # @HELP push Docker image
 docker-push:
-        docker push ${DOCKER_IMAGENAME}
+	docker push ${DOCKER_IMAGENAME}
 
 images: # @HELP build simulators image
 images: sdcore-adapter-docker
